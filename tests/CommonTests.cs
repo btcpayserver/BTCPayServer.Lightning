@@ -51,9 +51,9 @@ namespace BTCPayServer.Lightning.Tests
                         var paidReply = await client.Pay(invoice.BOLT11);
                         Assert.Equal(PayResult.Ok, paidReply.Result);
                         var paidInvoice = await waiting;
-                        Assert.Equal("paid", paidInvoice.Status);
+                        Assert.Equal(LightningInvoiceStatus.Paid, paidInvoice.Status);
                         var retrievedInvoice = await dest.GetInvoice(invoice.Id);
-                        Assert.Equal("paid", retrievedInvoice.Status);
+                        Assert.Equal(LightningInvoiceStatus.Paid, retrievedInvoice.Status);
                     }
                 }
             }
@@ -64,7 +64,7 @@ namespace BTCPayServer.Lightning.Tests
             Assert.NotNull(invoice.BOLT11);
             Assert.Equal(LightMoney.MilliSatoshis(10000), invoice.Amount);
             Assert.Null(invoice.PaidAt);
-            Assert.Equal("unpaid", invoice.Status);
+            Assert.Equal(LightningInvoiceStatus.Unpaid, invoice.Status);
         }
 
         private async Task EnsureConnectedToDestinations()

@@ -201,7 +201,7 @@ namespace BTCPayServer.Lightning.LND
                 Id = BitString(resp.R_hash),
                 Amount = amount,
                 BOLT11 = resp.Payment_request,
-                Status = "unpaid"
+                Status = LightningInvoiceStatus.Unpaid
             };
             return invoice;
         }
@@ -253,20 +253,20 @@ namespace BTCPayServer.Lightning.LND
                 Id = BitString(resp.R_hash),
                 Amount = new LightMoney(ConvertInv.ToInt64(resp.Value), LightMoneyUnit.Satoshi),
                 BOLT11 = resp.Payment_request,
-                Status = "unpaid"
+                Status = LightningInvoiceStatus.Unpaid
             };
 
             if(resp.Settle_date != null)
             {
                 invoice.PaidAt = DateTimeOffset.FromUnixTimeSeconds(ConvertInv.ToInt64(resp.Settle_date));
-                invoice.Status = "paid";
+                invoice.Status = LightningInvoiceStatus.Paid;
             }
             else
             {
                 var invoiceExpiry = ConvertInv.ToInt64(resp.Creation_date) + ConvertInv.ToInt64(resp.Expiry);
                 if(DateTimeOffset.FromUnixTimeSeconds(invoiceExpiry) < DateTimeOffset.UtcNow)
                 {
-                    invoice.Status = "expired";
+                    invoice.Status = LightningInvoiceStatus.Expired;
                 }
             }
             return invoice;

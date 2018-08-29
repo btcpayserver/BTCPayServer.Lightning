@@ -4,13 +4,19 @@ using System.Text;
 
 namespace BTCPayServer.Lightning
 {
+    public enum LightningInvoiceStatus
+    {
+        Unpaid,
+        Paid,
+        Expired
+    }
     public class LightningInvoice
     {
         public string Id
         {
             get; set;
         }
-        public string Status
+        public LightningInvoiceStatus Status
         {
             get; set;
         }

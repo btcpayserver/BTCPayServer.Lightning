@@ -226,9 +226,24 @@ namespace BTCPayServer.Lightning.CLightning
                 Id = invoice.Label,
                 Amount = invoice.MilliSatoshi,
                 BOLT11 = invoice.BOLT11,
-                Status = invoice.Status,
+                Status = ToStatus(invoice.Status),
                 PaidAt = invoice.PaidAt
             };
+        }
+
+        public static LightningInvoiceStatus ToStatus(string status)
+        {
+            switch(status)
+            {
+                case "paid":
+                    return LightningInvoiceStatus.Paid;
+                case "unpaid":
+                    return LightningInvoiceStatus.Unpaid;
+                case "expired":
+                    return LightningInvoiceStatus.Expired;
+                default:
+                    throw new NotSupportedException($"'{status}' can't map to any LightningInvoiceStatus");
+            }
         }
 
         Task<ILightningInvoiceListener> ILightningClient.Listen(CancellationToken cancellation)
