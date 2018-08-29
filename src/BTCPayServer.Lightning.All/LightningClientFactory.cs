@@ -9,7 +9,7 @@ using NBitcoin;
 
 namespace BTCPayServer.Lightning
 {
-    public class LightningClientFactory
+    public class LightningClientFactory : ILightningClientFactory
     {
         public static ILightningClient CreateClient(LightningConnectionString connString, Network network)
         {
@@ -40,6 +40,23 @@ namespace BTCPayServer.Lightning
             if(!LightningConnectionString.TryParse(connectionString, false, out var conn, out string error))
                 throw new FormatException($"Invalid format ({error})");
             return LightningClientFactory.CreateClient(conn, network);
+        }
+
+        public LightningClientFactory(Network network)
+        {
+            if(network == null)
+                throw new ArgumentNullException(nameof(network));
+            Network = network;
+        }
+
+        public Network Network
+        {
+            get;
+        }
+
+        public ILightningClient Create(string connectionString)
+        {
+            return LightningClientFactory.CreateClient(connectionString, Network);
         }
     }
 }

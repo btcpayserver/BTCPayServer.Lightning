@@ -25,6 +25,25 @@ namespace BTCPayServer.Lightning.Tests
         }
 
         [Fact]
+        public async Task CanCreateInvoiceUsingConnectionString()
+        {
+            ILightningClientFactory factory = new LightningClientFactory(Tester.Network);
+            foreach(var connectionString in new[] 
+            {
+                "type=charge;server=http://api-token:foiewnccewuify@127.0.0.1:37462",
+                "type=lnd-rest;server=https://127.0.0.1:42802;allowinsecure=true",
+                "type=clightning;server=tcp://127.0.0.1:48532"
+            })
+            {
+                ILightningClient client = factory.Create(connectionString);
+                var createdInvoice = await client.CreateInvoice(10000, "CanCreateInvoice", TimeSpan.FromMinutes(5));
+                var retrievedInvoice = await client.GetInvoice(createdInvoice.Id);
+                AssertUnpaid(createdInvoice);
+                AssertUnpaid(retrievedInvoice);
+            }
+        }
+
+        [Fact]
         public async Task CanGetInfo()
         {
             await EnsureConnectedToDestinations();
