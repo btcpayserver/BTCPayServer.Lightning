@@ -1,0 +1,14 @@
+﻿<Project Sdk="Microsoft.NET.Sdk">
+
+  <PropertyGroup>
+    <TargetFramework>netstandard2.0</TargetFramework>
+    <RootNamespace>BTCPayServer.Lightning</RootNamespace>
+  </PropertyGroup>
+
+  <ItemGroup>
+    <ProjectReference Include="..\BTCPayServer.Lightning.Charge\BTCPayServer.Lightning.Charge.csproj" />
+    <ProjectReference Include="..\BTCPayServer.Lightning.CLightning\BTCPayServer.Lightning.CLightning.csproj" />
+    <ProjectReference Include="..\BTCPayServer.Lightning.LND\BTCPayServer.Lightning.LND.csproj" />
+  </ItemGroup>
+
+</Project>
