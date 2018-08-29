@@ -19,7 +19,7 @@ using Newtonsoft.Json.Linq;
 
 namespace BTCPayServer.Lightning.LND
 {
-    public class LndInvoiceClient : ILightningClient
+    public class LndClient : ILightningClient
     {
         class LndInvoiceClientSession : ILightningInvoiceListener
         {
@@ -161,24 +161,25 @@ namespace BTCPayServer.Lightning.LND
             }
         }
 
-
-        public LndSwaggerClient _rpcClient;
-
-        public LndInvoiceClient(LndSwaggerClient swaggerClient, Network network)
+        public LndClient(LndSwaggerClient swaggerClient, Network network)
         {
             if(swaggerClient == null)
                 throw new ArgumentNullException(nameof(swaggerClient));
             if(network == null)
                 throw new ArgumentNullException(nameof(network));
-            _rpcClient = swaggerClient;
+            SwaggerClient = swaggerClient;
             Network = network;
         }
-        public LndInvoiceClient(LndRestSettings lndRestSettings, Network network) : this(new LndSwaggerClient(lndRestSettings), network)
+        public LndClient(LndRestSettings lndRestSettings, Network network) : this(new LndSwaggerClient(lndRestSettings), network)
         {
 
         }
 
         public Network Network
+        {
+            get;
+        }
+        public LndSwaggerClient SwaggerClient
         {
             get;
         }
@@ -189,7 +190,7 @@ namespace BTCPayServer.Lightning.LND
             var strAmount = ConvertInv.ToString(amount.ToUnit(LightMoneyUnit.Satoshi));
             var strExpiry = ConvertInv.ToString(Math.Round(expiry.TotalSeconds, 0));
             // lnd requires numbers sent as strings. don't ask
-            var resp = await _rpcClient.AddInvoiceAsync(new LnrpcInvoice
+            var resp = await SwaggerClient.AddInvoiceAsync(new LnrpcInvoice
             {
                 Value = strAmount,
                 Memo = description,
@@ -208,7 +209,7 @@ namespace BTCPayServer.Lightning.LND
 
         public async Task<LightningNodeInformation> GetInfo(CancellationToken cancellation = default(CancellationToken))
         {
-            var resp = await _rpcClient.GetInfoAsync(cancellation);
+            var resp = await SwaggerClient.GetInfoAsync(cancellation);
 
             var nodeInfo = new LightningNodeInformation
             {
@@ -217,7 +218,7 @@ namespace BTCPayServer.Lightning.LND
 
             try
             {
-                var node = await _rpcClient.GetNodeInfoAsync(resp.Identity_pubkey, cancellation);
+                var node = await SwaggerClient.GetNodeInfoAsync(resp.Identity_pubkey, cancellation);
                 if(node.Node.Addresses == null || node.Node.Addresses.Count == 0)
                     throw new Exception("Lnd External IP not set, make sure you use --externalip=$EXTERNALIP parameter on lnd");
 
@@ -234,13 +235,13 @@ namespace BTCPayServer.Lightning.LND
 
         public async Task<LightningInvoice> GetInvoice(string invoiceId, CancellationToken cancellation = default(CancellationToken))
         {
-            var resp = await _rpcClient.LookupInvoiceAsync(invoiceId, null, cancellation);
+            var resp = await SwaggerClient.LookupInvoiceAsync(invoiceId, null, cancellation);
             return ConvertLndInvoice(resp);
         }
 
         public async Task<ILightningInvoiceListener> Listen(CancellationToken cancellation = default(CancellationToken))
         {
-            var session = new LndInvoiceClientSession(this._rpcClient);
+            var session = new LndInvoiceClientSession(this.SwaggerClient);
             await session.StartListening();
             return session;
         }
@@ -286,7 +287,7 @@ namespace BTCPayServer.Lightning.LND
             retry:
             try
             {
-                var response = await this._rpcClient.SendPaymentSyncAsync(new LnrpcSendRequest
+                var response = await this.SwaggerClient.SendPaymentSyncAsync(new LnrpcSendRequest
                 {
                     Payment_request = bolt11
                 }, cancellation);
@@ -318,7 +319,7 @@ namespace BTCPayServer.Lightning.LND
             retry:
             try
             {
-                var result = await this._rpcClient.OpenChannelSyncAsync(new LnrpcOpenChannelRequest()
+                var result = await this.SwaggerClient.OpenChannelSyncAsync(new LnrpcOpenChannelRequest()
                 {
                     Local_funding_amount = channelAmount.Satoshi.ToString(CultureInfo.InvariantCulture),
                     Node_pubkey_string = destination.NodeId.ToString()
@@ -367,12 +368,12 @@ namespace BTCPayServer.Lightning.LND
 
         public async Task<BitcoinAddress> GetDepositAddress()
         {
-            return BitcoinAddress.Create((await _rpcClient.NewWitnessAddressAsync()).Address, Network);
+            return BitcoinAddress.Create((await SwaggerClient.NewWitnessAddressAsync()).Address, Network);
         }
 
         public async Task ConnectTo(NodeInfo nodeInfo)
         {
-            await _rpcClient.ConnectPeerAsync(new LnrpcConnectPeerRequest()
+            await SwaggerClient.ConnectPeerAsync(new LnrpcConnectPeerRequest()
             {
                 Addr = new LnrpcLightningAddress()
                 {

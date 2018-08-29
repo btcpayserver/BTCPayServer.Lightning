@@ -29,28 +29,28 @@ namespace BTCPayServer.Lightning.Tests
             return new ChargeClient(new Uri("http://api-token:foiewnccewuify@127.0.0.1:37462"), Network);
         }
 
-        public static LndInvoiceClient CreateLndClient()
+        public static LndClient CreateLndClient()
         {
-            return new LndInvoiceClient(new LndRestSettings()
+            return new LndClient(new LndRestSettings()
             {
                 AllowInsecure = true,
                 Uri = new Uri("https://127.0.0.1:32736")
             }, Network.RegTest);
         }
 
-        public static CLightningRPCClient CreateCLightningClient()
+        public static CLightningClient CreateCLightningClient()
         {
-            return new CLightningRPCClient(new Uri("tcp://127.0.0.1:48532"), Network);
+            return new CLightningClient(new Uri("tcp://127.0.0.1:48532"), Network);
         }
 
-        public static CLightningRPCClient CreateCLightningClientDest()
+        public static CLightningClient CreateCLightningClientDest()
         {
-            return new CLightningRPCClient(new Uri("tcp://127.0.0.1:42549"), Network);
+            return new CLightningClient(new Uri("tcp://127.0.0.1:42549"), Network);
         }
 
-        public static LndInvoiceClient CreateLNDClientDest()
+        public static LndClient CreateLNDClientDest()
         {
-            return new LndInvoiceClient(new LndRestSettings()
+            return new LndClient(new LndRestSettings()
             {
                 AllowInsecure = true,
                 Uri = new Uri("https://127.0.0.1:42802")

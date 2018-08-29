@@ -150,7 +150,7 @@ namespace BTCPayServer.Lightning.Charge
                 Amount = invoice.MilliSatoshi,
                 BOLT11 = invoice.PaymentRequest,
                 PaidAt = invoice.PaidAt,
-                Status = CLightningRPCClient.ToStatus(invoice.Status)
+                Status = CLightningClient.ToStatus(invoice.Status)
             };
         }
 
@@ -163,7 +163,7 @@ namespace BTCPayServer.Lightning.Charge
         async Task<LightningNodeInformation> ILightningClient.GetInfo(CancellationToken cancellation)
         {
             var info = await GetInfoAsync(cancellation);
-            return CLightning.CLightningRPCClient.ToLightningNodeInformation(info);
+            return CLightning.CLightningClient.ToLightningNodeInformation(info);
         }
 
         public Task<PayResponse> Pay(string bolt11, CancellationToken cancellation = default(CancellationToken))

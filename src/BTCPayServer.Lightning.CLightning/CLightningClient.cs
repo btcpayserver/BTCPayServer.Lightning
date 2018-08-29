@@ -27,7 +27,7 @@ namespace BTCPayServer.Lightning.CLightning
             get;
         }
     }
-    public class CLightningRPCClient : ILightningClient, ILightningInvoiceListener
+    public class CLightningClient : ILightningClient, ILightningInvoiceListener
     {
         public Network Network
         {
@@ -38,7 +38,7 @@ namespace BTCPayServer.Lightning.CLightning
             get; private set;
         }
 
-        public CLightningRPCClient(Uri address, Network network)
+        public CLightningClient(Uri address, Network network)
         {
             if(address == null)
                 throw new ArgumentNullException(nameof(address));
