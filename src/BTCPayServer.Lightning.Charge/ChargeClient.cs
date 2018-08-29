@@ -166,22 +166,22 @@ namespace BTCPayServer.Lightning.Charge
             return CLightning.CLightningClient.ToLightningNodeInformation(info);
         }
 
-        public Task<PayResponse> Pay(string bolt11, CancellationToken cancellation = default(CancellationToken))
+        Task<PayResponse> ILightningClient.Pay(string bolt11, CancellationToken cancellation)
         {
             throw new NotSupportedException();
         }
 
-        public Task<OpenChannelResponse> OpenChannel(NodeInfo destination, Money channelAmount)
+        Task<OpenChannelResponse> ILightningClient.OpenChannel(NodeInfo destination, Money channelAmount)
         {
             throw new NotSupportedException();
         }
 
-        public Task<BitcoinAddress> GetDepositAddress()
+        Task<BitcoinAddress> ILightningClient.GetDepositAddress()
         {
             throw new NotSupportedException();
         }
 
-        public Task ConnectTo(NodeInfo nodeInfo)
+        Task ILightningClient.ConnectTo(NodeInfo nodeInfo)
         {
             throw new NotSupportedException();
         }

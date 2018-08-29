@@ -184,8 +184,8 @@ namespace BTCPayServer.Lightning.LND
             get;
         }
 
-        public async Task<LightningInvoice> CreateInvoice(LightMoney amount, string description, TimeSpan expiry,
-            CancellationToken cancellation = default(CancellationToken))
+        async Task<LightningInvoice> ILightningClient.CreateInvoice(LightMoney amount, string description, TimeSpan expiry,
+            CancellationToken cancellation)
         {
             var strAmount = ConvertInv.ToString(amount.ToUnit(LightMoneyUnit.Satoshi));
             var strExpiry = ConvertInv.ToString(Math.Round(expiry.TotalSeconds, 0));
@@ -207,7 +207,7 @@ namespace BTCPayServer.Lightning.LND
             return invoice;
         }
 
-        public async Task<LightningNodeInformation> GetInfo(CancellationToken cancellation = default(CancellationToken))
+        async Task<LightningNodeInformation> ILightningClient.GetInfo(CancellationToken cancellation)
         {
             var resp = await SwaggerClient.GetInfoAsync(cancellation);
 
@@ -233,13 +233,13 @@ namespace BTCPayServer.Lightning.LND
             }
         }
 
-        public async Task<LightningInvoice> GetInvoice(string invoiceId, CancellationToken cancellation = default(CancellationToken))
+        async Task<LightningInvoice> ILightningClient.GetInvoice(string invoiceId, CancellationToken cancellation)
         {
             var resp = await SwaggerClient.LookupInvoiceAsync(invoiceId, null, cancellation);
             return ConvertLndInvoice(resp);
         }
 
-        public async Task<ILightningInvoiceListener> Listen(CancellationToken cancellation = default(CancellationToken))
+        async Task<ILightningInvoiceListener> ILightningClient.Listen(CancellationToken cancellation)
         {
             var session = new LndInvoiceClientSession(this.SwaggerClient);
             await session.StartListening();
@@ -282,7 +282,7 @@ namespace BTCPayServer.Lightning.LND
                 .ToLower(CultureInfo.InvariantCulture);
         }
 
-        public async Task<PayResponse> Pay(string bolt11, CancellationToken cancellation = default(CancellationToken))
+        async Task<PayResponse> ILightningClient.Pay(string bolt11, CancellationToken cancellation)
         {
             retry:
             try
@@ -310,7 +310,7 @@ namespace BTCPayServer.Lightning.LND
 
 
 
-        public async Task<OpenChannelResponse> OpenChannel(NodeInfo destination, Money channelAmount)
+        async Task<OpenChannelResponse> ILightningClient.OpenChannel(NodeInfo destination, Money channelAmount)
         {
             if(destination == null)
                 throw new ArgumentNullException(nameof(destination));
@@ -366,12 +366,12 @@ namespace BTCPayServer.Lightning.LND
             }
         }
 
-        public async Task<BitcoinAddress> GetDepositAddress()
+        async Task<BitcoinAddress> ILightningClient.GetDepositAddress()
         {
             return BitcoinAddress.Create((await SwaggerClient.NewWitnessAddressAsync()).Address, Network);
         }
 
-        public async Task ConnectTo(NodeInfo nodeInfo)
+        async Task ILightningClient.ConnectTo(NodeInfo nodeInfo)
         {
             await SwaggerClient.ConnectPeerAsync(new LnrpcConnectPeerRequest()
             {
