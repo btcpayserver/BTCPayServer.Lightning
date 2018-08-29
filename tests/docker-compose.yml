@@ -1,0 +1,152 @@
+version: "3"    
+
+services:
+
+  bitcoind:
+    image: nicolasdorier/docker-bitcoin:0.16.0
+    environment:
+      BITCOIN_EXTRA_ARGS: |
+        rpcuser=ceiwHEbqWI83
+        rpcpassword=DwubwWsoo3
+        regtest=1
+        server=1
+        rpcport=43782
+        port=39388
+        whitelist=0.0.0.0/0
+        zmqpubrawtx=tcp://0.0.0.0:28332
+        zmqpubrawblock=tcp://0.0.0.0:28332
+        zmqpubrawtxlock=tcp://0.0.0.0:28332
+        zmqpubhashblock=tcp://0.0.0.0:28332
+    ports: 
+      - "37393:43782"
+      - "23823:28332"
+    expose:
+      - "43782" # RPC
+      - "39388" # P2P
+    volumes:
+      - "bitcoind_dir:/data"
+
+  lightningd:
+    image: nicolasdorier/clightning:v0.6-dev
+    environment: 
+      EXPOSE_TCP: "true"
+      LIGHTNINGD_OPT: |
+        bitcoin-datadir=/etc/bitcoin
+        bitcoin-rpcconnect=bitcoind
+        network=regtest
+        bind-addr=0.0.0.0
+        announce-addr=lightningd
+        log-level=debug
+        dev-broadcast-interval=1000
+        dev-bitcoind-poll=1
+    ports:
+      - "48532:9835" # api port
+    expose:
+      - "9735" # server port
+      - "9835" # api port
+    volumes:
+      - "bitcoind_dir:/etc/bitcoin"
+      - "lightningd_dir:/root/.lightning"
+    links:
+      - bitcoind
+
+  lightningd_dest:
+    image: nicolasdorier/clightning:v0.6-dev
+    environment: 
+      EXPOSE_TCP: "true"
+      LIGHTNINGD_OPT: |
+        bitcoin-datadir=/etc/bitcoin
+        bitcoin-rpcconnect=bitcoind
+        network=regtest
+        bind-addr=0.0.0.0
+        announce-addr=lightningd_dest
+        log-level=debug
+        dev-broadcast-interval=1000
+        dev-bitcoind-poll=1
+    ports:
+      - "42549:9835" # api port
+    expose:
+      - "9735" # server port
+      - "9835" # api port
+    volumes:
+      - "bitcoind_dir:/etc/bitcoin"
+      - "lightningd_dest_dir:/root/.lightning"
+    links:
+      - bitcoind
+
+  charge:
+    image: shesek/lightning-charge:0.3.15
+    environment:
+      NETWORK: regtest
+      API_TOKEN: foiewnccewuify
+      BITCOIND_RPCCONNECT: bitcoind
+    volumes:
+      - "bitcoind_dir:/etc/bitcoin"
+      - "lightning_charge_dir:/data"
+      - "lightningd_dir:/etc/lightning"
+    expose:
+      - "9112" # Charge
+      - "9735" # Lightning
+    ports:
+      - "37462:9112" # Charge
+    links:
+      - lightningd
+
+  lnd:
+    image: btcpayserver/lnd:0.4.2.0
+    environment:
+      LND_CHAIN: "btc"
+      LND_ENVIRONMENT: "regtest"
+      LND_EXTRA_ARGS: |
+        restlisten=0.0.0.0:8080
+        bitcoin.node=bitcoind
+        bitcoind.rpchost=bitcoind:43782
+        bitcoind.zmqpath=tcp://bitcoind:28332
+        trickledelay=1000
+        externalip=lnd:9735
+        no-macaroons=1
+        debuglevel=debug
+        noencryptwallet=1
+    ports:
+      - "32736:8080"
+    expose:
+      - "9735"
+    volumes:
+      - "lnd_dir:/data"
+      - "bitcoind_dir:/deps/.bitcoin"
+    links:
+      - bitcoind
+
+  lnd_dest:
+    image: btcpayserver/lnd:0.4.2.0
+    environment:
+      LND_CHAIN: "btc"
+      LND_ENVIRONMENT: "regtest"
+      LND_EXTRA_ARGS: |
+        restlisten=0.0.0.0:8080
+        bitcoin.node=bitcoind
+        bitcoind.rpchost=bitcoind:43782
+        bitcoind.zmqpath=tcp://bitcoind:28332
+        trickledelay=1000
+        externalip=lnd_dest:9735
+        no-macaroons=1
+        debuglevel=debug
+        noencryptwallet=1
+    ports:
+      - "42802:8080"
+    expose:
+      - "9735"
+    volumes:
+      - "lnd_dest_dir:/data"
+      - "bitcoind_dir:/deps/.bitcoin"
+    links:
+      - bitcoind
+
+volumes:
+    lnd_dir:
+    lnd_dest_dir:
+    bitcoind_dir:
+    lightningd_dir:
+    lightning_charge_dir:
+    lightningd_dest_dir:
+
