@@ -132,7 +132,17 @@ namespace BTCPayServer.Lightning.Tests
             return ConnectChannels.ConnectAll(Tester.CreateRPC(), Tester.GetLightningSenderClients(), Tester.GetLightningDestClients());
         }
 
-       
+        [Fact]
+        public void CanUseLightMoney()
+        {
+            var light = LightMoney.MilliSatoshis(1);
+            Assert.Equal("0.00000000001", light.ToString());
+
+            light = LightMoney.MilliSatoshis(200000);
+            Assert.Equal(200m, light.ToDecimal(LightMoneyUnit.Satoshi));
+            Assert.Equal(0.00000001m * 200m, light.ToDecimal(LightMoneyUnit.BTC));
+        }
+
 
         [Fact]
         public void CanParseLightningURL()
