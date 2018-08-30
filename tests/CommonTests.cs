@@ -127,72 +127,12 @@ namespace BTCPayServer.Lightning.Tests
             Assert.Equal(LightningInvoiceStatus.Unpaid, invoice.Status);
         }
 
-        private async Task EnsureConnectedToDestinations()
+        private Task EnsureConnectedToDestinations()
         {
-
-            var cashCow = Tester.CreateRPC();
-            if(await cashCow.GetBlockCountAsync() <= Tester.Network.Consensus.CoinbaseMaturity)
-            {
-                await cashCow.GenerateAsync(Tester.Network.Consensus.CoinbaseMaturity + 1);
-            }
-
-
-            foreach(var sender in Tester.GetLightningSenderClients())
-            {
-                foreach(var dest in Tester.GetLightningDestClients())
-                {
-                    var destInfo = await dest.GetInfo();
-                    var destInvoice = await dest.CreateInvoice(1000, "EnsureConnectedToDestination", TimeSpan.FromSeconds(5000));
-                    while(true)
-                    {
-                        var result = await sender.Pay(destInvoice.BOLT11);
-                        if(result.Result == PayResult.CouldNotFindRoute)
-                        {
-                            var openChannel = await sender.OpenChannel(destInfo.NodeInfo, Money.Satoshis(16777215));
-                            if(openChannel.Result == OpenChannelResult.CannotAffordFunding)
-                            {
-                                var address = await sender.GetDepositAddress();
-                                await cashCow.SendToAddressAsync(address, Money.Coins(1.0m));
-                                await cashCow.GenerateAsync(10);
-                                await WaitLNSynched(cashCow, sender);
-                                await WaitLNSynched(cashCow, dest);
-                            }
-                            if(openChannel.Result == OpenChannelResult.PeerNotConnected)
-                            {
-                                await sender.ConnectTo(destInfo.NodeInfo);
-                            }
-                            if(openChannel.Result == OpenChannelResult.NeedMoreConf)
-                            {
-                                await cashCow.GenerateAsync(6);
-                                await WaitLNSynched(cashCow, sender);
-                                await WaitLNSynched(cashCow, dest);
-                            }
-                        }
-                        else if(result.Result == PayResult.Ok)
-                        {
-                            break;
-                        }
-                    }
-                }
-            }
+            return ConnectChannels.ConnectAll(Tester.CreateRPC(), Tester.GetLightningSenderClients(), Tester.GetLightningDestClients());
         }
 
-        private async Task<LightningNodeInformation> WaitLNSynched(RPCClient rpc, ILightningClient lightningClient)
-        {
-            while(true)
-            {
-                var merchantInfo = await lightningClient.GetInfo();
-                var blockCount = await rpc.GetBlockCountAsync();
-                if(merchantInfo.BlockHeight != blockCount)
-                {
-                    await Task.Delay(500);
-                }
-                else
-                {
-                    return merchantInfo;
-                }
-            }
-        }
+       
 
         [Fact]
         public void CanParseLightningURL()
