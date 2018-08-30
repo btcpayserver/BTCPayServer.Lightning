@@ -58,5 +58,11 @@ namespace BTCPayServer.Lightning
         {
             return LightningClientFactory.CreateClient(connectionString, Network);
         }
+        public ILightningClient Create(LightningConnectionString connectionString)
+        {
+            if(connectionString == null)
+                throw new ArgumentNullException(nameof(connectionString));
+            return LightningClientFactory.CreateClient(connectionString, Network);
+        }
     }
 }
