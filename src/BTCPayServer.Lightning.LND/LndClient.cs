@@ -129,7 +129,7 @@ namespace BTCPayServer.Lightning.LND
                 }
                 catch(ChannelClosedException ex) when(ex.InnerException == null)
                 {
-                    throw new TaskCanceledException();
+                    throw new OperationCanceledException();
                 }
                 catch(ChannelClosedException ex)
                 {

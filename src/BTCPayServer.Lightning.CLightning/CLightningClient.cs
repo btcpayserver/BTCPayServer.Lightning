@@ -27,7 +27,7 @@ namespace BTCPayServer.Lightning.CLightning
             get;
         }
     }
-    public class CLightningClient : ILightningClient, ILightningInvoiceListener
+    public class CLightningClient : ILightningClient
     {
         public Network Network
         {
@@ -86,7 +86,7 @@ namespace BTCPayServer.Lightning.CLightning
         }
 
         static Encoding UTF8 = new UTF8Encoding(false);
-        private async Task<T> SendCommandAsync<T>(string command, object[] parameters = null, bool noReturn = false, bool isArray = false, CancellationToken cancellation = default(CancellationToken))
+        internal async Task<T> SendCommandAsync<T>(string command, object[] parameters = null, bool noReturn = false, bool isArray = false, CancellationToken cancellation = default(CancellationToken))
         {
             parameters = parameters ?? Array.Empty<string>();
             using(Socket socket = await Connect())
@@ -119,19 +119,28 @@ namespace BTCPayServer.Lightning.CLightning
                                 socket.Dispose();
                             }))
                             {
-                                var result = await resultAsync;
-                                var error = result.Property("error");
-                                if(error != null)
+                                try
                                 {
-                                    throw new LightningRPCException(error.Value["message"].Value<string>(), error.Value["code"].Value<int>());
+
+                                    var result = await resultAsync;
+                                    var error = result.Property("error");
+                                    if(error != null)
+                                    {
+                                        throw new LightningRPCException(error.Value["message"].Value<string>(), error.Value["code"].Value<int>());
+                                    }
+                                    if(noReturn)
+                                        return default(T);
+                                    if(isArray)
+                                    {
+                                        return result["result"].Children().First().Children().First().ToObject<T>();
+                                    }
+                                    return result["result"].ToObject<T>();
                                 }
-                                if(noReturn)
-                                    return default(T);
-                                if(isArray)
+                                catch when(cancellation.IsCancellationRequested)
                                 {
-                                    return result["result"].Children().First().Children().First().ToObject<T>();
+                                    cancellation.ThrowIfCancellationRequested();
+                                    throw new NotSupportedException(); // impossible
                                 }
-                                return result["result"].ToObject<T>();
                             }
                         }
                     }
@@ -219,7 +228,7 @@ namespace BTCPayServer.Lightning.CLightning
             await ConnectAsync(nodeInfo);
         }
 
-        private static LightningInvoice ToLightningInvoice(CLightningInvoice invoice)
+        internal static LightningInvoice ToLightningInvoice(CLightningInvoice invoice)
         {
             return new LightningInvoice()
             {
@@ -248,14 +257,7 @@ namespace BTCPayServer.Lightning.CLightning
 
         Task<ILightningInvoiceListener> ILightningClient.Listen(CancellationToken cancellation)
         {
-            return Task.FromResult<ILightningInvoiceListener>(this);
-        }
-        long lastInvoiceIndex = 99999999999;
-        async Task<LightningInvoice> ILightningInvoiceListener.WaitInvoice(CancellationToken cancellation)
-        {
-            var invoice = await SendCommandAsync<CLightningInvoice>("waitanyinvoice", new object[] { lastInvoiceIndex }, cancellation: cancellation);
-            lastInvoiceIndex = invoice.PayIndex.Value;
-            return ToLightningInvoice(invoice);
+            return Task.FromResult<ILightningInvoiceListener>(new CLightningInvoiceListener(this));
         }
 
         async Task<LightningNodeInformation> ILightningClient.GetInfo(CancellationToken cancellation)
@@ -324,10 +326,33 @@ namespace BTCPayServer.Lightning.CLightning
                 BlockHeight = info.BlockHeight
             };
         }
+    }
 
-        void IDisposable.Dispose()
+    class CLightningInvoiceListener : ILightningInvoiceListener
+    {
+        CancellationTokenSource _Cts = new CancellationTokenSource();
+        CLightningClient _Parent;
+        public CLightningInvoiceListener(CLightningClient parent)
         {
+            if(parent == null)
+                throw new ArgumentNullException(nameof(parent));
+            _Parent = parent;
+        }
+        public void Dispose()
+        {
+            _Cts.Cancel();
+        }
 
+        long lastInvoiceIndex = 99999999999;
+
+        public async Task<LightningInvoice> WaitInvoice(CancellationToken cancellation)
+        {
+            using(var cancellation2 = CancellationTokenSource.CreateLinkedTokenSource(cancellation, _Cts.Token))
+            {
+                var invoice = await _Parent.SendCommandAsync<CLightningInvoice>("waitanyinvoice", new object[] { lastInvoiceIndex }, cancellation: cancellation2.Token);
+                lastInvoiceIndex = invoice.PayIndex.Value;
+                return CLightningClient.ToLightningInvoice(invoice);
+            }
         }
     }
 }

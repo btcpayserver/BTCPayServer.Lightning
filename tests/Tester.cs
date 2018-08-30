@@ -48,7 +48,7 @@ namespace BTCPayServer.Lightning.Tests
             return new CLightningClient(new Uri("tcp://127.0.0.1:42549"), Network);
         }
 
-        public static LndClient CreateLNDClientDest()
+        public static LndClient CreateLndClientDest()
         {
             return new LndClient(new LndRestSettings()
             {
@@ -72,7 +72,7 @@ namespace BTCPayServer.Lightning.Tests
         public static IEnumerable<ILightningClient> GetLightningDestClients()
         {
             yield return CreateCLightningClientDest();
-            yield return CreateLNDClientDest();
+            yield return CreateLndClientDest();
         }
     }
 }

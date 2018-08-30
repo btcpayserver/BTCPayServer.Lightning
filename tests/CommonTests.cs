@@ -7,6 +7,7 @@ using NBitcoin.RPC;
 using NBitcoin.DataEncoders;
 using System.Security.Cryptography.X509Certificates;
 using System.Security.Cryptography;
+using System.Threading;
 
 namespace BTCPayServer.Lightning.Tests
 {
@@ -28,7 +29,7 @@ namespace BTCPayServer.Lightning.Tests
         public async Task CanCreateInvoiceUsingConnectionString()
         {
             ILightningClientFactory factory = new LightningClientFactory(Tester.Network);
-            foreach(var connectionString in new[] 
+            foreach(var connectionString in new[]
             {
                 "type=charge;server=http://api-token:foiewnccewuify@127.0.0.1:37462",
                 "type=lnd-rest;server=https://127.0.0.1:42802;allowinsecure=true",
@@ -80,6 +81,43 @@ namespace BTCPayServer.Lightning.Tests
                 }
             }
         }
+
+        [Fact]
+        public async Task CanWaitListenInvoice()
+        {
+            await EnsureConnectedToDestinations();
+
+            foreach(var src in Tester.GetLightningSenderClients())
+            {
+                foreach(var dest in Tester.GetLightningDestClients())
+                {
+                    var merchantInvoice = await dest.CreateInvoice(10000, "Hello world", TimeSpan.FromSeconds(3600));
+                    var merchantInvoice2 = await dest.CreateInvoice(10000, "Hello world", TimeSpan.FromSeconds(3600));
+
+                    var waitToken = default(CancellationToken);
+                    var listener = await dest.Listen(waitToken);
+                    var waitTask = listener.WaitInvoice(waitToken);
+
+                    var payResponse = await src.Pay(merchantInvoice.BOLT11);
+
+                    var invoice = await waitTask;
+                    Assert.True(invoice.PaidAt.HasValue);
+
+                    var waitTask2 = listener.WaitInvoice(waitToken);
+
+                    payResponse = await src.Pay(merchantInvoice2.BOLT11);
+
+                    invoice = await waitTask2;
+                    Assert.True(invoice.PaidAt.HasValue);
+
+                    var waitTask3 = listener.WaitInvoice(waitToken);
+                    await Task.Delay(100);
+                    listener.Dispose();
+                    Assert.Throws<OperationCanceledException>(() => waitTask3.GetAwaiter().GetResult());
+                }
+            }
+        }
+
 
         private static void AssertUnpaid(LightningInvoice invoice)
         {
