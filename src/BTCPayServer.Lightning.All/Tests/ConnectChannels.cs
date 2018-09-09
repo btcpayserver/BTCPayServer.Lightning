@@ -44,7 +44,12 @@ namespace BTCPayServer.Lightning.Tests
                 var result = await sender.Pay(destInvoice.BOLT11);
                 if(result.Result == PayResult.CouldNotFindRoute)
                 {
-                    var openChannel = await sender.OpenChannel(destInfo.NodeInfo, Money.Satoshis(16777215));
+                    var openChannel = await sender.OpenChannel(new OpenChannelRequest()
+                    {
+                        NodeInfo = destInfo.NodeInfo,
+                        ChannelAmount = Money.Satoshis(16777215),
+                        FeeRate = new FeeRate(1, 1)
+                    });
                     if(openChannel.Result == OpenChannelResult.CannotAffordFunding)
                     {
                         var address = await sender.GetDepositAddress();

@@ -171,7 +171,7 @@ namespace BTCPayServer.Lightning.Charge
             throw new NotSupportedException();
         }
 
-        Task<OpenChannelResponse> ILightningClient.OpenChannel(NodeInfo destination, Money channelAmount)
+        Task<OpenChannelResponse> ILightningClient.OpenChannel(OpenChannelRequest openChannelRequest, CancellationToken cancellation)
         {
             throw new NotSupportedException();
         }

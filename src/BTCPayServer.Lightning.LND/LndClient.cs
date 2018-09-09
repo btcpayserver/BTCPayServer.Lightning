@@ -310,20 +310,23 @@ namespace BTCPayServer.Lightning.LND
 
 
 
-        async Task<OpenChannelResponse> ILightningClient.OpenChannel(NodeInfo destination, Money channelAmount)
+        async Task<OpenChannelResponse> ILightningClient.OpenChannel(OpenChannelRequest openChannelRequest, CancellationToken cancellation)
         {
-            if(destination == null)
-                throw new ArgumentNullException(nameof(destination));
-            if(channelAmount == null)
-                throw new ArgumentNullException(nameof(channelAmount));
+            OpenChannelRequest.AssertIsSane(openChannelRequest);
             retry:
+            cancellation.ThrowIfCancellationRequested();
             try
             {
-                var result = await this.SwaggerClient.OpenChannelSyncAsync(new LnrpcOpenChannelRequest()
+                var req = new LnrpcOpenChannelRequest()
                 {
-                    Local_funding_amount = channelAmount.Satoshi.ToString(CultureInfo.InvariantCulture),
-                    Node_pubkey_string = destination.NodeId.ToString()
-                });
+                    Local_funding_amount = openChannelRequest.ChannelAmount.Satoshi.ToString(CultureInfo.InvariantCulture),
+                    Node_pubkey_string = openChannelRequest.NodeInfo.NodeId.ToString(),
+                };
+                if(openChannelRequest.FeeRate != null)
+                {
+                    req.Sat_per_byte = ((int)openChannelRequest.FeeRate.SatoshiPerByte).ToString();
+                }
+                var result = await this.SwaggerClient.OpenChannelSyncAsync(req);
                 return new OpenChannelResponse(OpenChannelResult.Ok);
             }
             catch(SwaggerException ex) when

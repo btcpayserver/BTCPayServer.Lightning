@@ -75,9 +75,15 @@ namespace BTCPayServer.Lightning.CLightning
             return peers;
         }
 
-        public Task FundChannelAsync(NodeInfo nodeInfo, Money money)
+        public Task FundChannelAsync(OpenChannelRequest openChannelRequest, CancellationToken cancellation)
         {
-            return SendCommandAsync<object>("fundchannel", new object[] { nodeInfo.NodeId.ToString(), money.Satoshi }, true);
+            OpenChannelRequest.AssertIsSane(openChannelRequest);
+            List<object> parameters = new List<object>();
+            parameters.Add(openChannelRequest.NodeInfo.NodeId.ToString());
+            parameters.Add(openChannelRequest.ChannelAmount.Satoshi);
+            if(openChannelRequest.FeeRate != null)
+                parameters.Add($"{openChannelRequest.FeeRate.FeePerK.Satoshi * 4}perkw");
+            return SendCommandAsync<object>("fundchannel", parameters.ToArray(), true, cancellation: cancellation);
         }
 
         public Task ConnectAsync(NodeInfo nodeInfo)
@@ -266,22 +272,17 @@ namespace BTCPayServer.Lightning.CLightning
             return ToLightningNodeInformation(info);
         }
 
-        async Task<OpenChannelResponse> ILightningClient.OpenChannel(NodeInfo destination, Money channelAmount)
+        async Task<OpenChannelResponse> ILightningClient.OpenChannel(OpenChannelRequest openChannelRequest, CancellationToken cancellation)
         {
-            if(destination == null)
-                throw new ArgumentNullException(nameof(destination));
-            if(channelAmount == null)
-                throw new ArgumentNullException(nameof(channelAmount));
             try
             {
-
-                await FundChannelAsync(destination, channelAmount);
+                await FundChannelAsync(openChannelRequest, cancellation);
             }
             catch(LightningRPCException ex) when(ex.ErrorCode == 301)
             {
                 return new OpenChannelResponse(OpenChannelResult.CannotAffordFunding);
             }
-            catch(LightningRPCException ex) when(ex.Message == "Peer not connected")
+            catch(LightningRPCException ex) when(ex.Message == "Peer not connected" || ex.Message == "Unknown peer")
             {
                 return new OpenChannelResponse(OpenChannelResult.PeerNotConnected);
             }
