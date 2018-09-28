@@ -348,7 +348,8 @@ namespace BTCPayServer.Lightning.LND
             {
                 var pendingChannels = await this.SwaggerClient.PendingChannelsAsync();
                 var nodePub = openChannelRequest.NodeInfo.NodeId.ToHex();
-                if(pendingChannels.Pending_open_channels.Any(p => p.Channel.Remote_node_pub == nodePub))
+                if(pendingChannels.Pending_open_channels != null && 
+                   pendingChannels.Pending_open_channels.Any(p => p.Channel.Remote_node_pub == nodePub))
                     return new OpenChannelResponse(OpenChannelResult.NeedMoreConf);
                 return new OpenChannelResponse(OpenChannelResult.AlreadyExists);
             }
