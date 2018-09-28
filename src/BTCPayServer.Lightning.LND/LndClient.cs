@@ -331,7 +331,8 @@ namespace BTCPayServer.Lightning.LND
             }
             catch(SwaggerException ex) when
                 (ex.AsLNDError() is LndError2 lndError &&
-                 lndError.Error.StartsWith("peer is not connected"))
+                 (lndError.Error.StartsWith("peer is not connected") ||
+                 lndError.Error.EndsWith("is not online")))
             {
                 return new OpenChannelResponse(OpenChannelResult.PeerNotConnected);
             }
@@ -345,6 +346,10 @@ namespace BTCPayServer.Lightning.LND
                 (ex.AsLNDError() is LndError2 lndError &&
                  lndError.Code == 177)
             {
+                var pendingChannels = await this.SwaggerClient.PendingChannelsAsync();
+                var nodePub = openChannelRequest.NodeInfo.NodeId.ToHex();
+                if(pendingChannels.Pending_open_channels.Any(p => p.Channel.Remote_node_pub == nodePub))
+                    return new OpenChannelResponse(OpenChannelResult.NeedMoreConf);
                 return new OpenChannelResponse(OpenChannelResult.AlreadyExists);
             }
             catch(SwaggerException ex) when
