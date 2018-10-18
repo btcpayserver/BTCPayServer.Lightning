@@ -3,12 +3,13 @@ version: "3"
 services:
 
   bitcoind:
-    image: nicolasdorier/docker-bitcoin:0.16.3
+    restart: unless-stopped
+    image: nicolasdorier/docker-bitcoin:0.17.0
     environment:
+      BITCOIN_NETWORK: regtest
       BITCOIN_EXTRA_ARGS: |
         rpcuser=ceiwHEbqWI83
         rpcpassword=DwubwWsoo3
-        regtest=1
         server=1
         rpcport=43782
         port=39388
@@ -25,7 +26,8 @@ services:
       - "bitcoind_dir:/data"
 
   lightningd:
-    image: nicolasdorier/clightning:v0.6.1-dev
+    restart: unless-stopped
+    image: nicolasdorier/clightning:v0.6.1-1-dev
     environment: 
       EXPOSE_TCP: "true"
       LIGHTNINGD_OPT: |
@@ -49,7 +51,8 @@ services:
       - bitcoind
 
   lightningd_dest:
-    image: nicolasdorier/clightning:v0.6.1-dev
+    restart: unless-stopped
+    image: nicolasdorier/clightning:v0.6.1-1-dev
     environment: 
       EXPOSE_TCP: "true"
       LIGHTNINGD_OPT: |
@@ -73,6 +76,7 @@ services:
       - bitcoind
 
   charge:
+    restart: unless-stopped
     image: shesek/lightning-charge:0.4.3
     environment:
       NETWORK: regtest
@@ -91,6 +95,7 @@ services:
       - lightningd
 
   lnd:
+    restart: unless-stopped
     image: btcpayserver/lnd:0.5-beta
     environment:
       LND_CHAIN: "btc"
@@ -117,6 +122,7 @@ services:
       - bitcoind
 
   lnd_dest:
+    restart: unless-stopped
     image: btcpayserver/lnd:0.5-beta
     environment:
       LND_CHAIN: "btc"
