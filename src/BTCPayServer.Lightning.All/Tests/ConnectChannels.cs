@@ -68,6 +68,10 @@ namespace BTCPayServer.Lightning.Tests
                         await WaitLNSynched(cashCow, sender);
                         await WaitLNSynched(cashCow, dest);
                     }
+                    if(openChannel.Result == OpenChannelResult.AlreadyExists)
+                    {
+                        await Task.Delay(1000);
+                    }
                 }
                 else if(result.Result == PayResult.Ok)
                 {

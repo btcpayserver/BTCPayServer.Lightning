@@ -27,7 +27,7 @@ services:
 
   lightningd:
     restart: unless-stopped
-    image: nicolasdorier/clightning:v0.6.1-1-dev
+    image: nicolasdorier/clightning:v0.6.2-3-dev
     environment: 
       EXPOSE_TCP: "true"
       LIGHTNINGD_OPT: |
@@ -52,7 +52,7 @@ services:
 
   lightningd_dest:
     restart: unless-stopped
-    image: nicolasdorier/clightning:v0.6.1-1-dev
+    image: nicolasdorier/clightning:v0.6.2-3-dev
     environment: 
       EXPOSE_TCP: "true"
       LIGHTNINGD_OPT: |
@@ -96,7 +96,7 @@ services:
 
   lnd:
     restart: unless-stopped
-    image: btcpayserver/lnd:0.5-beta
+    image: btcpayserver/lnd:0.5-beta-2
     environment:
       LND_CHAIN: "btc"
       LND_ENVIRONMENT: "regtest"
@@ -123,7 +123,7 @@ services:
 
   lnd_dest:
     restart: unless-stopped
-    image: btcpayserver/lnd:0.5-beta
+    image: btcpayserver/lnd:0.5-beta-2
     environment:
       LND_CHAIN: "btc"
       LND_ENVIRONMENT: "regtest"
