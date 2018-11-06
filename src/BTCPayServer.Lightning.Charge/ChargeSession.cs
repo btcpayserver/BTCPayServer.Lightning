@@ -21,7 +21,7 @@ namespace BTCPayServer.Lightning.Charge
         public DateTimeOffset? PaidAt { get; set; }
         [JsonProperty("expires_at")]
         [JsonConverter(typeof(NBitcoin.JsonConverters.DateTimeToUnixTimeConverter))]
-        public DateTimeOffset? ExpiresAt { get; set; }
+        public DateTimeOffset ExpiresAt { get; set; }
         public string Status { get; set; }
 
         [JsonProperty("payreq")]

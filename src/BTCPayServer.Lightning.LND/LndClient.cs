@@ -202,7 +202,8 @@ namespace BTCPayServer.Lightning.LND
                 Id = BitString(resp.R_hash),
                 Amount = amount,
                 BOLT11 = resp.Payment_request,
-                Status = LightningInvoiceStatus.Unpaid
+                Status = LightningInvoiceStatus.Unpaid,
+                ExpiresAt = DateTimeOffset.UtcNow + expiry
             };
             return invoice;
         }
@@ -256,16 +257,16 @@ namespace BTCPayServer.Lightning.LND
                 BOLT11 = resp.Payment_request,
                 Status = LightningInvoiceStatus.Unpaid
             };
-
-            if(resp.Settle_date != null)
+            invoice.ExpiresAt = DateTimeOffset.FromUnixTimeSeconds(ConvertInv.ToInt64(resp.Creation_date) + ConvertInv.ToInt64(resp.Expiry));
+            if (resp.Settle_date != null)
             {
                 invoice.PaidAt = DateTimeOffset.FromUnixTimeSeconds(ConvertInv.ToInt64(resp.Settle_date));
+                
                 invoice.Status = LightningInvoiceStatus.Paid;
             }
             else
             {
-                var invoiceExpiry = ConvertInv.ToInt64(resp.Creation_date) + ConvertInv.ToInt64(resp.Expiry);
-                if(DateTimeOffset.FromUnixTimeSeconds(invoiceExpiry) < DateTimeOffset.UtcNow)
+                if(invoice.ExpiresAt < DateTimeOffset.UtcNow)
                 {
                     invoice.Status = LightningInvoiceStatus.Expired;
                 }

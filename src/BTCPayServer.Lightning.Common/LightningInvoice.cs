@@ -28,6 +28,7 @@ namespace BTCPayServer.Lightning
         {
             get; set;
         }
+        public DateTimeOffset ExpiresAt { get; set; }
         public LightMoney Amount
         {
             get; set;

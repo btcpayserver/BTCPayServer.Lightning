@@ -150,6 +150,7 @@ namespace BTCPayServer.Lightning.Charge
                 Amount = invoice.MilliSatoshi,
                 BOLT11 = invoice.PaymentRequest,
                 PaidAt = invoice.PaidAt,
+                ExpiresAt = invoice.ExpiresAt,
                 Status = CLightningClient.ToStatus(invoice.Status)
             };
         }
@@ -157,7 +158,7 @@ namespace BTCPayServer.Lightning.Charge
         async Task<LightningInvoice> ILightningClient.CreateInvoice(LightMoney amount, string description, TimeSpan expiry, CancellationToken cancellation)
         {
             var invoice = await CreateInvoiceAsync(new CreateInvoiceRequest() { Amount = amount, Expiry = expiry, Description = description ?? "" }, cancellation);
-            return new LightningInvoice() { Id = invoice.Id, Amount = amount, BOLT11 = invoice.PayReq, Status = LightningInvoiceStatus.Unpaid };
+            return new LightningInvoice() { Id = invoice.Id, Amount = amount, BOLT11 = invoice.PayReq, Status = LightningInvoiceStatus.Unpaid, ExpiresAt = DateTimeOffset.UtcNow + expiry };
         }
 
         async Task<LightningNodeInformation> ILightningClient.GetInfo(CancellationToken cancellation)

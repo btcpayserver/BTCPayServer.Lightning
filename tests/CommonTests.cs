@@ -21,7 +21,9 @@ namespace BTCPayServer.Lightning.Tests
                 var createdInvoice = await client.CreateInvoice(10000, "CanCreateInvoice", TimeSpan.FromMinutes(5));
                 var retrievedInvoice = await client.GetInvoice(createdInvoice.Id);
                 AssertUnpaid(createdInvoice);
+                Assert.True(createdInvoice.ExpiresAt > DateTimeOffset.UtcNow);
                 AssertUnpaid(retrievedInvoice);
+                Assert.True(retrievedInvoice.ExpiresAt > DateTimeOffset.UtcNow);
             }
         }
 

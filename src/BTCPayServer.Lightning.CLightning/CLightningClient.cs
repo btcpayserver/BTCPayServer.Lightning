@@ -242,7 +242,8 @@ namespace BTCPayServer.Lightning.CLightning
                 Amount = invoice.MilliSatoshi,
                 BOLT11 = invoice.BOLT11,
                 Status = ToStatus(invoice.Status),
-                PaidAt = invoice.PaidAt
+                PaidAt = invoice.PaidAt,
+                ExpiresAt = invoice.ExpiryAt
             };
         }
 
