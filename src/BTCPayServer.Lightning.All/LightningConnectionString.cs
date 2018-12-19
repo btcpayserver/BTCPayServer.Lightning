@@ -1,5 +1,6 @@
 ﻿using System;
 using System.Collections.Generic;
+using System.IO;
 using System.Linq;
 using System.Security.Cryptography.X509Certificates;
 using System.Text;
@@ -239,7 +240,9 @@ namespace BTCPayServer.Lightning
                         // Those two are deprecated fields, but we don't want to break users
                         Take(keyValues, "restrictedmacaroon");
                         Take(keyValues, "restrictedmacaroonfilepath");
-                        
+
+
+                        result.MacaroonDirectoryPath = Take(keyValues, "macaroondirectorypath");
 
                         string securitySet = null;
                         var certthumbprint = Take(keyValues, "certthumbprint");
@@ -396,6 +399,7 @@ namespace BTCPayServer.Lightning
         public byte[] CertificateThumbprint { get; set; }
         public bool AllowInsecure { get; set; }
         public string CookieFilePath { get; set; }
+        public string MacaroonDirectoryPath { get; set; }
 
         public Uri ToUri(bool withCredentials)
         {
@@ -454,6 +458,10 @@ namespace BTCPayServer.Lightning
                     if (MacaroonFilePath != null)
                     {
                         builder.Append($";macaroonfilepath={MacaroonFilePath}");
+                    }
+                    if (MacaroonDirectoryPath != null)
+                    {
+                        builder.Append($";macaroondirectorypath={MacaroonDirectoryPath}");
                     }
                     if (CertificateThumbprint != null)
                     {
