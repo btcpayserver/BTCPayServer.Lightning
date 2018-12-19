@@ -5,17 +5,17 @@ VisualStudioVersion = 15.0.26124.0
 MinimumVisualStudioVersion = 15.0.26124.0
 Project("{2150E333-8FDC-42A3-9474-1A3956D46DE8}") = "src", "src", "{5BA1A1B2-2713-4CF4-9B63-087531598797}"
 EndProject
-Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "BTCPayServer.Lightning.LND", "src\BTCPayServer.Lightning.LND\BTCPayServer.Lightning.LND.csproj", "{B6390570-4997-477E-8E53-92D514ED816E}"
+Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "BTCPayServer.Lightning.LND", "src\BTCPayServer.Lightning.LND\BTCPayServer.Lightning.LND.csproj", "{B6390570-4997-477E-8E53-92D514ED816E}"
 EndProject
-Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "BTCPayServer.Lightning.CLightning", "src\BTCPayServer.Lightning.CLightning\BTCPayServer.Lightning.CLightning.csproj", "{BB6EF7D6-3631-4760-9690-B87280E16FE1}"
+Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "BTCPayServer.Lightning.CLightning", "src\BTCPayServer.Lightning.CLightning\BTCPayServer.Lightning.CLightning.csproj", "{BB6EF7D6-3631-4760-9690-B87280E16FE1}"
 EndProject
-Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "BTCPayServer.Lightning.Tests", "tests\BTCPayServer.Lightning.Tests.csproj", "{957F3D96-7982-4D27-84B9-97F75CA44B1D}"
+Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "BTCPayServer.Lightning.Tests", "tests\BTCPayServer.Lightning.Tests.csproj", "{957F3D96-7982-4D27-84B9-97F75CA44B1D}"
 EndProject
-Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "BTCPayServer.Lightning.Charge", "src\BTCPayServer.Lightning.Charge\BTCPayServer.Lightning.Charge.csproj", "{1DC00571-AD1C-4B28-A918-ED34DDCAFC4F}"
+Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "BTCPayServer.Lightning.Charge", "src\BTCPayServer.Lightning.Charge\BTCPayServer.Lightning.Charge.csproj", "{1DC00571-AD1C-4B28-A918-ED34DDCAFC4F}"
 EndProject
-Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "BTCPayServer.Lightning.Common", "src\BTCPayServer.Lightning.Common\BTCPayServer.Lightning.Common.csproj", "{CA4021BC-41F4-44C6-B249-F2DC05429E44}"
+Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "BTCPayServer.Lightning.Common", "src\BTCPayServer.Lightning.Common\BTCPayServer.Lightning.Common.csproj", "{CA4021BC-41F4-44C6-B249-F2DC05429E44}"
 EndProject
-Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "BTCPayServer.Lightning.All", "src\BTCPayServer.Lightning.All\BTCPayServer.Lightning.All.csproj", "{691B1F98-4CC3-47FF-B3F3-B97FC0AB4C94}"
+Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "BTCPayServer.Lightning.All", "src\BTCPayServer.Lightning.All\BTCPayServer.Lightning.All.csproj", "{691B1F98-4CC3-47FF-B3F3-B97FC0AB4C94}"
 EndProject
 Global
 	GlobalSection(SolutionConfigurationPlatforms) = preSolution
@@ -25,9 +25,6 @@ Global
 		Release|Any CPU = Release|Any CPU
 		Release|x64 = Release|x64
 		Release|x86 = Release|x86
-	EndGlobalSection
-	GlobalSection(SolutionProperties) = preSolution
-		HideSolutionNode = FALSE
 	EndGlobalSection
 	GlobalSection(ProjectConfigurationPlatforms) = postSolution
 		{B6390570-4997-477E-8E53-92D514ED816E}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
@@ -103,11 +100,17 @@ Global
 		{691B1F98-4CC3-47FF-B3F3-B97FC0AB4C94}.Release|x86.ActiveCfg = Release|Any CPU
 		{691B1F98-4CC3-47FF-B3F3-B97FC0AB4C94}.Release|x86.Build.0 = Release|Any CPU
 	EndGlobalSection
+	GlobalSection(SolutionProperties) = preSolution
+		HideSolutionNode = FALSE
+	EndGlobalSection
 	GlobalSection(NestedProjects) = preSolution
 		{B6390570-4997-477E-8E53-92D514ED816E} = {5BA1A1B2-2713-4CF4-9B63-087531598797}
 		{BB6EF7D6-3631-4760-9690-B87280E16FE1} = {5BA1A1B2-2713-4CF4-9B63-087531598797}
 		{1DC00571-AD1C-4B28-A918-ED34DDCAFC4F} = {5BA1A1B2-2713-4CF4-9B63-087531598797}
 		{CA4021BC-41F4-44C6-B249-F2DC05429E44} = {5BA1A1B2-2713-4CF4-9B63-087531598797}
 		{691B1F98-4CC3-47FF-B3F3-B97FC0AB4C94} = {5BA1A1B2-2713-4CF4-9B63-087531598797}
+	EndGlobalSection
+	GlobalSection(ExtensibilityGlobals) = postSolution
+		SolutionGuid = {5E91C820-C650-4ACA-B064-05ECE0A74CE8}
 	EndGlobalSection
 EndGlobal
