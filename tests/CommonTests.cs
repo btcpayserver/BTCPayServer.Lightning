@@ -259,6 +259,15 @@ namespace BTCPayServer.Lightning.Tests
             Assert.False(LightningConnectionString.TryParse($"type=lnd-rest;server=http://127.0.0.1:53280/;macaroon={macaroon};allowinsecure=false", false, out conn2));
             Assert.True(LightningConnectionString.TryParse($"type=lnd-rest;server=http://127.0.0.1:53280/;macaroon={macaroon};allowinsecure=true", false, out conn2));
             Assert.True(LightningConnectionString.TryParse($"type=lnd-rest;server=http://127.0.0.1:53280/;macaroon={macaroon};allowinsecure=true", false, out conn2));
+
+
+            Assert.True(LightningConnectionString.TryParse("type=charge;server=http://test/a;cookiefilepath=path", false, out conn));
+            Assert.Equal("path", conn.CookieFilePath);
+            Assert.Equal("type=charge;server=http://test/a;cookiefilepath=path", conn.ToString());
+            // Should not have cookiefilepath and api-token at once
+            Assert.False(LightningConnectionString.TryParse("type=charge;server=http://test/a;cookiefilepath=path;api-token=abc", false, out conn));
+            // Should not have cookiefilepath and api-token at once
+            Assert.False(LightningConnectionString.TryParse("type=charge;server=http://api-token:blah@test/a;cookiefilepath=path", false, out conn));
         }
     }
 }

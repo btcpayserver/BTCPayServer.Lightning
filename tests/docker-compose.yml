@@ -27,6 +27,7 @@ services:
 
   lightningd:
     restart: unless-stopped
+    stop_signal: SIGKILL
     image: nicolasdorier/clightning:v0.6.2-3-dev
     environment: 
       EXPOSE_TCP: "true"
@@ -52,6 +53,7 @@ services:
 
   lightningd_dest:
     restart: unless-stopped
+    stop_signal: SIGKILL
     image: nicolasdorier/clightning:v0.6.2-3-dev
     environment: 
       EXPOSE_TCP: "true"

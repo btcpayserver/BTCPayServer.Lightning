@@ -125,17 +125,37 @@ namespace BTCPayServer.Lightning
                         {
                             result.Username = parts[0];
                             result.Password = parts[1];
+                            var cookieFilePath = Take(keyValues, "cookiefilepath");
+                            if (cookieFilePath != null)
+                            {
+                                error = "The key 'cookiefilepath' should not be used if you are passing credentials inside the url";
+                                return false;
+                            }
                         }
                         else
                         {
                             var apiToken = Take(keyValues, "api-token");
-                            if (apiToken == null)
+                            var cookieFilePath = Take(keyValues, "cookiefilepath");
+                            if (apiToken != null && cookieFilePath != null)
                             {
-                                error = "The key 'api-token' is not found";
+                                error = "Keys 'api-token' and 'cookiefilepath' are mutually exclusive";
                                 return false;
                             }
-                            result.Username = "api-token";
-                            result.Password = apiToken;
+                            if (apiToken != null)
+                            {
+                                result.Username = "api-token";
+                                result.Password = apiToken;
+                            }
+                            else if (cookieFilePath != null)
+                            {
+                                result.Username = "api-token";
+                                result.CookieFilePath = cookieFilePath;
+                            }
+                            else
+                            {
+                                error = "The key 'api-token' or 'cookiefilepath' is not found";
+                                return false;
+                            }
                         }
                         result.BaseUri = new UriBuilder(uri) { UserName = "", Password = "" }.Uri;
                     }
@@ -402,6 +422,7 @@ namespace BTCPayServer.Lightning
         public bool AllowInsecure { get; set; }
         public byte[] RestrictedMacaroon { get; set; }
         public string RestrictedMacaroonFilePath { get; set; }
+        public string CookieFilePath { get; set; }
 
         public Uri ToUri(bool withCredentials)
         {
@@ -425,7 +446,15 @@ namespace BTCPayServer.Lightning
                 case LightningConnectionType.Charge:
                     if (Username == null || Username == "api-token")
                     {
-                        builder.Append($";server={BaseUri};api-token={Password}");
+                        builder.Append($";server={BaseUri}");
+                        if (string.IsNullOrEmpty(Password))
+                        {
+                            builder.Append($";cookiefilepath={CookieFilePath}");
+                        }
+                        else
+                        {
+                            builder.Append($";api-token={Password}");
+                        }
                     }
                     else
                     {

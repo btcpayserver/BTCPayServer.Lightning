@@ -15,7 +15,14 @@ namespace BTCPayServer.Lightning
         {
             if(connString.ConnectionType == LightningConnectionType.Charge)
             {
-                return new ChargeClient(connString.ToUri(true), network);
+                if (connString.CookieFilePath != null)
+                {
+                    return new ChargeClient(connString.BaseUri, connString.CookieFilePath, network);
+                }
+                else
+                {
+                    return new ChargeClient(connString.ToUri(true), network);
+                }
             }
             else if(connString.ConnectionType == LightningConnectionType.CLightning)
             {

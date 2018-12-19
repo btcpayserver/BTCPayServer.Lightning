@@ -41,7 +41,20 @@ namespace BTCPayServer.Lightning.Charge
             var userInfo = uri.UserInfo.Split(':');
             if (userInfo.Length != 2)
                 throw new ArgumentException(paramName: nameof(uri), message: "User information not present in uri");
-            Credentials = new NetworkCredential(userInfo[0], userInfo[1]);
+            ChargeAuthentication = new ChargeAuthentication.UserPasswordAuthentication(new NetworkCredential(userInfo[0], userInfo[1]));
+        }
+
+        public ChargeClient(Uri uri, string cookieFilePath, Network network)
+        {
+            if (uri == null)
+                throw new ArgumentNullException(nameof(uri));
+            if (network == null)
+                throw new ArgumentNullException(nameof(network));
+            if (cookieFilePath == null)
+                throw new ArgumentNullException(nameof(cookieFilePath));
+            this._Uri = uri;
+            this._Network = network;
+            ChargeAuthentication = new ChargeAuthentication.CookieFileAuthentication(cookieFilePath);
         }
 
         public async Task<CreateInvoiceResponse> CreateInvoiceAsync(CreateInvoiceRequest request, CancellationToken cancellation = default(CancellationToken))
@@ -62,7 +75,7 @@ namespace BTCPayServer.Lightning.Charge
         public async Task<ChargeSession> Listen(CancellationToken cancellation = default(CancellationToken))
         {
             var socket = new ClientWebSocket();
-            socket.Options.SetRequestHeader("Authorization", $"Basic {GetBase64Creds()}");
+            socket.Options.SetRequestHeader("Authorization", $"Basic {ChargeAuthentication.GetBase64Creds()}");
             var uri = new UriBuilder(Uri) { UserName = null, Password = null }.Uri.AbsoluteUri;
             if (!uri.EndsWith("/"))
                 uri += "/";
@@ -81,7 +94,7 @@ namespace BTCPayServer.Lightning.Charge
             return uri;
         }
 
-        public NetworkCredential Credentials { get; set; }
+        public ChargeAuthentication ChargeAuthentication { get; set; }
 
         public GetInfoResponse GetInfo()
         {
@@ -112,13 +125,8 @@ namespace BTCPayServer.Lightning.Charge
         {
             var uri = GetFullUri(path);
             var request = new HttpRequestMessage(method, uri);
-            request.Headers.Authorization = new AuthenticationHeaderValue("Basic", GetBase64Creds());
+            request.Headers.Authorization = new AuthenticationHeaderValue("Basic", ChargeAuthentication.GetBase64Creds());
             return request;
-        }
-
-        private string GetBase64Creds()
-        {
-            return Convert.ToBase64String(Encoding.ASCII.GetBytes($"{Credentials.UserName}:{Credentials.Password}"));
         }
 
         private Uri GetFullUri(string partialUrl)
