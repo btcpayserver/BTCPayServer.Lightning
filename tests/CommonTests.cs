@@ -247,7 +247,6 @@ namespace BTCPayServer.Lightning.Tests
             Assert.True(LightningConnectionString.TryParse(lndUri, false, out conn));
             Assert.True(LightningConnectionString.TryParse(lndUri2, false, out var conn2));
             Assert.True(LightningConnectionString.TryParse(lndUri3, false, out var conn3));
-            Assert.Equal(lndUri3, conn3.ToString());
             Assert.Equal(conn2.ToString(), conn.ToString());
             Assert.Equal(lndUri, conn.ToString());
             Assert.Equal(LightningConnectionType.LndREST, conn.ConnectionType);

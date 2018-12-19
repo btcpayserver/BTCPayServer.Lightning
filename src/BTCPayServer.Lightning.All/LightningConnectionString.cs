@@ -236,35 +236,10 @@ namespace BTCPayServer.Lightning
                             result.MacaroonFilePath = macaroonFilePath;
                         }
 
-                        var restrictedMacaroon = Take(keyValues, "restrictedmacaroon");
-                        if (restrictedMacaroon != null)
-                        {
-                            try
-                            {
-                                result.RestrictedMacaroon = Encoder.DecodeData(restrictedMacaroon);
-                            }
-                            catch
-                            {
-                                error = $"The key 'restrictedmacaroon' format should be in hex";
-                                return false;
-                            }
-                        }
-
-                        var restrictedMacaroonFilePath = Take(keyValues, "restrictedmacaroonfilepath");
-                        if (restrictedMacaroonFilePath != null)
-                        {
-                            if (restrictedMacaroon != null)
-                            {
-                                error = $"The key 'restrictedmacaroon' is already specified";
-                                return false;
-                            }
-                            if (!restrictedMacaroonFilePath.EndsWith(".macaroon", StringComparison.OrdinalIgnoreCase))
-                            {
-                                error = $"The key 'restrictedmacaroonfilepath' should point to a .macaroon file";
-                                return false;
-                            }
-                            result.RestrictedMacaroonFilePath = restrictedMacaroonFilePath;
-                        }
+                        // Those two are deprecated fields, but we don't want to break users
+                        Take(keyValues, "restrictedmacaroon");
+                        Take(keyValues, "restrictedmacaroonfilepath");
+                        
 
                         string securitySet = null;
                         var certthumbprint = Take(keyValues, "certthumbprint");
@@ -420,8 +395,6 @@ namespace BTCPayServer.Lightning
         public string MacaroonFilePath { get; set; }
         public byte[] CertificateThumbprint { get; set; }
         public bool AllowInsecure { get; set; }
-        public byte[] RestrictedMacaroon { get; set; }
-        public string RestrictedMacaroonFilePath { get; set; }
         public string CookieFilePath { get; set; }
 
         public Uri ToUri(bool withCredentials)
@@ -481,14 +454,6 @@ namespace BTCPayServer.Lightning
                     if (MacaroonFilePath != null)
                     {
                         builder.Append($";macaroonfilepath={MacaroonFilePath}");
-                    }
-                    if (RestrictedMacaroon != null)
-                    {
-                        builder.Append($";restrictedmacaroon={Encoder.EncodeData(RestrictedMacaroon)}");
-                    }
-                    if (RestrictedMacaroonFilePath != null)
-                    {
-                        builder.Append($";restrictedmacaroonfilepath={RestrictedMacaroonFilePath}");
                     }
                     if (CertificateThumbprint != null)
                     {
