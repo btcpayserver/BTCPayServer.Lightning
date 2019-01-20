@@ -14,7 +14,8 @@ namespace BTCPayServer.Lightning
         Charge,
         CLightning,
         LndREST,
-        LndGRPC
+        LndGRPC,
+        Eclair
     }
     public class LightningConnectionString
     {
@@ -27,6 +28,7 @@ namespace BTCPayServer.Lightning
             typeMapping.Add("charge", LightningConnectionType.Charge);
             typeMapping.Add("lnd-rest", LightningConnectionType.LndREST);
             typeMapping.Add("lnd-grpc", LightningConnectionType.LndGRPC);
+            typeMapping.Add("eclair", LightningConnectionType.Eclair);
             typeMappingReverse = new Dictionary<LightningConnectionType, string>();
             foreach (var kv in typeMapping)
             {
@@ -292,6 +294,27 @@ namespace BTCPayServer.Lightning
                             return false;
                         }
                     }
+                    break;
+                case LightningConnectionType.Eclair:
+//                    var server = Take(keyValues, "server");
+//                    if (server == null)
+//                    {
+//                        error = $"The key 'server' is mandatory for charge connection strings";
+//                        return false;
+//                    }
+//
+//                    if (server.StartsWith("//", StringComparison.OrdinalIgnoreCase))
+//                        server = "unix:" + str;
+//                    else if (server.StartsWith("/", StringComparison.OrdinalIgnoreCase))
+//                        server = "unix:/" + str;
+//
+//                    if (!Uri.TryCreate(server, UriKind.Absolute, out var uri)
+//                        || (uri.Scheme != "tcp" && uri.Scheme != "unix"))
+//                    {
+//                        error = $"The key 'server' should be an URI starting by tcp:// or unix:// or a path to the 'lightning-rpc' unix socket";
+//                        return false;
+//                    }
+//                    result.BaseUri = uri;
                     break;
                 default:
                     throw new NotSupportedException(connectionType.ToString());
