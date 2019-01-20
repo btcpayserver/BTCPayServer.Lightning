@@ -15,6 +15,14 @@ namespace BTCPayServer.Lightning.Tests
     public class CommonTests
     {
         [Fact]
+        public async Task TestGroundEclair()
+        {
+            var x = Tester.CreateEclairClient();
+            await x.GetInfo();
+            await x.CreateInvoice(new LightMoney(100), "sdasd", TimeSpan.FromSeconds(100));
+        }
+        
+        [Fact]
         public async Task CanCreateInvoice()
         {
             foreach(var client in Tester.GetLightningClients())
