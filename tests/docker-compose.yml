@@ -28,7 +28,7 @@ services:
   lightningd:
     restart: unless-stopped
     stop_signal: SIGKILL
-    image: nicolasdorier/clightning:v0.6.2-3-dev
+    image: btcpayserver/lightning:v0.6.3-3-dev
     environment: 
       EXPOSE_TCP: "true"
       LIGHTNINGD_OPT: |
@@ -54,7 +54,7 @@ services:
   lightningd_dest:
     restart: unless-stopped
     stop_signal: SIGKILL
-    image: nicolasdorier/clightning:v0.6.2-3-dev
+    image: btcpayserver/lightning:v0.6.3-3-dev
     environment: 
       EXPOSE_TCP: "true"
       LIGHTNINGD_OPT: |
@@ -79,7 +79,7 @@ services:
 
   charge:
     restart: unless-stopped
-    image: shesek/lightning-charge:0.4.3
+    image: shesek/lightning-charge:0.4.6-standalone
     environment:
       NETWORK: regtest
       API_TOKEN: foiewnccewuify
@@ -98,7 +98,7 @@ services:
 
   lnd:
     restart: unless-stopped
-    image: btcpayserver/lnd:v0.5.1-beta
+    image: btcpayserver/lnd:v0.5.1-beta-2
     environment:
       LND_CHAIN: "btc"
       LND_ENVIRONMENT: "regtest"
@@ -125,7 +125,7 @@ services:
 
   lnd_dest:
     restart: unless-stopped
-    image: btcpayserver/lnd:0.5-beta-2
+    image: btcpayserver/lnd:v0.5.1-beta-2
     environment:
       LND_CHAIN: "btc"
       LND_ENVIRONMENT: "regtest"
