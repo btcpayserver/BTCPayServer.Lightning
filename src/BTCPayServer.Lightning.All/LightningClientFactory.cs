@@ -5,8 +5,10 @@ using System.Net.Http;
 using System.Threading.Tasks;
 using BTCPayServer.Lightning.Charge;
 using BTCPayServer.Lightning.CLightning;
+using BTCPayServer.Lightning.Eclair;
 using BTCPayServer.Lightning.LND;
 using NBitcoin;
+using NBitcoin.RPC;
 
 namespace BTCPayServer.Lightning
 {
@@ -70,6 +72,10 @@ namespace BTCPayServer.Lightning
                     AllowInsecure = connectionString.AllowInsecure,
                 }, HttpClient), Network);
             }
+			else if(connectionString.ConnectionType == LightningConnectionType.Eclair)
+			{
+                return new EclairLightningClient(connString.BaseUri,connString.Password,network,new RPCClient(connString.BitcoinAuth, connString.BitcoinHost, network));	
+			}   
             else
                 throw new NotSupportedException($"Unsupported connection string for lightning server ({connectionString.ConnectionType})");
         }
