@@ -1,13 +1,11 @@
 ﻿using System;
-using System.Collections.Generic;
+using System.Globalization;
 using System.Net.Http;
 using System.Net.Http.Headers;
 using System.Text;
 using System.Threading;
 using System.Threading.Tasks;
 using BTCPayServer.Lightning.Eclair.Models;
-using EdjCase.JsonRpc.Client;
-using EdjCase.JsonRpc.Core;
 using NBitcoin;
 using Newtonsoft.Json;
 using Newtonsoft.Json.Linq;
@@ -36,121 +34,135 @@ namespace BTCPayServer.Lightning.Eclair
                 Convert.ToBase64String(Encoding.Default.GetBytes($":{password}")));
         }
 
-        public async Task<GetInfoResponse> GetInfo()
+        public async Task<GetInfoResponse> GetInfo(CancellationToken cts = default(CancellationToken))
         {
-            return await SendCommandAsync<GetInfoResponse>("getinfo");
+            return await SendCommandAsync<GetInfoResponse>("getinfo", cts);
         }
 
-        public async Task<string> ConnectToNode(string nodeId, string host, int port)
+        public async Task<string> ConnectToNode(string nodeId, string host, int port,
+            CancellationToken cts = default(CancellationToken))
         {
-            return await SendCommandAsync<string>("connect", nodeId, host, port);
+            return await SendCommandAsync<string>("connect", cts, nodeId, host, port);
         }
 
-        public async Task<string> ConnectToNode(string uri)
+        public async Task<string> ConnectToNode(string uri, CancellationToken cts = default(CancellationToken))
         {
-            return await SendCommandAsync<string>("connect", uri);
+            return await SendCommandAsync<string>("connect", cts, uri);
         }
 
-        public async Task<string> OpenChannel(string nodeId, long fundingSatoshis, long pushMsat = 0)
+        public async Task<string> OpenChannel(string nodeId, long fundingSatoshis, long pushMsat = 0,
+            CancellationToken cts = default(CancellationToken))
         {
-            return await SendCommandAsync<string>("open", nodeId, fundingSatoshis, pushMsat);
+            return await SendCommandAsync<string>("open", cts, nodeId, fundingSatoshis, pushMsat);
         }
 
         public async Task<string> OpenChannel(string nodeId, long fundingSatoshis, long pushMsat,
-            long feerateSatPerByte)
+            long feerateSatPerByte, CancellationToken cts = default(CancellationToken))
         {
-            return await SendCommandAsync<string>("open", nodeId, fundingSatoshis, pushMsat, feerateSatPerByte);
+            return await SendCommandAsync<string>("open", cts, nodeId, fundingSatoshis, pushMsat, feerateSatPerByte);
         }
 
-        public async Task<string> UpdateRelayFee(string channelId, long feeBaseMsat, long feeProportionalMillionths)
+        public async Task<string> UpdateRelayFee(string channelId, long feeBaseMsat, long feeProportionalMillionths,
+            CancellationToken cts = default(CancellationToken))
         {
-            return await SendCommandAsync<string>("updaterelayfee", channelId, feeBaseMsat, feeProportionalMillionths);
+            return await SendCommandAsync<string>("updaterelayfee", cts, channelId, feeBaseMsat,
+                feeProportionalMillionths);
         }
 
-        public async Task<ListChannelsResponseItem[]> ListChannels()
+        public async Task<ListChannelsResponseItem[]> ListChannels(CancellationToken cts = default(CancellationToken))
         {
-            return await SendCommandAsync<ListChannelsResponseItem[]>("channels");
+            return await SendCommandAsync<ListChannelsResponseItem[]>("channels", cts);
         }
 
-        public async Task<ListChannelsResponseItem[]> ListChannels(string nodeId)
+        public async Task<ListChannelsResponseItem[]> ListChannels(string nodeId,
+            CancellationToken cts = default(CancellationToken))
         {
-            return await SendCommandAsync<ListChannelsResponseItem[]>("channels", nodeId);
+            return await SendCommandAsync<ListChannelsResponseItem[]>("channels", cts, nodeId);
         }
 
-        public async Task<ListChannelsResponseItem> GetChannel(string channelId)
+        public async Task<ListChannelsResponseItem> GetChannel(string channelId,
+            CancellationToken cts = default(CancellationToken))
         {
-            return await SendCommandAsync<ListChannelsResponseItem>("channel", channelId);
+            return await SendCommandAsync<ListChannelsResponseItem>("channel", cts, channelId);
         }
 
-        public async Task<ListChannelsResponseItem> ListAllChannels()
+        public async Task<ListChannelsResponseItem> ListAllChannels(CancellationToken cts = default(CancellationToken))
         {
-            return await SendCommandAsync<ListChannelsResponseItem>("allchannels");
+            return await SendCommandAsync<ListChannelsResponseItem>("allchannels", cts);
         }
 
-        public async Task<NodeResult[]> ListAllNodes()
+        public async Task<NodeResult[]> ListAllNodes(CancellationToken cts = default(CancellationToken))
         {
-            return await SendCommandAsync<NodeResult[]>("allnodes");
+            return await SendCommandAsync<NodeResult[]>("allnodes", cts);
         }
 
-        public async Task<string> Receive(string description)
+        public async Task<string> Receive(string description, CancellationToken cts = default(CancellationToken))
         {
-            return await SendCommandAsync<string>("receive", description);
+            return await SendCommandAsync<string>("receive", cts, description);
         }
 
-        public async Task<string> Receive(string description, long mSat)
+        public async Task<string> Receive(string description, long mSat,
+            CancellationToken cts = default(CancellationToken))
         {
-            return await SendCommandAsync<string>("receive", mSat, description);
+            return await SendCommandAsync<string>("receive", cts, mSat, description);
         }
 
-        public async Task<string> Receive(string description, long mSat, int expirySeconds)
+        public async Task<string> Receive(string description, long mSat, int expirySeconds,
+            CancellationToken cts = default(CancellationToken))
         {
-            return await SendCommandAsync<string>("receive",
+            return await SendCommandAsync<string>("receive", cts,
                 mSat,
                 description,
                 expirySeconds);
         }
 
-        public async Task<SendResponse> Send(string paymentRequest)
+        public async Task<SendResponse> Send(string paymentRequest, CancellationToken cts = default(CancellationToken))
         {
-            return await SendCommandAsync<SendResponse>("send", paymentRequest);
+            return await SendCommandAsync<SendResponse>("send", cts, paymentRequest);
         }
 
-        public async Task<SendResponse> Send(string paymentRequest, long amountMsat)
+        public async Task<SendResponse> Send(string paymentRequest, long amountMsat,
+            CancellationToken cts = default(CancellationToken))
         {
-            return await SendCommandAsync<SendResponse>("send", paymentRequest, amountMsat);
+            return await SendCommandAsync<SendResponse>("send", cts, paymentRequest, amountMsat);
         }
 
-        public async Task<SendResponse> Send(long amountMsat, string paymentHash, string nodeId)
+        public async Task<SendResponse> Send(long amountMsat, string paymentHash, string nodeId,
+            CancellationToken cts = default(CancellationToken))
         {
-            return await SendCommandAsync<SendResponse>("send", amountMsat, paymentHash, nodeId);
+            return await SendCommandAsync<SendResponse>("send", cts, amountMsat, paymentHash, nodeId);
         }
 
-        public async Task<CheckInvoiceResponse> CheckInvoice(string paymentRequest)
+        public async Task<CheckInvoiceResponse> CheckInvoice(string paymentRequest,
+            CancellationToken cts = default(CancellationToken))
         {
-            return await SendCommandAsync<CheckInvoiceResponse>("checkinvoice", paymentRequest);
+            return await SendCommandAsync<CheckInvoiceResponse>("checkinvoice", cts, paymentRequest);
         }
 
-        public async Task<CheckInvoiceResponse> ParseInvoice(string paymentRequest)
+        public async Task<CheckInvoiceResponse> ParseInvoice(string paymentRequest,
+            CancellationToken cts = default(CancellationToken))
         {
-            return await SendCommandAsync<CheckInvoiceResponse>("parseinvoice", paymentRequest);
+            return await SendCommandAsync<CheckInvoiceResponse>("parseinvoice", cts, paymentRequest);
         }
 
-        public async Task<bool> CheckPayment(string paymentRequestOrHash)
+        public async Task<bool> CheckPayment(string paymentRequestOrHash,
+            CancellationToken cts = default(CancellationToken))
         {
-            return await SendCommandAsync<bool>("checkpayment", paymentRequestOrHash);
+            return await SendCommandAsync<bool>("checkpayment", cts, paymentRequestOrHash);
         }
 
-        public async Task<string> Close(string channelId)
+        public async Task<string> Close(string channelId, CancellationToken cts = default(CancellationToken))
         {
-            return await SendCommandAsync<string>("close", channelId);
+            return await SendCommandAsync<string>("close", cts, channelId);
         }
 
-        public async Task<string> Close(string channelId, string scriptPubKey)
+        public async Task<string> Close(string channelId, string scriptPubKey,
+            CancellationToken cts = default(CancellationToken))
         {
-            return await SendCommandAsync<string>("close", channelId, scriptPubKey);
+            return await SendCommandAsync<string>("close", cts, channelId, scriptPubKey);
         }
 
-        private async Task<T> SendCommandAsync<T>(string method, params object[] parameters)
+        private async Task<T> SendCommandAsync<T>(string method, CancellationToken cts, params object[] parameters)
         {
             var jsonSerializer = new JsonSerializerSettings
                 {ContractResolver = new CamelCasePropertyNamesContractResolver()};
@@ -160,7 +172,7 @@ namespace BTCPayServer.Lightning.Eclair
             var request = new HttpRequestMessage(HttpMethod.Post, string.Empty);
             request.Content = new StringContent(body.ToString(jsonSerializer), Encoding.UTF8, "application/json");
 
-            var rawResult = await _httpClient.SendAsync(request);
+            var rawResult = await _httpClient.SendAsync(request, cts);
             var rawJson = await rawResult.Content.ReadAsStringAsync();
             var result = JObject.Parse(rawJson).ToObject<JsonRpcResult<T>>(JsonSerializer.Create(jsonSerializer));
             if (result.Error != null && !string.IsNullOrEmpty(result.Error.Message))
@@ -213,8 +225,8 @@ namespace BTCPayServer.Lightning.Eclair
 
     public class EclairLightningClient : ILightningClient
     {
-        static NBitcoin.DataEncoders.DataEncoder InvoiceIdEncoder = NBitcoin.DataEncoders.Encoders.Base58;
         private readonly Uri _address;
+        private readonly Network _network;
         private EclairClient _eclairClient;
 
         public EclairLightningClient(Uri address, string password, Network network)
@@ -224,18 +236,17 @@ namespace BTCPayServer.Lightning.Eclair
             if (network == null)
                 throw new ArgumentNullException(nameof(network));
             _address = address;
+            _network = network;
 
 
             _eclairClient = new EclairClient(address, password);
-
-            var _Network = network;
         }
 
 
         public Task<LightningInvoice> GetInvoice(string invoiceId,
             CancellationToken cancellation = default(CancellationToken))
         {
-            throw new NotImplementedException();
+            _eclairClient.CheckInvoice()
         }
 
         public async Task<LightningInvoice> CreateInvoice(LightMoney amount, string description, TimeSpan expiry,
@@ -244,16 +255,17 @@ namespace BTCPayServer.Lightning.Eclair
             var result = await _eclairClient.Receive(
                 description,
                 amount.MilliSatoshi,
-                Convert.ToInt32(expiry.TotalSeconds));
+                Convert.ToInt32(expiry.TotalSeconds), cancellation);
 
-
+            var decodedBolt = BOLT11PaymentRequest.Parse(result, _network);
+            
             return new LightningInvoice()
             {
                 BOLT11 = result,
-                Amount = amount,
-                Id =  InvoiceIdEncoder.EncodeData(RandomUtils.GetBytes(20));
+                Amount = decodedBolt.MinimumAmount,
+                Id = decodedBolt.PaymentHash.ToString(),
                 Status = LightningInvoiceStatus.Unpaid,
-                
+                ExpiresAt = decodedBolt.ExpiryDate
             };
         }
 
@@ -264,7 +276,7 @@ namespace BTCPayServer.Lightning.Eclair
 
         public async Task<LightningNodeInformation> GetInfo(CancellationToken cancellation = default(CancellationToken))
         {
-            var info = await _eclairClient.GetInfo();
+            var info = await _eclairClient.GetInfo(cancellation);
 
             return new LightningNodeInformation()
             {
@@ -278,7 +290,7 @@ namespace BTCPayServer.Lightning.Eclair
         {
             try
             {
-                var sendResult = await _eclairClient.Send(bolt11);
+                var sendResult = await _eclairClient.Send(bolt11, cancellation);
                 return new PayResponse(PayResult.Ok);
             }
             catch (Exception)
@@ -293,8 +305,8 @@ namespace BTCPayServer.Lightning.Eclair
             var result = await _eclairClient.OpenChannel(openChannelRequest.NodeInfo.NodeId.ToString(),
                 openChannelRequest.ChannelAmount.Satoshi
                 , 0,
-                Convert.ToInt64(openChannelRequest.FeeRate.SatoshiPerByte));
-            
+                Convert.ToInt64(openChannelRequest.FeeRate.SatoshiPerByte), cancellation);
+
             return new OpenChannelResponse(OpenChannelResult.Ok);
         }
 
@@ -306,6 +318,13 @@ namespace BTCPayServer.Lightning.Eclair
         public async Task ConnectTo(NodeInfo nodeInfo)
         {
             await _eclairClient.ConnectToNode(nodeInfo.NodeId.ToString(), nodeInfo.Host, nodeInfo.Port);
+        }
+        
+        private static string BitString(byte[] bytes)
+        {
+            return BitConverter.ToString(bytes)
+                .Replace("-", "")
+                .ToLower(CultureInfo.InvariantCulture);
         }
     }
 }
