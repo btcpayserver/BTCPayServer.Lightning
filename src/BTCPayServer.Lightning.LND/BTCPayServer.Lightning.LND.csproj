@@ -8,7 +8,7 @@
 		<Description>Client library for LND to build Lightning Network Apps in C#.</Description>
 		<PackageProjectUrl>https://github.com/btcpayserver/BTCPayServer.Lightning</PackageProjectUrl>
 		<RepositoryUrl>https://github.com/btcpayserver/BTCPayServer.Lightning</RepositoryUrl>
-		<PackageLicenseUrl>https://github.com/btcpayserver/BTCPayServer.Lightning/blob/master/LICENSE</PackageLicenseUrl>
+    <PackageLicenseExpression>MIT</PackageLicenseExpression>
 		<PackageTags>lightning;bitcoin;lnd;lapps</PackageTags>
 	</PropertyGroup>
 
