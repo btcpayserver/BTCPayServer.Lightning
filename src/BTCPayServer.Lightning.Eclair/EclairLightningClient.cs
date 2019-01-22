@@ -72,9 +72,11 @@ namespace BTCPayServer.Lightning.Eclair
         {
             var info = await _eclairClient.GetInfo(cancellation);
 
+            //HACK: public ip cannot use host name in eclair...
+            var host = info.Alias;
             return new LightningNodeInformation()
             {
-                NodeInfo = new NodeInfo(new PubKey(info.NodeId), _address.AbsoluteUri,
+                NodeInfo = new NodeInfo(new PubKey(info.NodeId), host,
                     info.Port == 0 ? 9735 : info.Port),
                 BlockHeight = info.BlockHeight
             };
@@ -118,9 +120,14 @@ namespace BTCPayServer.Lightning.Eclair
             }
             catch (Exception e)
             {
-                if (e.Message.Contains("command failed: not connected"))
+                if (e.Message.Contains("command failed: not connected") || e.Message.Contains("command failed: no connection to peer"))
                 {
                     return new OpenChannelResponse(OpenChannelResult.PeerNotConnected);
+                }
+
+                if (e.Message.Contains("command failed: Insufficient funds"))
+                {
+                    return new OpenChannelResponse(OpenChannelResult.CannotAffordFunding);
                 }
                 return  new OpenChannelResponse(OpenChannelResult.AlreadyExists);
             }
