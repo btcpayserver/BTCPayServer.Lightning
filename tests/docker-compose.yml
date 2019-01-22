@@ -166,6 +166,7 @@ services:
         -Declair.api.enabled=true
         -Declair.api.binding-ip=0.0.0.0
         -Declair.api.port=8080
+        -Declair.node-alias=eclair
         -Declair.api.password=bukkake
         -Declair.bitcoind.host=bitcoind
         -Declair.bitcoind.rpcport=43782
@@ -184,10 +185,7 @@ services:
       - "eclair_dir:/data"
     links:
       - bitcoind
-    networks:
-      - default:
-      - eclairhax:
-          - ipv4_address: 10.5.0.1
+      - eclair_dest
 
   eclair_dest:
     restart: unless-stopped
@@ -204,6 +202,7 @@ services:
         -Declair.api.enabled=true
         -Declair.api.binding-ip=0.0.0.0
         -Declair.api.port=8080
+        -Declair.node-alias=eclair_dest
         -Declair.api.password=bukkake
         -Declair.bitcoind.host=bitcoind
         -Declair.bitcoind.rpcport=43782
@@ -222,10 +221,6 @@ services:
       - "eclair_dest_dir:/data"
     links:
       - bitcoind
-    networks:
-      - default:
-      - eclairhax:
-          - ipv4_address: 10.5.0.2
       
 
 volumes:
@@ -237,11 +232,3 @@ volumes:
     lightningd_dest_dir:
     eclair_dir:
     eclair_dest_dir:
-
-networks:
-  default:
-  eclairhax:
-    driver: bridge
-    ipam:
-      config:
-        - subnet: 10.5.0.0/16
