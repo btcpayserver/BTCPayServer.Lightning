@@ -260,7 +260,9 @@ namespace BTCPayServer.Lightning
 
         public bool VerifySignature()
         {
-            return GetPayeePubKey().Verify(Hash, ECDSASignature);
+            if (ExplicitPayeePubKey == null)
+                return true; // it is useless to verify a signature with the recovered pubkey, it will always succeed
+            return ExplicitPayeePubKey.Verify(Hash, ECDSASignature);
         }
 
         public int MinFinalCLTVExpiry { get; }
