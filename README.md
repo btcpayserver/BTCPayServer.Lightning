@@ -15,6 +15,8 @@ If you develop an app, we advise you to reference `BTCPayServer.Lightning.All` [
 
 If you develop a library, we advise you to reference `BTCPayServer.Lightning.Common` [![NuGet](https://img.shields.io/nuget/v/BTCPayServer.Lightning.Common.svg)](https://www.nuget.org/packages/BTCPayServer.Lightning.Common).
 
+You can also use our `BOLT11PaymentRequest` to parse BOLT11 invoices. (See [example](https://github.com/btcpayserver/BTCPayServer.Lightning/blob/master/tests/CommonTests.cs#L139)).
+
 ## How to use
 
 Click on the nuget button of the package interesting you, and follow the instruction to add it to your project.
