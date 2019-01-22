@@ -15,14 +15,6 @@ namespace BTCPayServer.Lightning.Tests
     public class CommonTests
     {
         [Fact]
-        public async Task TestGroundEclair()
-        {
-            var x = Tester.CreateEclairClient();
-            await x.GetInfo();
-            await x.CreateInvoice(new LightMoney(100), "sdasd", TimeSpan.FromSeconds(100));
-        }
-        
-        [Fact]
         public async Task CanCreateInvoice()
         {
             foreach(var client in Tester.GetLightningClients())
@@ -42,9 +34,11 @@ namespace BTCPayServer.Lightning.Tests
             ILightningClientFactory factory = new LightningClientFactory(Tester.Network);
             foreach(var connectionString in new[]
             {
-                "type=charge;server=http://api-token:foiewnccewuify@127.0.0.1:37462",
-                "type=lnd-rest;server=https://127.0.0.1:42802;allowinsecure=true",
-                "type=clightning;server=tcp://127.0.0.1:48532"
+//                "type=charge;server=http://api-token:foiewnccewuify@127.0.0.1:37462",
+//                "type=lnd-rest;server=https://127.0.0.1:42802;allowinsecure=true",
+//                "type=clightning;server=tcp://127.0.0.1:48532",
+                "type=eclair;server=http://127.0.0.1:4570;password=bukkake;bitcoin-host=127.0.0.1:37393;bitcoin-auth=ceiwHEbqWI83:DwubwWsoo3",
+                
             })
             {
                 ILightningClient client = factory.Create(connectionString);

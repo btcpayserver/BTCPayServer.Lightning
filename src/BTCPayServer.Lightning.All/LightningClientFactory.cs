@@ -4,8 +4,10 @@ using System.Linq;
 using System.Threading.Tasks;
 using BTCPayServer.Lightning.Charge;
 using BTCPayServer.Lightning.CLightning;
+using BTCPayServer.Lightning.Eclair;
 using BTCPayServer.Lightning.LND;
 using NBitcoin;
+using NBitcoin.RPC;
 
 namespace BTCPayServer.Lightning
 {
@@ -13,33 +15,27 @@ namespace BTCPayServer.Lightning
     {
         public static ILightningClient CreateClient(LightningConnectionString connString, Network network)
         {
-            if(connString.ConnectionType == LightningConnectionType.Charge)
+            switch (connString.ConnectionType)
             {
-                if (connString.CookieFilePath != null)
-                {
+                case LightningConnectionType.Charge when connString.CookieFilePath != null:
                     return new ChargeClient(connString.BaseUri, connString.CookieFilePath, network);
-                }
-                else
-                {
+                case LightningConnectionType.Charge:
                     return new ChargeClient(connString.ToUri(true), network);
-                }
+                case LightningConnectionType.CLightning:
+                    return new CLightningClient(connString.ToUri(false), network);
+                case LightningConnectionType.LndREST:
+                    return new LndClient(new LndSwaggerClient(new LndRestSettings(connString.BaseUri)
+                    {
+                        Macaroon = connString.Macaroon,
+                        MacaroonFilePath = connString.MacaroonFilePath,
+                        CertificateThumbprint = connString.CertificateThumbprint,
+                        AllowInsecure = connString.AllowInsecure,
+                    }), network);
+                case LightningConnectionType.Eclair:
+                    return new EclairLightningClient(connString.BaseUri,connString.Password,network,new RPCClient(connString.BitcoinAuth, connString.BitcoinHost, network));
+                default:
+                    throw new NotSupportedException($"Unsupported connection string for lightning server ({connString.ConnectionType})");
             }
-            else if(connString.ConnectionType == LightningConnectionType.CLightning)
-            {
-                return new CLightningClient(connString.ToUri(false), network);
-            }
-            else if(connString.ConnectionType == LightningConnectionType.LndREST)
-            {
-                return new LndClient(new LndSwaggerClient(new LndRestSettings(connString.BaseUri)
-                {
-                    Macaroon = connString.Macaroon,
-                    MacaroonFilePath = connString.MacaroonFilePath,
-                    CertificateThumbprint = connString.CertificateThumbprint,
-                    AllowInsecure = connString.AllowInsecure,
-                }), network);
-            }
-            else
-                throw new NotSupportedException($"Unsupported connection string for lightning server ({connString.ConnectionType})");
         }
 
         public static ILightningClient CreateClient(string connectionString, Network network)
