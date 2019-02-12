@@ -16,6 +16,10 @@ namespace BTCPayServer.Lightning.CLightning
         [JsonConverter(typeof(NBitcoin.JsonConverters.UInt256JsonConverter))]
         public uint256 FundingTxId { get; set; }
 
+        [JsonProperty("short_channel_id")]
+        [JsonConverter(typeof(JsonConverters.ShortChannelIdJsonConverter))]
+        public ShortChannelId ShortChannelId { get; set; }
+
         [JsonProperty("msatoshi_to_us")]
         [JsonConverter(typeof(JsonConverters.LightMoneyJsonConverter))]
         public LightMoney ToUs { get; set; }
@@ -44,6 +48,8 @@ namespace BTCPayServer.Lightning.CLightning
         public int ToSelfDelay { get; set; }
         [JsonProperty("max_accepted_htlcs")]
         public int MaxAcceptedHTLCS { get; set; }
+
+        public bool Private { get; set; }
         public string[] Status { get; set; }
     }
     public class PeerInfo

@@ -59,16 +59,16 @@ namespace BTCPayServer.Lightning.CLightning
 
         public Task SendAsync(string bolt11, CancellationToken cancellationToken)
         {
-            if(bolt11 == null)
+            if (bolt11 == null)
                 throw new ArgumentNullException(nameof(bolt11));
             bolt11 = bolt11.Replace("lightning:", "").Replace("LIGHTNING:", "");
             return SendCommandAsync<object>("pay", new[] { bolt11 }, true, cancellation: cancellationToken);
         }
 
-        public async Task<PeerInfo[]> ListPeersAsync()
+        public async Task<PeerInfo[]> ListPeersAsync(CancellationToken cancellation = default(CancellationToken))
         {
-            var peers = await SendCommandAsync<PeerInfo[]>("listpeers", isArray: true);
-            foreach(var peer in peers)
+            var peers = await SendCommandAsync<PeerInfo[]>("listpeers", isArray: true, cancellation: cancellation);
+            foreach (var peer in peers)
             {
                 peer.Channels = peer.Channels ?? Array.Empty<ChannelInfo>();
             }
@@ -197,10 +197,22 @@ namespace BTCPayServer.Lightning.CLightning
             return BitcoinAddress.Create(obj.Property("address").Value.Value<string>(), Network);
         }
 
+        public async Task<CLightningChannel[]> ListChannelsAsync(string ShortChannelId = null, CancellationToken cancellation = default(CancellationToken))
+        {
+            var resp =
+                ShortChannelId == null
+                ? await SendCommandAsync<CLightningChannel[]>("listchannels", null, false, true, cancellation)
+                : await SendCommandAsync<CLightningChannel[]>("listchannels", new[] { ShortChannelId }, false, true, cancellation);
+
+            if (resp.Length == 0)
+                return null;
+            return resp;
+        }
+
         async Task<LightningInvoice> ILightningClient.GetInvoice(string invoiceId, CancellationToken cancellation)
         {
             var invoices = await SendCommandAsync<CLightningInvoice[]>("listinvoices", new[] { invoiceId }, false, true, cancellation);
-            if(invoices.Length == 0)
+            if (invoices.Length == 0)
                 return null;
             return ToLightningInvoice(invoices[0]);
         }
@@ -232,6 +244,26 @@ namespace BTCPayServer.Lightning.CLightning
         async Task ILightningClient.ConnectTo(NodeInfo nodeInfo)
         {
             await ConnectAsync(nodeInfo);
+        }
+
+        async Task<LightningChannel[]> ILightningClient.ListChannels(CancellationToken cancellation)
+        {
+            var peers = await this.ListPeersAsync(cancellation);
+            // Since `channels` in listpeers does not contain info about IsActive or not
+            var listChannelsResponse = await this.ListChannelsAsync(cancellation: cancellation);
+            return (from p in peers
+                    from c1 in p.Channels
+                    let c2 = listChannelsResponse.Where(c => (c.Source == p.Id)).First()
+                    select new LightningChannel()
+                    {
+                        RemoteNode = new PubKey(p.Id),
+                        IsPublic = !c1.Private,
+                        IsActive = c2.Active,
+                        Capacity = c2.Capacity,
+                        LocalBalance = c1.ToUs,
+                        ChannelPoint = new OutPoint(c1.FundingTxId, c1.ShortChannelId.TxOutIndex)
+                    }
+                   ).ToArray();
         }
 
         internal static LightningInvoice ToLightningInvoice(CLightningInvoice invoice)

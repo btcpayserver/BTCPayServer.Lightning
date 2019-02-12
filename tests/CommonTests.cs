@@ -121,6 +121,27 @@ namespace BTCPayServer.Lightning.Tests
             }
         }
 
+        [Fact]
+        public async Task CanListChannels()
+        {
+            await EnsureConnectedToDestinations();
+            foreach (var client in Tester.GetLightningSenderClients().Concat(Tester.GetLightningDestClients()))
+            {
+                var channels = await client.ListChannels();
+                Assert.NotEmpty(channels);
+                Assert.Equal(2, channels.Count());
+                foreach (var c in channels)
+                {
+                    Assert.NotNull(c.RemoteNode);
+                    Assert.NotNull(c.IsPublic);
+                    Assert.NotNull(c.IsActive);
+                    Assert.NotNull(c.Capacity);
+                    Assert.NotNull(c.LocalBalance);
+                    Assert.NotNull(c.ChannelPoint);
+                }
+            }
+        }
+
 
         private static void AssertUnpaid(LightningInvoice invoice)
         {

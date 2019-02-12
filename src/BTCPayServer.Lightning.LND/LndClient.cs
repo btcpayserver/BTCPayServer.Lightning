@@ -208,6 +208,23 @@ namespace BTCPayServer.Lightning.LND
             return invoice;
         }
 
+        async Task<LightningChannel[]> ILightningClient.ListChannels(CancellationToken token)
+        {
+            var resp = await this.SwaggerClient.ListChannelsAsync(false, false, false, false);
+            return (from c in resp.Channels
+                    let tmp = c.Channel_point.Split(':')
+                    let txHash = new uint256(tmp[0])
+                    let outIndex = int.Parse(tmp[1])
+                    select new LightningChannel() {
+                        RemoteNode = new PubKey(c.Remote_pubkey),
+                        IsPublic = !(c.Private ?? false) ,
+                        IsActive = c.Active.Value,
+                        Capacity = c.Capacity,
+                        LocalBalance = c.Local_balance,
+                        ChannelPoint = new OutPoint(txHash, outIndex)
+                    }).ToArray();
+        }
+
         async Task<LightningNodeInformation> ILightningClient.GetInfo(CancellationToken cancellation)
         {
             var resp = await SwaggerClient.GetInfoAsync(cancellation);
