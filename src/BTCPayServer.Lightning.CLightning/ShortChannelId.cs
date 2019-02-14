@@ -1,29 +1,99 @@
+using System;
 using System.Globalization;
 using System.Linq;
 
 namespace BTCPayServer.Lightning.CLightning
 {
     // clightning-specific representation of channel id
-    public class ShortChannelId
+    public class ShortChannelId : IEquatable<ShortChannelId>, IComparable<ShortChannelId>
     {
-        public ShortChannelId (string data)
+        ShortChannelId (int blockHeight, int blockIndex, int txOutIndex)
         {
-            var numbers = data.Split(':').Select(s => int.Parse(s)).ToArray();
-            BlockHeight = numbers[0];
-            BlockIndex = numbers[1];
-            TxOutIndex = numbers[2];
+            BlockHeight = blockHeight;
+            BlockIndex = blockIndex;
+            TxOutIndex = txOutIndex;
         }
-        public int BlockHeight { get; set; }
-        public int BlockIndex { get; set; }
-        public int TxOutIndex { get; set; }
+        public static bool TryParse(string data, out ShortChannelId result)
+        {
+            result = null;
+            var datas = data.Split(':').ToArray();
+            if (datas.Length != 3)
+                return false;
+            try
+            {
+                var numbers = datas.Select(s => Int32.Parse(s, CultureInfo.InvariantCulture)).ToArray();
+                result = new ShortChannelId(numbers[0], numbers[1], numbers[2]);
+                return true;
+            }
+            catch
+            {
+                return false;
+            }
+        }
+
+        public static ShortChannelId Parse(string data)
+        {
+            if (TryParse(data, out ShortChannelId result))
+                return result;
+            throw new FormatException($"Failed to parse data {data} to ShortChannelId");
+        }
+        public int BlockHeight { get; }
+        public int BlockIndex { get; }
+        public int TxOutIndex { get; }
 
         public override string ToString()
+            => $"{BlockHeight.ToString(CultureInfo.InvariantCulture)}:{BlockIndex.ToString(CultureInfo.InvariantCulture)}:{TxOutIndex.ToString(CultureInfo.InvariantCulture)}";
+
+        #region IEquatable<ShortChannelId> Members
+
+        public bool Equals(ShortChannelId other)
         {
-            return BlockHeight.ToString(CultureInfo.InvariantCulture) +
-             ":" +
-             BlockIndex.ToString(CultureInfo.InvariantCulture) +
-             ":" +
-             TxOutIndex.ToString(CultureInfo.InvariantCulture);
+            if (other == null)
+                return false;
+            return (BlockHeight == other.BlockHeight && BlockIndex == other.BlockIndex && TxOutIndex == other.TxOutIndex);
         }
+        public override bool Equals(object obj)
+        {
+            ShortChannelId item = obj as ShortChannelId;
+            if (item == null)
+                return false;
+            return this.Equals(item);
+        }
+
+        public override int GetHashCode()
+            => BlockHeight.GetHashCode() ^ BlockIndex.GetHashCode() ^ TxOutIndex.GetHashCode();
+
+        # endregion
+
+        # region IComparable<ShortChannelId>
+
+        public int CompareTo(ShortChannelId other)
+        {
+            if (other == null)
+                return 1;
+            var c1 = BlockHeight.CompareTo(other.BlockHeight);
+            var c2 = BlockIndex.CompareTo(other.BlockIndex);
+            var c3 = TxOutIndex.CompareTo(other.TxOutIndex);
+            if (c1 != 0)
+                return c1;
+            else if (c2 != 0)
+                return c2;
+            else if (c3 != 0)
+                return c3;
+            else
+                return 0;
+        }
+
+        #endregion
+        public static bool operator ==(ShortChannelId a, ShortChannelId b)
+        {
+            if (Object.ReferenceEquals(a, b))
+                return true;
+            if (((object)a == null) || ((object)b == null))
+                return false;
+            return a.Equals(b);
+        }
+        public static bool operator !=(ShortChannelId a, ShortChannelId b)
+            => !(a == b);
     }
 }

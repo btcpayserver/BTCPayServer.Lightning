@@ -21,7 +21,7 @@ namespace BTCPayServer.Lightning.JsonConverters
             try
             {
                 return reader.TokenType == JsonToken.Null ? null :
-                    reader.TokenType == JsonToken.String ? new ShortChannelId((string)reader.Value)
+                    reader.TokenType == JsonToken.String ? ShortChannelId.Parse((string)reader.Value)
                     : null;
             }
             catch (InvalidCastException)

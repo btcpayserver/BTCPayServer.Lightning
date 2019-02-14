@@ -197,12 +197,12 @@ namespace BTCPayServer.Lightning.CLightning
             return BitcoinAddress.Create(obj.Property("address").Value.Value<string>(), Network);
         }
 
-        public async Task<CLightningChannel[]> ListChannelsAsync(string ShortChannelId = null, CancellationToken cancellation = default(CancellationToken))
+        public async Task<CLightningChannel[]> ListChannelsAsync(ShortChannelId ShortChannelId = null, CancellationToken cancellation = default(CancellationToken))
         {
             var resp =
                 ShortChannelId == null
                 ? await SendCommandAsync<CLightningChannel[]>("listchannels", null, false, true, cancellation)
-                : await SendCommandAsync<CLightningChannel[]>("listchannels", new[] { ShortChannelId }, false, true, cancellation);
+                : await SendCommandAsync<CLightningChannel[]>("listchannels", new[] { ShortChannelId.ToString() }, false, true, cancellation);
 
             if (resp.Length == 0)
                 return null;

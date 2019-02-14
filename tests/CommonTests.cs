@@ -125,19 +125,32 @@ namespace BTCPayServer.Lightning.Tests
         public async Task CanListChannels()
         {
             await EnsureConnectedToDestinations();
-            foreach (var client in Tester.GetLightningSenderClients().Concat(Tester.GetLightningDestClients()))
+
+            foreach (var sender in Tester.GetLightningSenderClients())
             {
-                var channels = await client.ListChannels();
-                Assert.NotEmpty(channels);
-                Assert.Equal(2, channels.Count());
-                foreach (var c in channels)
+                var senderChannels = await sender.ListChannels();
+                var senderInfo = await sender.GetInfo();
+                Assert.NotEmpty(senderChannels);
+                Assert.Equal(2, senderChannels.Count());
+
+                foreach (var dest in Tester.GetLightningDestClients())
                 {
-                    Assert.NotNull(c.RemoteNode);
-                    Assert.NotNull(c.IsPublic);
-                    Assert.NotNull(c.IsActive);
-                    Assert.NotNull(c.Capacity);
-                    Assert.NotNull(c.LocalBalance);
-                    Assert.NotNull(c.ChannelPoint);
+                    var destChannels = await dest.ListChannels();
+                    var destInfo = await dest.GetInfo();
+                    Assert.NotEmpty(destChannels);
+                    Assert.Equal(2, destChannels.Count());
+                    foreach (var c in senderChannels)
+                    {
+                        Assert.NotNull(c.RemoteNode);
+                        Assert.True(c.IsPublic);
+                        Assert.True(c.IsActive);
+                        Assert.NotNull(c.Capacity);
+                        Assert.NotNull(c.LocalBalance);
+                        Assert.NotNull(c.ChannelPoint);
+                    }
+
+                    Assert.True(senderChannels.Any(c => c.RemoteNode.Equals(destInfo.NodeInfo.NodeId)));
+                    Assert.True(destChannels.Any(c => c.RemoteNode.Equals(senderInfo.NodeInfo.NodeId)));
                 }
             }
         }
