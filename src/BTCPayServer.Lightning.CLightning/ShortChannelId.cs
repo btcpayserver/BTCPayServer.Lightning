@@ -71,17 +71,20 @@ namespace BTCPayServer.Lightning.CLightning
         {
             if (other == null)
                 return 1;
+
             var c1 = BlockHeight.CompareTo(other.BlockHeight);
-            var c2 = BlockIndex.CompareTo(other.BlockIndex);
-            var c3 = TxOutIndex.CompareTo(other.TxOutIndex);
             if (c1 != 0)
                 return c1;
-            else if (c2 != 0)
+
+            var c2 = BlockIndex.CompareTo(other.BlockIndex);
+            if (c2 != 0)
                 return c2;
-            else if (c3 != 0)
+
+            var c3 = TxOutIndex.CompareTo(other.TxOutIndex);
+            if (c3 != 0)
                 return c3;
-            else
-                return 0;
+
+            return 0;
         }
 
         #endregion
