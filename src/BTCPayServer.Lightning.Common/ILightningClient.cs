@@ -17,6 +17,8 @@ namespace BTCPayServer.Lightning
         Task<OpenChannelResponse> OpenChannel(OpenChannelRequest openChannelRequest, CancellationToken cancellation = default(CancellationToken));
         Task<BitcoinAddress> GetDepositAddress();
         Task ConnectTo(NodeInfo nodeInfo);
+
+        Task<LightningChannel[]> ListChannels(CancellationToken cancellation = default(CancellationToken));
     }
 
     public interface ILightningInvoiceListener : IDisposable
