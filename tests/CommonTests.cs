@@ -149,8 +149,8 @@ namespace BTCPayServer.Lightning.Tests
                         Assert.NotNull(c.ChannelPoint);
                     }
 
-                    Assert.True(senderChannels.Any(c => c.RemoteNode.Equals(destInfo.NodeInfo.NodeId)));
-                    Assert.True(destChannels.Any(c => c.RemoteNode.Equals(senderInfo.NodeInfo.NodeId)));
+                    Assert.Contains(senderChannels, c => c.RemoteNode.Equals(destInfo.NodeInfo.NodeId));
+                    Assert.Contains(destChannels, c => c.RemoteNode.Equals(senderInfo.NodeInfo.NodeId));
                 }
             }
         }
