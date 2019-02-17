@@ -9,26 +9,33 @@ namespace BTCPayServer.Lightning.CLightning
     {
         ShortChannelId (int blockHeight, int blockIndex, int txOutIndex)
         {
+            if (blockHeight < 0)
+                throw new ArgumentOutOfRangeException(nameof(blockHeight), $"{nameof(blockHeight)} should be more than 0");
+            if (blockIndex < 0)
+                throw new ArgumentOutOfRangeException(nameof(blockIndex), $"{nameof(blockIndex)} should be more than 0");
+            if (txOutIndex < 0)
+                throw new ArgumentOutOfRangeException(nameof(txOutIndex), $"{nameof(txOutIndex)} should be more than 0");
             BlockHeight = blockHeight;
             BlockIndex = blockIndex;
             TxOutIndex = txOutIndex;
         }
         public static bool TryParse(string data, out ShortChannelId result)
         {
+            if (data == null)
+                throw new ArgumentNullException(nameof(data));
             result = null;
             var datas = data.Split(':').ToArray();
             if (datas.Length != 3)
                 return false;
-            try
-            {
-                var numbers = datas.Select(s => Int32.Parse(s, CultureInfo.InvariantCulture)).ToArray();
-                result = new ShortChannelId(numbers[0], numbers[1], numbers[2]);
-                return true;
-            }
-            catch
-            {
+
+            if (!int.TryParse(datas[0], out var blockHeight) ||
+                !int.TryParse(datas[0], out var blockIndex) ||
+                !int.TryParse(datas[0], out var txOutIndex))
                 return false;
-            }
+            if (blockHeight < 0 || blockIndex < 0 || txOutIndex < 0)
+                return false;
+            result = new ShortChannelId(blockHeight, blockIndex, txOutIndex);
+            return true;
         }
 
         public static ShortChannelId Parse(string data)
@@ -61,7 +68,16 @@ namespace BTCPayServer.Lightning.CLightning
         }
 
         public override int GetHashCode()
-            => BlockHeight.GetHashCode() ^ BlockIndex.GetHashCode() ^ TxOutIndex.GetHashCode();
+        {
+            unchecked
+            {
+                int hash = 17;
+                hash = hash * 23 + BlockHeight;
+                hash = hash * 23 + BlockIndex;
+                hash = hash * 23 + TxOutIndex;
+                return hash;
+            }
+        }
 
         # endregion
 
