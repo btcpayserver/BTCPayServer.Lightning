@@ -211,6 +211,8 @@ namespace BTCPayServer.Lightning.LND
         async Task<LightningChannel[]> ILightningClient.ListChannels(CancellationToken token)
         {
             var resp = await this.SwaggerClient.ListChannelsAsync(false, false, false, false);
+            if (resp.Channels == null)
+                return new LightningChannel[] {};
             return (from c in resp.Channels
                     let tmp = c.Channel_point.Split(':')
                     let txHash = new uint256(tmp[0])
