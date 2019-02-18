@@ -220,7 +220,7 @@ namespace BTCPayServer.Lightning.LND
                     select new LightningChannel() {
                         RemoteNode = new PubKey(c.Remote_pubkey),
                         IsPublic = !(c.Private ?? false) ,
-                        IsActive = c.Active.Value,
+                        IsActive = (c.Active == null ? false : c.Active.Value),
                         Capacity = c.Capacity,
                         LocalBalance = c.Local_balance,
                         ChannelPoint = new OutPoint(txHash, outIndex)
