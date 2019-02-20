@@ -189,8 +189,10 @@ namespace BTCPayServer.Lightning.Tests
                 {
                     var info = await dest.GetInfo();
                     await sender.ConnectTo(info.NodeInfo);
-                } catch (SwaggerException)
+                    break;
+                } catch (SwaggerException ex)
                 {
+                    Console.WriteLine(ex);
                 }
                 await Task.Delay(1000);
             }

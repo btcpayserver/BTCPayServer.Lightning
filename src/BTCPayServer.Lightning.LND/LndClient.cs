@@ -402,14 +402,21 @@ namespace BTCPayServer.Lightning.LND
 
         async Task ILightningClient.ConnectTo(NodeInfo nodeInfo)
         {
-            await SwaggerClient.ConnectPeerAsync(new LnrpcConnectPeerRequest()
+            try
             {
-                Addr = new LnrpcLightningAddress()
+                await SwaggerClient.ConnectPeerAsync(new LnrpcConnectPeerRequest()
                 {
-                    Host = nodeInfo.Host,
-                    Pubkey = nodeInfo.NodeId.ToString()
-                }
-            });
+                    Addr = new LnrpcLightningAddress()
+                    {
+                        Host = nodeInfo.Host,
+                        Pubkey = nodeInfo.NodeId.ToString()
+                    }
+                });
+            }
+            catch (SwaggerException ex) when (ex.AsLNDError() is LndError2 lndError && lndError.Error.StartsWith("already connected to peer"))
+            {
+                return;
+            }
         }
 
         // Invariant culture conversion
