@@ -14,6 +14,7 @@ using BTCPayServer.Lightning.LND;
 using BTCPayServer.Lightning.Tests;
 using NBitcoin;
 using NBitcoin.RPC;
+using Newtonsoft.Json;
 
 namespace BTCPayServer.Lightning.Tests
 {
@@ -76,7 +77,12 @@ namespace BTCPayServer.Lightning.Tests
             return info;
         }
 
-        internal async Task<FlexibleTester> Launch(bool connectAll)
+        static void OutputHandler (object sendingProcess, DataReceivedEventArgs outline)
+        {
+            Console.WriteLine(outline.Data);
+        }
+
+        internal async Task<FlexibleTester> Launch(bool connectAll, bool debug = false)
         {
             var startInfo = GetStartInfo();
             startInfo.EnvironmentVariables["COMPOSE_PROJECT_NAME"] = InstanceId;
@@ -88,15 +94,17 @@ namespace BTCPayServer.Lightning.Tests
             startInfo.RedirectStandardOutput = true;
             p = Process.Start(startInfo);
 
-            // -- 
-            // string err = p.StandardError.ReadToEnd();
-            // Console.WriteLine(err);
-            // p.WaitForExit();
             //--
+            if (debug)
+            {
+                p.OutputDataReceived += new DataReceivedEventHandler(OutputHandler);
+                p.ErrorDataReceived += new DataReceivedEventHandler(OutputHandler);
+                p.BeginOutputReadLine();
+                p.BeginErrorReadLine();
+            }
 
-            await CheckNodeStartedAll();
             // LND will throw 500 error when tried to connect if it has no scanned block in it.
-            await CreateRPC().GenerateAsync(1);
+            await CheckNodeStartedAll();
             if (connectAll)
                 await CheckConnectedAll();
             else
@@ -186,13 +194,17 @@ namespace BTCPayServer.Lightning.Tests
                 await Task.Delay(1000);
             }
         }
-        private Task CheckNodeStartedAll()
+        private async Task CheckNodeStartedAll()
         {
             var tasks = new List<Task>();
-            tasks.Add(CheckNodeStarted(CreateRPC()));
+            var rpc = CreateRPC();
+            Console.WriteLine("Checking Bitcoin RPC");
+            await CheckNodeStarted(rpc);
+            Console.WriteLine("Finished Checking Bitcoin");
+            await CreateRPC().GenerateAsync(1);
             foreach (var c in GetAllClients())
                 tasks.Add(CheckNodeStarted(c));
-            return Task.WhenAll(tasks);
+            await Task.WhenAll(tasks);
         }
 
         private Task CheckNodeStarted(ILightningClient client)
@@ -201,7 +213,7 @@ namespace BTCPayServer.Lightning.Tests
         private Task CheckNodeStarted(RPCClient client)
             => CheckNodeStartedCore(() => client.GetBlockchainInfoAsync());
 
-        private async Task CheckNodeStartedCore<T>(Func<Task<T>> checkingMethod)
+        private async Task CheckNodeStartedCore(Func<Task> checkingMethod)
         {
             while (true)
             {
@@ -216,7 +228,7 @@ namespace BTCPayServer.Lightning.Tests
                 { }
                 catch (RPCException)
                 { }
-                await Task.Delay(1000);
+                await Task.Delay(500);
             }
         }
 
@@ -294,7 +306,7 @@ namespace BTCPayServer.Lightning.Tests
             return path1;
         }
  
-        public static Task<FlexibleTester> CreateAsync(bool ConnectAll = true, [CallerMemberName] string caller =  null)
+        public static Task<FlexibleTester> CreateAsync(bool ConnectAll = true, bool debugDockerProcess = false, [CallerMemberName] string caller =  null)
         {
             if (caller == null)
             {
@@ -303,7 +315,7 @@ namespace BTCPayServer.Lightning.Tests
             var ports = new int[7];
             FindPorts(ports);
             var composeFile = GetComposeFilePath();
-            return new FlexibleTester(caller, ports, composeFile).Launch(ConnectAll);
+            return new FlexibleTester(caller, ports, composeFile).Launch(ConnectAll, debugDockerProcess);
         }
 
     }

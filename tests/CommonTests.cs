@@ -158,7 +158,7 @@ namespace BTCPayServer.Lightning.Tests
         [Fact]
         public async Task CanListChannelsInAllCase()
         {
-            using (var tester = await FlexibleTesterBuilder.CreateAsync(false))
+            using (var tester = await FlexibleTesterBuilder.CreateAsync(false, true))
             {
                 // case 1: not connected
                 foreach (var sender in tester.GetLightningSenderClients())
