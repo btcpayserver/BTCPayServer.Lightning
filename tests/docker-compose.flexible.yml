@@ -1,0 +1,132 @@
+version: "3"    
+
+services:
+
+  bitcoind:
+    restart: unless-stopped
+    image: nicolasdorier/docker-bitcoin:0.17.0
+    environment:
+      BITCOIN_NETWORK: ${TESTER_NETWORK:-regtest}
+      BITCOIN_EXTRA_ARGS: |
+        rpcuser=ceiwHEbqWI83
+        rpcpassword=DwubwWsoo3
+        server=1
+        rpcport=${TESTER_BITCOIN_RPCPORT:?NoBitcoinRpcPort}
+        port=${TESTER_BITCOIN_PORT:?NoBitcoinPort}
+        whitelist=0.0.0.0/0
+        zmqpubrawblock=tcp://0.0.0.0:28332
+        zmqpubrawtx=tcp://0.0.0.0:28333
+    ports: 
+      - "${TESTER_BITCOIN_RPCPORT}:${TESTER_BITCOIN_RPCPORT}"
+      - "${TESTER_BITCOIN_PORT}:${TESTER_BITCOIN_PORT}"
+    expose:
+      - "${TESTER_BITCOIN_RPCPORT}" # RPC
+      - "${TESTER_BITCOIN_PORT}" # P2P
+    volumes:
+      - "${TESTER_DATADIR:?NoTesterDataDir}/bitcoind_dir:/data"
+
+  lightningd:
+    restart: unless-stopped
+    stop_signal: SIGKILL
+    image: btcpayserver/lightning:v0.6.3-3-dev
+    environment: 
+      EXPOSE_TCP: "true"
+      LIGHTNINGD_OPT: |
+        bitcoin-datadir=/etc/bitcoin
+        bitcoin-rpcconnect=bitcoind
+        network=${TESTER_NETWORK:-regtest}
+        bind-addr=0.0.0.0
+        announce-addr=lightningd
+        log-level=debug
+        dev-broadcast-interval=1000
+        dev-bitcoind-poll=1
+    ports:
+      - "${TESTER_CLIGHTNING_PORT:?NoClightningPort}:9835" # api port
+    expose:
+      - "9735" # server port
+      - "9835" # api port
+    volumes:
+      - "${TESTER_DATADIR:?NoTesterDataDir}/bitcoind_dir:/etc/bitcoin"
+      - "${TESTER_DATADIR}/lightning_dir:/root/.lightning"
+    links:
+      - bitcoind
+
+  lightningd_dest:
+    restart: unless-stopped
+    stop_signal: SIGKILL
+    image: btcpayserver/lightning:v0.6.3-3-dev
+    environment: 
+      EXPOSE_TCP: "true"
+      LIGHTNINGD_OPT: |
+        bitcoin-datadir=${TESTER_DATADIR:?NoTesterDataDir}/bitcoind_dir
+        bitcoin-rpcconnect=bitcoind
+        network=${TESTER_NETWORK:-regtest}
+        bind-addr=0.0.0.0
+        announce-addr=lightningd_dest
+        log-level=debug
+        dev-broadcast-interval=1000
+        dev-bitcoind-poll=1
+    ports:
+      - "${TESTER_CLIGHTNING_DEST_PORT:?NoClightningDestPort}:9835" # api port
+    expose:
+      - "9735" # server port
+      - "9835" # api port
+    volumes:
+      - "${TESTER_DATADIR:?NoTesterDataDir}/bitcoind_dir:/etc/bitcoin"
+      - "${TESTER_DATADIR}/lightning_dest_dir:/root/.lightning"
+    links:
+      - bitcoind
+
+  lnd:
+    restart: unless-stopped
+    image: btcpayserver/lnd:v0.5.1-beta-2
+    environment:
+      LND_CHAIN: "btc"
+      LND_ENVIRONMENT: ${TESTER_NETWORK:-regtest}
+      LND_EXTRA_ARGS: |
+        restlisten=0.0.0.0:8080
+        bitcoin.node=bitcoind
+        bitcoind.rpchost=bitcoind:${TESTER_BITCOIN_RPCPORT}
+        bitcoind.zmqpubrawblock=tcp://bitcoind:28332
+        bitcoind.zmqpubrawtx=tcp://bitcoind:28333
+        trickledelay=1000
+        externalip=lnd:9735
+        no-macaroons=1
+        debuglevel=debug
+        noseedbackup=1
+    ports:
+      - "${TESTER_LND_PORT}:8080"
+    expose:
+      - "9735"
+    volumes:
+      - "${TESTER_DATADIR:?NoTesterDataDir}/lnd_dir:/data"
+      - "${TESTER_DATADIR:?NoTesterDataDir}/bitcoind_dir:/deps/.bitcoin"
+    links:
+      - bitcoind
+
+  lnd_dest:
+    restart: unless-stopped
+    image: btcpayserver/lnd:v0.5.1-beta-2
+    environment:
+      LND_CHAIN: "btc"
+      LND_ENVIRONMENT: ${TESTER_NETWORK:-regtest}
+      LND_EXTRA_ARGS: |
+        restlisten=0.0.0.0:8080
+        bitcoin.node=bitcoind
+        bitcoind.rpchost=bitcoind:${TESTER_BITCOIN_RPCPORT}
+        bitcoind.zmqpubrawblock=tcp://bitcoind:28332
+        bitcoind.zmqpubrawtx=tcp://bitcoind:28333
+        trickledelay=1000
+        externalip=lnd_dest:9735
+        no-macaroons=1
+        debuglevel=debug
+        noseedbackup=1
+    ports:
+      - "${TESTER_LND_DEST_PORT}:8080"
+    expose:
+      - "9735"
+    volumes:
+      - "${TESTER_DATADIR:?NoTesterDataDir}/lnd_dir:/data"
+      - "${TESTER_DATADIR:?NoTesterDataDir}/bitcoind_dir:/deps/.bitcoin"
+    links:
+      - bitcoind
