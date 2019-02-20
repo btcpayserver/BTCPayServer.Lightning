@@ -246,19 +246,13 @@ namespace BTCPayServer.Lightning.CLightning
 
         async Task<LightningChannel[]> ILightningClient.ListChannels(CancellationToken cancellation)
         {
-            var empty = new LightningChannel[] { };
-            var peers = await this.ListPeersAsync(cancellation);
-            peers = peers.ToArray();
-            if (peers.Length == 0 || peers.All(p => p.Channels.Count() == 0))
-                return empty;
-            // Since `channels` in listpeers does not contain info about IsActive or not
-            var listChannelsResponse = await this.ListChannelsAsync(cancellation: cancellation);
-            var resp = listChannelsResponse.ToArray();
-            if (resp.Length == 0)
-                return empty;
-            return (from p in peers
-                    from c1 in p.Channels.Where(c => c.State != "CHANNELD_AWAITING_LOCKIN" )
-                    let c2 = resp.Where(c => (c.Source == p.Id)).First()
+            // Since `channels` in listpeers does not contain info about IsActive or not, we need to query listChannels as well
+            var listPeersAsync = this.ListPeersAsync(cancellation);
+            var channels = await this.ListChannelsAsync(cancellation: cancellation);
+            return (from p in await listPeersAsync
+                    from c1 in p.Channels
+                    let c2 = channels.Where(c => (c.Source == p.Id)).FirstOrDefault()
+                    where c2 != null
                     select new LightningChannel()
                     {
                         RemoteNode = new PubKey(p.Id),
