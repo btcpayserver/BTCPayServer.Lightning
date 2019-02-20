@@ -4,6 +4,7 @@ using System.Diagnostics;
 using System.IO;
 using System.Linq;
 using System.Net;
+using System.Net.Http;
 using System.Net.Sockets;
 using System.Runtime.CompilerServices;
 using System.Threading.Tasks;
@@ -228,6 +229,10 @@ namespace BTCPayServer.Lightning.Tests
                 { }
                 catch (RPCException)
                 { }
+                catch (JsonReaderException)
+                { }
+                catch (HttpRequestException)
+                { }
                 await Task.Delay(500);
             }
         }
@@ -264,7 +269,7 @@ namespace BTCPayServer.Lightning.Tests
             var startInfo = GetStartInfo();
             startInfo.EnvironmentVariables["COMPOSE_PROJECT_NAME"] = InstanceId;
             startInfo.FileName = "docker-compose";
-            startInfo.Arguments = $" -f {DockerComposeFilePath} down";
+            startInfo.Arguments = $" -f {DockerComposeFilePath} down --v";
             p = Process.Start(startInfo);
             p.WaitForExit();
         }

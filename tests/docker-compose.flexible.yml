@@ -48,8 +48,8 @@ services:
       - "9735" # server port
       - "9835" # api port
     volumes:
+      - "lightningd_dir:/root/.lightning" # sadly relative path is not working for clightning
       - "${TESTER_DATADIR:?NoTesterDataDir}/bitcoind_dir:/etc/bitcoin"
-      - "${TESTER_DATADIR}/lightning_dir:/root/.lightning"
     links:
       - bitcoind
 
@@ -77,7 +77,7 @@ services:
       - "9835" # api port
     volumes:
       - "${TESTER_DATADIR:?NoTesterDataDir}/bitcoind_dir:/etc/bitcoin"
-      - "${TESTER_DATADIR}/lightning_dest_dir:/root/.lightning"
+      - "lightningd_dest_dir:/root/.lightning"
     links:
       - bitcoind
 
@@ -134,7 +134,11 @@ services:
     expose:
       - "9735"
     volumes:
-      - "${TESTER_DATADIR:?NoTesterDataDir}/lnd_dir:/data"
+      - "${TESTER_DATADIR:?NoTesterDataDir}/lnd_dest_dir:/data"
       - "${TESTER_DATADIR:?NoTesterDataDir}/bitcoind_dir:/deps/.bitcoin"
     links:
       - bitcoind
+
+volumes:
+    lightningd_dir:
+    lightningd_dest_dir:
