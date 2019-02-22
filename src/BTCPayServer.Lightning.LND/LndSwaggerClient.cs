@@ -4985,20 +4985,6 @@ namespace BTCPayServer.Lightning.LND
             }
         }
     
-        [Newtonsoft.Json.JsonProperty("chains", Required = Newtonsoft.Json.Required.Default, NullValueHandling = Newtonsoft.Json.NullValueHandling.Ignore)]
-        public System.Collections.ObjectModel.ObservableCollection<string> Chains
-        {
-            get { return _chains; }
-            set 
-            {
-                if (_chains != value)
-                {
-                    _chains = value; 
-                    RaisePropertyChanged();
-                }
-            }
-        }
-    
         /// <summary>/ The URIs of the current node.</summary>
         [Newtonsoft.Json.JsonProperty("uris", Required = Newtonsoft.Json.Required.Default, NullValueHandling = Newtonsoft.Json.NullValueHandling.Ignore)]
         public System.Collections.ObjectModel.ObservableCollection<string> Uris
