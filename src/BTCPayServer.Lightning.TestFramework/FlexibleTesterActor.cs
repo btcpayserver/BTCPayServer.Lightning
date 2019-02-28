@@ -14,6 +14,10 @@ namespace BTCPayServer.Lightning.TestFramework
         Lnd,
         Lightning,
         LightningCharge,
+        LndWithBitcoin,
+
+        LightningWithBitcoin,
+        LightningChargeWithbitcoin,
     }
 
     public abstract class FlexibleTesterActorBase
@@ -22,22 +26,10 @@ namespace BTCPayServer.Lightning.TestFramework
         public Network Network { get; set; }
 
         public int Port { get; set; }
-        public string Directory { get; set; }
-        public string RPCUser { get; set; }
-
-        public string RPCPassword { get; set; }
-        public string RPCUrl { get; set; }
-        public string P2PHost { get; set; }
 
         public string ID { get; set; }
 
-        public int BitcoindPort { get; set; }
-
-        public int BitcoindRpcPort { get; set; }
-
         protected ILightningClient _Client { get; set; }
-
-        public bool RequireIndependentBlockchain { get; set; }
 
         public abstract string TypeToString();
 
@@ -57,13 +49,6 @@ namespace BTCPayServer.Lightning.TestFramework
             var ports = new int[1];
             TestUtils.FindPorts(ports);
             Port = ports[0];
-            if (RequireIndependentBlockchain)
-            {
-                var bitcoinPorts = new int[2];
-                TestUtils.FindPorts(bitcoinPorts);
-                BitcoindPort = bitcoinPorts[0];
-                BitcoindRpcPort = bitcoinPorts[1];
-            }
         }
 
         public ILightningClient GetClient()
@@ -74,25 +59,13 @@ namespace BTCPayServer.Lightning.TestFramework
         }
 
         public RPCClient GetBitcoinClient()
-            => RequireIndependentBlockchain ?
-                new RPCClient("ceiwHEbqWI83:DwubwWsoo3", $"127.0.0.1:{BitcoindPort}", Network) :
-                new RPCClient("ceiwHEbqWI83:DwubwWsoo3", "127.0.0.1:37393", Network);
+            => new RPCClient("ceiwHEbqWI83:DwubwWsoo3", "127.0.0.1:37393", Network);
 
         public abstract string GetConnectionString();
 
-        public virtual ProcessStartInfo UpdateEnvironmentVariables(ProcessStartInfo pInfo)
-        {
-            if (RequireIndependentBlockchain)
-            {
-                pInfo.EnvironmentVariables.Add($"{ID}_BITCOIN_RPCPORT", BitcoindRpcPort.ToString());
-                pInfo.EnvironmentVariables.Add($"{ID}_BITCOIN_PORT", BitcoindPort.ToString());
-            }
-            return pInfo;
-        }
+        public abstract ProcessStartInfo UpdateEnvironmentVariables(ProcessStartInfo pInfo);
 
         public string GetFragmentFileName() => 
-            RequireIndependentBlockchain ?
-            TypeToString() + "_with_bitcoin.yml" :
             TypeToString() + ".yml";
     }
 
@@ -105,15 +78,14 @@ namespace BTCPayServer.Lightning.TestFramework
             => $"type=lnd-rest;server=https://lnd:lnd@127.0.0.1:{Port};allowinsecure=true";
         public override ProcessStartInfo UpdateEnvironmentVariables(ProcessStartInfo pInfo)
         {
-            var p = base.UpdateEnvironmentVariables(pInfo);
-            p.EnvironmentVariables.Add($"{ID}_PORT", Port.ToString());
-            return p;
+            pInfo.EnvironmentVariables.Add($"{ID}_PORT", Port.ToString());
+            return pInfo;
         }
     }
 
     public class CLightningActor : FlexibleTesterActorBase
     {
-        public CLightningActor(Network network) :base (network) {}
+        public CLightningActor(Network network) : base(network){}
 
         public override string TypeToString()
             => "lightningd";
@@ -121,9 +93,8 @@ namespace BTCPayServer.Lightning.TestFramework
             => $"type=clightning;server=tcp://127.0.0.1:{Port}";
         public override ProcessStartInfo UpdateEnvironmentVariables(ProcessStartInfo pInfo)
         {
-            var p = base.UpdateEnvironmentVariables(pInfo);
-            p.EnvironmentVariables.Add($"{ID}_PORT", Port.ToString());
-            return p;
+            pInfo.EnvironmentVariables.Add($"{ID}_PORT", Port.ToString());
+            return pInfo;
         }
     }
 
@@ -131,7 +102,7 @@ namespace BTCPayServer.Lightning.TestFramework
     {
         private int LightningPort { get; }
 
-        public LightningChargeActor(Network n) : base(n)
+        public LightningChargeActor(Network network) : base(network)
         {
             var additionalPort = new int[1];
             TestUtils.FindPorts(additionalPort);
@@ -145,10 +116,9 @@ namespace BTCPayServer.Lightning.TestFramework
             => $"type=charge;server=http://api-token:foiewnccewuify@127.0.0.1:{Port}";
         public override ProcessStartInfo UpdateEnvironmentVariables(ProcessStartInfo pInfo)
         {
-            var p = base.UpdateEnvironmentVariables(pInfo);
-            p.EnvironmentVariables.Add($"{ID}_CHARGE_PORT", Port.ToString());
-            p.EnvironmentVariables.Add($"{ID}_LIGHTNING_PORT", LightningPort.ToString());
-            return p;
+            pInfo.EnvironmentVariables.Add($"{ID}_CHARGE_PORT", Port.ToString());
+            pInfo.EnvironmentVariables.Add($"{ID}_LIGHTNING_PORT", LightningPort.ToString());
+            return pInfo;
         }
     }
 
@@ -166,6 +136,7 @@ namespace BTCPayServer.Lightning.TestFramework
                 return new CLightningActor(Network);
             if (type == SupportedActorType.LightningCharge)
                 return new LightningChargeActor(Network);
+
             throw new NotSupportedException($"Unknown actor type{type}");
         }
     }

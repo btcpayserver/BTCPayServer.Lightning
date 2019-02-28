@@ -12,6 +12,7 @@ using System.Threading;
 using NBitcoin.Crypto;
 using BTCPayServer.Lightning.TestFramework;
 using Microsoft.Extensions.Logging;
+using System.Net;
 
 namespace BTCPayServer.Lightning.Tests
 {

@@ -23,14 +23,12 @@ namespace BTCPayServer.Lightning.TestFramework
     /// <summary>
     /// Tester which launches new docker-compose instance independent from pre-launched one.
     /// It is quite heavy, so you should first consider using Tester.
-    /// Currently it does not support clightning-charge because there was no need.
     /// </summary>
     public class FlexibleTester : IDisposable
     {
         public Network Network { get; } = Network.RegTest;
 
         private Process p { get; set; }
-        private CLIProxyBase cmd { get; set; }
         public string BuilderId { get; }
         public int InstanceId { get; }
         public string DockerComposeFilePath { get; }
@@ -63,7 +61,9 @@ namespace BTCPayServer.Lightning.TestFramework
             info.EnvironmentVariables.Add($"TESTER_BITCOIN_RPCPORT", BitcoinPorts[1].ToString());
             info.EnvironmentVariables.Add($"TESTER_NETWORK", Network.ToString().ToLowerInvariant());
             info.EnvironmentVariables.Add($"TESTER_DATADIR", GetDataDir());
-
+            foreach (var a in Actors)
+                info = a.UpdateEnvironmentVariables(info);
+            info.EnvironmentVariables["COMPOSE_PROJECT_NAME"] = $"{BuilderId}_{InstanceId.ToString()}";
             return info;
         }
 
@@ -75,9 +75,6 @@ namespace BTCPayServer.Lightning.TestFramework
         internal async Task<FlexibleTester> Launch(bool connectAll)
         {
             var startInfo = GetStartInfo();
-            foreach (var a in Actors)
-                startInfo = a.UpdateEnvironmentVariables(startInfo);
-            startInfo.EnvironmentVariables["COMPOSE_PROJECT_NAME"] = $"{BuilderId}_{InstanceId.ToString()}";
             startInfo.FileName = "docker-compose";
             startInfo.Arguments = $" -f {DockerComposeFilePath} up";
             startInfo.UseShellExecute = false;
@@ -198,25 +195,25 @@ namespace BTCPayServer.Lightning.TestFramework
                 }
                 catch (SocketException e)
                 {
-                    Logger.LogDebug("Got Socket Exception");
-                    Logger.LogDebug(e.Message);
+                    Logger?.LogDebug("Got Socket Exception");
+                    Logger?.LogDebug(e.Message);
                 }
                 catch (WebException e)
                 {
-                    Logger.LogDebug("Got Web Exception");
-                    Logger.LogDebug(e.Message);
+                    Logger?.LogDebug("Got Web Exception");
+                    Logger?.LogDebug(e.Message);
                 }
                 catch (RPCException e)
                 {
-                    Logger.LogDebug("Got RPC Exception");
-                    Logger.LogDebug(e.Message);
+                    Logger?.LogDebug("Got RPC Exception");
+                    Logger?.LogDebug(e.Message);
                 }
                 catch (JsonReaderException)
                 { }
                 catch (HttpRequestException e)
                 {
-                    Logger.LogDebug("Got Http Request Exception");
-                    Logger.LogDebug(e.Message);
+                    Logger?.LogDebug("Got Http Request Exception");
+                    Logger?.LogDebug(e.Message);
                 }
                 await Task.Delay(500);
             }
@@ -239,7 +236,6 @@ namespace BTCPayServer.Lightning.TestFramework
         private void RunDockerComposeDown()
         {
             var startInfo = GetStartInfo();
-            startInfo.EnvironmentVariables["COMPOSE_PROJECT_NAME"] = $"{BuilderId}_{InstanceId.ToString()}";
             startInfo.FileName = "docker-compose";
             startInfo.Arguments = $" -f {DockerComposeFilePath} down --v";
             p = Process.Start(startInfo);
