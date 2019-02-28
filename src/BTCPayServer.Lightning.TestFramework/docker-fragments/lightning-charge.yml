@@ -1,0 +1,51 @@
+version: "3"    
+
+services:
+  ###_lightningd:
+    restart: unless-stopped
+    stop_signal: SIGKILL
+    image: btcpayserver/lightning:v0.6.3-3-dev
+    environment: 
+      EXPOSE_TCP: "true"
+      LIGHTNINGD_OPT: |
+        bitcoin-datadir=/etc/bitcoin
+        bitcoin-rpcconnect=bitcoind:${TESTER_BITCOIN_RPCPORT:?NoMainBitcoinRPCPort}
+        bitcoin-rpcuser=ceiwHEbqWI83
+        bitcoin-rpcpassword=DwubwWsoo3
+        network=${TESTER_NETWORK:-regtest}
+        bind-addr=0.0.0.0
+        announce-addr=###_lightningd
+        log-level=debug
+        dev-broadcast-interval=1000
+        dev-bitcoind-poll=1
+    ports:
+      - "${###_LIGHTNING_PORT:?NoClightningPort}:9835" # api port
+    expose:
+      - "9735" # server port
+      - "9835" # api port
+    volumes:
+      - "lightningd_###_dir:/root/.lightning" # sadly relative path is not working for clightning
+      - "${TESTER_DATADIR:?NoTesterDataDir}/bitcoind_dir:/etc/bitcoin"
+    links:
+      - bitcoind
+  ###_charge:
+    restart: unless-stopped
+    image: shesek/lightning-charge:0.4.6-standalone
+    environment:
+      NETWORK: ${TESTER_NETWORK:-regtest}
+      API_TOKEN: foiewnccewuify
+      BITCOIND_RPCCONNECT: bitcoind
+    volumes:
+      - "${TESTER_DATADIR:?NoTesterDataDir}/bitcoind_dir:/etc/bitcoin"
+      - "${TESTER_DATADIR:?NoTesterDataDir}/###/lightning_charge_dir:/data"
+      - "lightningd_###_dir:/etc/lightning"
+    expose:
+      - "9112" # Charge
+      - "9735" # Lightning
+    ports:
+      - "${###_CHARGE_PORT:?NoLightningChargePort}:9112" # Charge
+    links:
+      - ###_lightningd
+
+volumes:
+    lightningd_###_dir:

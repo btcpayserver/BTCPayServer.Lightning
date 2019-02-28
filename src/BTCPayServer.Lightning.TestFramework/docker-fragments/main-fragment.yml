@@ -1,0 +1,23 @@
+version: "3"    
+services:
+  bitcoind:
+    image: nicolasdorier/docker-bitcoin:0.17.0
+    environment:
+      BITCOIN_NETWORK: ${TESTER_NETWORK:-regtest}
+      BITCOIN_EXTRA_ARGS: |
+        rpcuser=ceiwHEbqWI83
+        rpcpassword=DwubwWsoo3
+        server=1
+        rpcport=${TESTER_BITCOIN_RPCPORT:?NoMainBitcoinRpcPort}
+        port=${TESTER_BITCOIN_PORT:?NoMainBitcoinPort}
+        whitelist=0.0.0.0/0
+        zmqpubrawblock=tcp://0.0.0.0:28332
+        zmqpubrawtx=tcp://0.0.0.0:28333
+    ports: 
+      - "${TESTER_BITCOIN_RPCPORT}:${TESTER_BITCOIN_RPCPORT}"
+      - "${TESTER_BITCOIN_PORT}:${TESTER_BITCOIN_PORT}"
+    expose:
+      - "${TESTER_BITCOIN_RPCPORT}" # RPC
+      - "${TESTER_BITCOIN_PORT}" # P2P
+    volumes:
+      - "${TESTER_DATADIR:?NoTesterDataDir}/bitcoind_dir:/home/bitcoin/.bitcoin"

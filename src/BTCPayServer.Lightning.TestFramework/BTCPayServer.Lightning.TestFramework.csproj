@@ -1,0 +1,23 @@
+<Project Sdk="Microsoft.NET.Sdk">
+
+  <PropertyGroup>
+    <TargetFramework>netstandard2.0</TargetFramework>
+  </PropertyGroup>
+
+  <ItemGroup>
+    <Content Include="docker-fragments/**" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <ProjectReference Include="..\BTCPayServer.Lightning.All\BTCPayServer.Lightning.All.csproj" />
+    <ProjectReference Include="..\BTCPayServer.Lightning.Charge\BTCPayServer.Lightning.Charge.csproj" />
+    <ProjectReference Include="..\BTCPayServer.Lightning.CLightning\BTCPayServer.Lightning.CLightning.csproj" />
+    <ProjectReference Include="..\BTCPayServer.Lightning.LND\BTCPayServer.Lightning.LND.csproj" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <PackageReference Include="Microsoft.Extensions.Logging" Version="2.2.0" />
+    <PackageReference Include="YamlDotNet" Version="5.4.0" />
+  </ItemGroup>
+
+</Project>

@@ -1,6 +1,7 @@
 ﻿using System;
 using System.Threading.Tasks;
 using Xunit;
+using Xunit.Abstractions;
 using System.Linq;
 using NBitcoin;
 using NBitcoin.RPC;
@@ -9,11 +10,14 @@ using System.Security.Cryptography.X509Certificates;
 using System.Security.Cryptography;
 using System.Threading;
 using NBitcoin.Crypto;
+using BTCPayServer.Lightning.TestFramework;
+using Microsoft.Extensions.Logging;
 
 namespace BTCPayServer.Lightning.Tests
 {
     public class CommonTests
     {
+
         [Fact]
         public async Task CanCreateInvoice()
         {
@@ -158,16 +162,26 @@ namespace BTCPayServer.Lightning.Tests
         [Fact]
         public async Task CanListChannelsInAllCase()
         {
-            using (var tester = await FlexibleTesterBuilder.CreateAsync(false, true))
+            var builder = new FlexibleTesterBuilder();
+            builder.AddNode(SupportedActorType.Lightning);
+            builder.AddNode(SupportedActorType.Lnd);
+            builder.AddNode(SupportedActorType.Lightning);
+            builder.AddNode(SupportedActorType.Lnd);
+            builder.AddNode(SupportedActorType.LightningCharge); // This one is not necessary.
+
+            var logger = new LoggerFactory().CreateLogger("CanListChannelsInAllCase");
+            using (var tester = await builder.BuildAsync(false, logger))
             {
                 // case 1: not connected
-                foreach (var sender in tester.GetLightningSenderClients())
+                foreach (var sender in tester.Actors.Take(2))
                 {
-                    foreach (var dest in tester.GetLightningDestClients())
+                    foreach (var dest in tester.Actors.Skip(2).Take(2))
                     {
-                        var senderC = await sender.ListChannels();
+                        var senderClient = sender.GetClient();
+                        var senderC = await senderClient.ListChannels();
                         Assert.Empty(senderC);
-                        var destC = await dest.ListChannels();
+                        var destClient = dest.GetClient();
+                        var destC = await destClient.ListChannels();
                         Assert.Empty(destC);
                     }
                 }
@@ -175,13 +189,15 @@ namespace BTCPayServer.Lightning.Tests
                 // case 2: connected but no channels
                 await tester.CheckConnectedAll();
 
-                foreach (var sender in tester.GetLightningSenderClients())
+                foreach (var sender in tester.Actors.Take(2))
                 {
-                    foreach (var dest in tester.GetLightningDestClients())
+                    foreach (var dest in tester.Actors.Skip(2).Take(2))
                     {
-                        var senderC = await sender.ListChannels();
+                        var senderClient = sender.GetClient();
+                        var senderC = await senderClient.ListChannels();
                         Assert.Empty(senderC);
-                        var destC = await dest.ListChannels();
+                        var destClient = dest.GetClient();
+                        var destC = await destClient.ListChannels();
                         Assert.Empty(destC);
                     }
                 }
@@ -189,25 +205,28 @@ namespace BTCPayServer.Lightning.Tests
                 await tester.PrepareFunds();
 
                 // case3: with pending channels
-                foreach (var sender in tester.GetLightningSenderClients())
+                foreach (var sender in tester.Actors.Take(2))
                 {
-                    foreach (var dest in tester.GetLightningDestClients())
+                    foreach (var dest in tester.Actors.Skip(2).Take(2))
                     {
-                        var destInfo = await dest.GetInfo();
-                        await sender.OpenChannel(new OpenChannelRequest() {
+                        var destClient = dest.GetClient();
+                        var senderClient = sender.GetClient();
+                        var destInfo = await destClient.GetInfo();
+                        await senderClient.OpenChannel(new OpenChannelRequest() {
                                     NodeInfo = destInfo.NodeInfo,
                                     ChannelAmount = Money.Satoshis(1000000m),
                                     FeeRate = new FeeRate(1, 1)
                                 }
                             );
-                        var senderC = await sender.ListChannels();
+                        var senderC = await senderClient.ListChannels();
                         Assert.Empty(senderC);
-                        var destC = await dest.ListChannels();
+                        var destC = await destClient.ListChannels();
                         Assert.Empty(destC);
                     }
                 }
             }
         }
+
 
         private static void AssertUnpaid(LightningInvoice invoice)
         {
