@@ -24,7 +24,7 @@ namespace BTCPayServer.Lightning.CLightning
             if (data == null)
                 throw new ArgumentNullException(nameof(data));
             result = null;
-            var datas = data.Split(':').ToArray();
+            var datas = data.Split(new[] { ':','x' }).ToArray();
             if (datas.Length != 3)
                 return false;
 

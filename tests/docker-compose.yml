@@ -28,7 +28,7 @@ services:
   lightningd:
     restart: unless-stopped
     stop_signal: SIGKILL
-    image: btcpayserver/lightning:v0.6.3-3-dev
+    image: btcpayserver/lightning:v0.7.0-1-dev
     environment: 
       EXPOSE_TCP: "true"
       LIGHTNINGD_OPT: |
@@ -54,7 +54,7 @@ services:
   lightningd_dest:
     restart: unless-stopped
     stop_signal: SIGKILL
-    image: btcpayserver/lightning:v0.6.3-3-dev
+    image: btcpayserver/lightning:v0.7.0-1-dev
     environment: 
       EXPOSE_TCP: "true"
       LIGHTNINGD_OPT: |
