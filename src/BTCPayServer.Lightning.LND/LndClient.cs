@@ -195,7 +195,7 @@ namespace BTCPayServer.Lightning.LND
                 Value = strAmount,
                 Memo = description,
                 Expiry = strExpiry
-            });
+            }, cancellation);
 
             var invoice = new LightningInvoice
             {
@@ -210,7 +210,7 @@ namespace BTCPayServer.Lightning.LND
 
         async Task<LightningChannel[]> ILightningClient.ListChannels(CancellationToken token)
         {
-            var resp = await this.SwaggerClient.ListChannelsAsync(false, false, false, false);
+            var resp = await this.SwaggerClient.ListChannelsAsync(false, false, false, false, token);
             if (resp.Channels == null)
                 return new LightningChannel[] {};
             return (from c in resp.Channels
@@ -346,7 +346,7 @@ namespace BTCPayServer.Lightning.LND
                 {
                     req.Sat_per_byte = ((int)openChannelRequest.FeeRate.SatoshiPerByte).ToString();
                 }
-                var result = await this.SwaggerClient.OpenChannelSyncAsync(req);
+                var result = await this.SwaggerClient.OpenChannelSyncAsync(req, cancellation);
                 return new OpenChannelResponse(OpenChannelResult.Ok);
             }
             catch(SwaggerException ex) when
@@ -366,7 +366,7 @@ namespace BTCPayServer.Lightning.LND
                 (ex.AsLNDError() is LndError2 lndError &&
                  lndError.Code == 177)
             {
-                var pendingChannels = await this.SwaggerClient.PendingChannelsAsync();
+                var pendingChannels = await this.SwaggerClient.PendingChannelsAsync(cancellation);
                 var nodePub = openChannelRequest.NodeInfo.NodeId.ToHex();
                 if(pendingChannels.Pending_open_channels != null && 
                    pendingChannels.Pending_open_channels.Any(p => p.Channel.Remote_node_pub == nodePub))
