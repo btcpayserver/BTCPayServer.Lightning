@@ -48,7 +48,7 @@ namespace BTCPayServer.Lightning.Tests
                     {
                         NodeInfo = destInfo.NodeInfo,
                         ChannelAmount = Money.Satoshis(16777215),
-                        FeeRate = new FeeRate(1, 1)
+                        FeeRate = new FeeRate(1UL, 1)
                     });
                     if(openChannel.Result == OpenChannelResult.CannotAffordFunding)
                     {
