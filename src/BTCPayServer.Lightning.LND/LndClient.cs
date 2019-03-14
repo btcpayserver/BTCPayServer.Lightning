@@ -273,7 +273,7 @@ namespace BTCPayServer.Lightning.LND
                 // TODO: Verify id corresponds to R_hash
                 Id = BitString(resp.R_hash),
                 Amount = new LightMoney(ConvertInv.ToInt64(resp.Value), LightMoneyUnit.Satoshi),
-                AmountReceived = new LightMoney(ConvertInv.ToInt64(resp.AmountPaid), LightMoneyUnit.MilliSatoshi),
+                AmountReceived = string.IsNullOrWhiteSpace(resp.AmountPaid) ? null : new LightMoney(ConvertInv.ToInt64(resp.AmountPaid), LightMoneyUnit.MilliSatoshi),
                 BOLT11 = resp.Payment_request,
                 Status = LightningInvoiceStatus.Unpaid
             };

@@ -16,6 +16,9 @@ namespace BTCPayServer.Lightning.Charge
         [JsonProperty("msatoshi")]
         [JsonConverter(typeof(JsonConverters.LightMoneyJsonConverter))]
         public LightMoney MilliSatoshi { get; set; }
+        [JsonProperty("msatoshi_received")]
+        [JsonConverter(typeof(JsonConverters.LightMoneyJsonConverter))]
+        public LightMoney MilliSatoshiReceived { get; set; }
         [JsonProperty("paid_at")]
         [JsonConverter(typeof(NBitcoin.JsonConverters.DateTimeToUnixTimeConverter))]
         public DateTimeOffset? PaidAt { get; set; }

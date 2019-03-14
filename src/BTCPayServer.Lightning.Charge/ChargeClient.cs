@@ -156,6 +156,7 @@ namespace BTCPayServer.Lightning.Charge
             {
                 Id = invoice.Id ?? invoice.Label,
                 Amount = invoice.MilliSatoshi,
+                AmountReceived = invoice.MilliSatoshiReceived,
                 BOLT11 = invoice.PaymentRequest,
                 PaidAt = invoice.PaidAt,
                 ExpiresAt = invoice.ExpiresAt,
