@@ -16,6 +16,11 @@ namespace BTCPayServer.Lightning.CLightning
         [JsonProperty("msatoshi")]
         [JsonConverter(typeof(JsonConverters.LightMoneyJsonConverter))]
         public LightMoney MilliSatoshi { get; set; }
+
+        [JsonProperty("msatoshi_received")]
+        [JsonConverter(typeof(JsonConverters.LightMoneyJsonConverter))]
+        public LightMoney MilliSatoshiReceived { get; set; }
+
         [JsonConverter(typeof(NBitcoin.JsonConverters.DateTimeToUnixTimeConverter))]
         [JsonProperty("expiry_time")]
         public DateTimeOffset ExpiryTime { get; set; }

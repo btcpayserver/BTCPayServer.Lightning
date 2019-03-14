@@ -113,6 +113,8 @@ namespace BTCPayServer.Lightning.Tests
                     invoice = await waitTask2;
                     Assert.True(invoice.PaidAt.HasValue);
 
+                    Assert.Equal(invoice.Amount, invoice.AmountReceived);
+                    Assert.Equal(new LightMoney(10000, LightMoneyUnit.MilliSatoshi), invoice.Amount);
                     var waitTask3 = listener.WaitInvoice(waitToken);
                     await Task.Delay(100);
                     listener.Dispose();

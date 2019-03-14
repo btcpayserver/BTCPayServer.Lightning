@@ -5560,7 +5560,8 @@ namespace BTCPayServer.Lightning.LND
         private string _cltv_expiry;
         private System.Collections.ObjectModel.ObservableCollection<LnrpcRouteHint> _route_hints;
         private bool? _private;
-    
+        private string _amountPaid;
+
         /// <summary>*
         /// An optional memo to attach along with the invoice. Used for record keeping
         /// purposes for the invoice's creator, and will also be set in the description
@@ -5635,7 +5636,21 @@ namespace BTCPayServer.Lightning.LND
                 }
             }
         }
-    
+
+        [Newtonsoft.Json.JsonProperty("amt_paid_msat", Required = Newtonsoft.Json.Required.Default, NullValueHandling = Newtonsoft.Json.NullValueHandling.Ignore)]
+        public string AmountPaid
+        {
+            get { return _amountPaid; }
+            set
+            {
+                if (_amountPaid != value)
+                {
+                    _amountPaid = value;
+                    RaisePropertyChanged();
+                }
+            }
+        }
+
         [Newtonsoft.Json.JsonProperty("settled", Required = Newtonsoft.Json.Required.Default, NullValueHandling = Newtonsoft.Json.NullValueHandling.Ignore)]
         public bool? Settled
         {
