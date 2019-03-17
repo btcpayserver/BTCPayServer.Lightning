@@ -344,19 +344,23 @@ namespace BTCPayServer.Lightning.CLightning
 
         public static LightningNodeInformation ToLightningNodeInformation(GetInfoResponse info)
         {
-            var addr = info.Address.FirstOrDefault();
-            if(addr == null)
+            var pubkey = new PubKey(info.Id);
+            var nodeInfos = info.Address.Select(addr =>
             {
-                addr = new GetInfoResponse.GetInfoAddress();
-                addr.Address = "127.0.0.1";
-            }
-            if(addr.Port == 0)
-            {
-                addr.Port = 9735;
-            }
+                if (addr == null)
+                {
+                    addr = new GetInfoResponse.GetInfoAddress();
+                    addr.Address = "127.0.0.1";
+                }
+                if (addr.Port == 0)
+                {
+                    addr.Port = 9735;
+                }
+                return new NodeInfo(pubkey, addr.Address, addr.Port);
+            });
             return new LightningNodeInformation()
             {
-                NodeInfo = new NodeInfo(new PubKey(info.Id), addr.Address, addr.Port),
+                NodeInfoList = new List<NodeInfo>(nodeInfos),
                 BlockHeight = info.BlockHeight
             };
         }

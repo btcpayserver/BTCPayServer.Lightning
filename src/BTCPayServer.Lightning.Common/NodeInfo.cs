@@ -67,7 +67,10 @@ namespace BTCPayServer.Lightning
         {
             get;
         }
-
+        public bool IsTor
+        {
+            get => Host.EndsWith(".onion", StringComparison.OrdinalIgnoreCase);
+        }
         public override string ToString()
         {
             return $"{NodeId}@{Host}:{Port}";

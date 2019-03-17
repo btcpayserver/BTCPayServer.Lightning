@@ -1,4 +1,5 @@
 ﻿using NBitcoin;
+using System.Linq;
 using NBitcoin.RPC;
 using System;
 using System.Collections.Generic;
@@ -46,7 +47,7 @@ namespace BTCPayServer.Lightning.Tests
                 {
                     var openChannel = await sender.OpenChannel(new OpenChannelRequest()
                     {
-                        NodeInfo = destInfo.NodeInfo,
+                        NodeInfo = destInfo.NodeInfoList[0],
                         ChannelAmount = Money.Satoshis(16777215),
                         FeeRate = new FeeRate(1UL, 1)
                     });
@@ -60,7 +61,7 @@ namespace BTCPayServer.Lightning.Tests
                     }
                     if(openChannel.Result == OpenChannelResult.PeerNotConnected)
                     {
-                        await sender.ConnectTo(destInfo.NodeInfo);
+                        await sender.ConnectTo(destInfo.NodeInfoList[0]);
                     }
                     if(openChannel.Result == OpenChannelResult.NeedMoreConf)
                     {

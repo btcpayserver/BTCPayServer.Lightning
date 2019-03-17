@@ -239,12 +239,13 @@ namespace BTCPayServer.Lightning.LND
             try
             {
                 var node = await SwaggerClient.GetNodeInfoAsync(resp.Identity_pubkey, cancellation);
-                if(node.Node.Addresses == null || node.Node.Addresses.Count == 0)
-                    throw new Exception("Lnd External IP not set, make sure you use --externalip=$EXTERNALIP parameter on lnd");
-
-                var firstNodeInfo = node.Node.Addresses.First();
-                var externalHostPort = firstNodeInfo.Addr.Split(':');
-                nodeInfo.NodeInfo = new NodeInfo(new PubKey(resp.Identity_pubkey), externalHostPort[0], ConvertInv.ToInt32(externalHostPort[1]));
+                var pubkey = new PubKey(resp.Identity_pubkey);
+                var nodeInfos = node.Node.Addresses.Select(addr =>
+                {
+                    var externalHostPort = addr.Addr.Split(':');
+                    return new NodeInfo(pubkey, externalHostPort[0], ConvertInv.ToInt32(externalHostPort[1]));
+                });
+                nodeInfo.NodeInfoList = new List<NodeInfo>(nodeInfos);
                 return nodeInfo;
             }
             catch(SwaggerException ex) when(!string.IsNullOrEmpty(ex.Response))
