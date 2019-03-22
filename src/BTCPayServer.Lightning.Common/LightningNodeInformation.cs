@@ -6,10 +6,10 @@ namespace BTCPayServer.Lightning
 {
     public class LightningNodeInformation
     {
-        [Obsolete("Use NodeInfoList[0] instead")]
+        [Obsolete("Use NodeInfoList.FirstOrDefault() instead")]
         public NodeInfo NodeInfo
         {
-            get => NodeInfoList[0];
+            get => NodeInfoList.Count > 0 ? NodeInfoList[0] : null;
         }
         public List<NodeInfo> NodeInfoList { get; set; }
         public int BlockHeight
