@@ -352,7 +352,7 @@ namespace BTCPayServer.Lightning.CLightning
             }
             return new LightningNodeInformation()
             {
-                NodeInfoList = new List<NodeInfo>(nodeInfos),
+                NodeInfoList = nodeInfos,
                 BlockHeight = info.BlockHeight
             };
         }

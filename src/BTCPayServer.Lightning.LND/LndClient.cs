@@ -244,8 +244,12 @@ namespace BTCPayServer.Lightning.LND
                 {
                     var externalHostPort = addr.Addr.Split(':');
                     return new NodeInfo(pubkey, externalHostPort[0], ConvertInv.ToInt32(externalHostPort[1]));
-                });
-                nodeInfo.NodeInfoList = new List<NodeInfo>(nodeInfos);
+                }).ToList();
+                if (nodeInfos.Count == 0)
+                {
+                    nodeInfos.Add(new NodeInfo(pubkey, "127.0.0.1", 9735));
+                }
+                nodeInfo.NodeInfoList = nodeInfos;
                 return nodeInfo;
             }
             catch(SwaggerException ex) when(!string.IsNullOrEmpty(ex.Response))
