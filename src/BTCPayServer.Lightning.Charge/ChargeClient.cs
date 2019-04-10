@@ -26,14 +26,20 @@ namespace BTCPayServer.Lightning.Charge
             }
         }
         private Network _Network;
-        static HttpClient _Client = new HttpClient();
+        static HttpClient _SharedClient = new HttpClient();
+        HttpClient _Client;
+        public ChargeClient(Uri uri, Network network): this(uri, network, null)
+        {
 
-        public ChargeClient(Uri uri, Network network)
+        }
+        public ChargeClient(Uri uri, Network network, HttpClient httpClient)
         {
             if (uri == null)
                 throw new ArgumentNullException(nameof(uri));
             if (network == null)
                 throw new ArgumentNullException(nameof(network));
+            httpClient = httpClient ?? _SharedClient;
+            _Client = httpClient;
             this._Uri = uri;
             this._Network = network;
             if (uri.UserInfo == null)
@@ -43,8 +49,11 @@ namespace BTCPayServer.Lightning.Charge
                 throw new ArgumentException(paramName: nameof(uri), message: "User information not present in uri");
             ChargeAuthentication = new ChargeAuthentication.UserPasswordAuthentication(new NetworkCredential(userInfo[0], userInfo[1]));
         }
+        public ChargeClient(Uri uri, string cookieFilePath, Network network): this(uri, cookieFilePath, network, null)
+        {
 
-        public ChargeClient(Uri uri, string cookieFilePath, Network network)
+        }
+        public ChargeClient(Uri uri, string cookieFilePath, Network network, HttpClient httpClient)
         {
             if (uri == null)
                 throw new ArgumentNullException(nameof(uri));
@@ -52,6 +61,8 @@ namespace BTCPayServer.Lightning.Charge
                 throw new ArgumentNullException(nameof(network));
             if (cookieFilePath == null)
                 throw new ArgumentNullException(nameof(cookieFilePath));
+            httpClient = httpClient ?? _SharedClient;
+            _Client = httpClient;
             this._Uri = uri;
             this._Network = network;
             ChargeAuthentication = new ChargeAuthentication.CookieFileAuthentication(cookieFilePath);

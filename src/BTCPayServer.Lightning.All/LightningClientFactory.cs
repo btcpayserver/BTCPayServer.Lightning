@@ -1,6 +1,7 @@
 ﻿using System;
 using System.Collections.Generic;
 using System.Linq;
+using System.Net.Http;
 using System.Threading.Tasks;
 using BTCPayServer.Lightning.Charge;
 using BTCPayServer.Lightning.CLightning;
@@ -11,35 +12,9 @@ namespace BTCPayServer.Lightning
 {
     public class LightningClientFactory : ILightningClientFactory
     {
-        public static ILightningClient CreateClient(LightningConnectionString connString, Network network)
+        public static ILightningClient CreateClient(LightningConnectionString connectionString, Network network)
         {
-            if(connString.ConnectionType == LightningConnectionType.Charge)
-            {
-                if (connString.CookieFilePath != null)
-                {
-                    return new ChargeClient(connString.BaseUri, connString.CookieFilePath, network);
-                }
-                else
-                {
-                    return new ChargeClient(connString.ToUri(true), network);
-                }
-            }
-            else if(connString.ConnectionType == LightningConnectionType.CLightning)
-            {
-                return new CLightningClient(connString.ToUri(false), network);
-            }
-            else if(connString.ConnectionType == LightningConnectionType.LndREST)
-            {
-                return new LndClient(new LndSwaggerClient(new LndRestSettings(connString.BaseUri)
-                {
-                    Macaroon = connString.Macaroon,
-                    MacaroonFilePath = connString.MacaroonFilePath,
-                    CertificateThumbprint = connString.CertificateThumbprint,
-                    AllowInsecure = connString.AllowInsecure,
-                }), network);
-            }
-            else
-                throw new NotSupportedException($"Unsupported connection string for lightning server ({connString.ConnectionType})");
+            return new LightningClientFactory(network).Create(connectionString);
         }
 
         public static ILightningClient CreateClient(string connectionString, Network network)
@@ -60,6 +35,7 @@ namespace BTCPayServer.Lightning
         {
             get;
         }
+        public HttpClient HttpClient { get; set; }
 
         public ILightningClient Create(string connectionString)
         {
@@ -69,7 +45,33 @@ namespace BTCPayServer.Lightning
         {
             if(connectionString == null)
                 throw new ArgumentNullException(nameof(connectionString));
-            return LightningClientFactory.CreateClient(connectionString, Network);
+            if (connectionString.ConnectionType == LightningConnectionType.Charge)
+            {
+                if (connectionString.CookieFilePath != null)
+                {
+                    return new ChargeClient(connectionString.BaseUri, connectionString.CookieFilePath, Network, HttpClient);
+                }
+                else
+                {
+                    return new ChargeClient(connectionString.ToUri(true), Network, HttpClient);
+                }
+            }
+            else if (connectionString.ConnectionType == LightningConnectionType.CLightning)
+            {
+                return new CLightningClient(connectionString.ToUri(false), Network);
+            }
+            else if (connectionString.ConnectionType == LightningConnectionType.LndREST)
+            {
+                return new LndClient(new LndSwaggerClient(new LndRestSettings(connectionString.BaseUri)
+                {
+                    Macaroon = connectionString.Macaroon,
+                    MacaroonFilePath = connectionString.MacaroonFilePath,
+                    CertificateThumbprint = connectionString.CertificateThumbprint,
+                    AllowInsecure = connectionString.AllowInsecure,
+                }, HttpClient), Network);
+            }
+            else
+                throw new NotSupportedException($"Unsupported connection string for lightning server ({connectionString.ConnectionType})");
         }
     }
 }

@@ -54,14 +54,18 @@ namespace BTCPayServer.Lightning.LND
     }
     public partial class LndSwaggerClient
     {
-        public LndSwaggerClient(LndRestSettings settings)
+        public LndSwaggerClient(LndRestSettings settings) : this(settings, null)
+        {
+
+        }
+        public LndSwaggerClient(LndRestSettings settings, HttpClient httpClient)
         {
             if (settings == null)
                 throw new ArgumentNullException(nameof(settings));
             _LndSettings = settings;
             _Authentication = settings.CreateLndAuthentication();
             BaseUrl = settings.Uri.AbsoluteUri.TrimEnd('/');
-            _httpClient = CreateHttpClient(settings);
+            _httpClient = CreateHttpClient(settings, httpClient);
             _settings = new System.Lazy<Newtonsoft.Json.JsonSerializerSettings>(() =>
             {
                 var json = new Newtonsoft.Json.JsonSerializerSettings();
@@ -77,8 +81,24 @@ namespace BTCPayServer.Lightning.LND
             _Authentication.AddAuthentication(request);
         }
 
-        internal static HttpClient CreateHttpClient(LndRestSettings settings)
+        internal static HttpClient CreateHttpClient(LndRestSettings settings, HttpClient httpClient)
         {
+            if (httpClient != null)
+            {
+                // If we allow insecure and want http, we don't need specific http handlers
+                if (settings.AllowInsecure)
+                {
+                    if (settings.Uri.Scheme == "http")
+                        return httpClient;
+                }
+                // If we do not allow insecure and want https and do not pin certificates, we don't need specific http handlers
+                else if (settings.CertificateThumbprint == null
+                         && settings.Uri.Scheme == "https")
+                {
+                    return httpClient;
+                }
+            }
+
             var handler = new HttpClientHandler
             {
                 SslProtocols = SslProtocols.Tls12
@@ -109,7 +129,7 @@ namespace BTCPayServer.Lightning.LND
 
         private static byte[] GetHash(X509Certificate2 cert)
         {
-            using(HashAlgorithm alg = SHA256.Create())
+            using (HashAlgorithm alg = SHA256.Create())
             {
                 return alg.ComputeHash(cert.RawData);
             }
