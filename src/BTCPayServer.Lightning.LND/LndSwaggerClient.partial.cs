@@ -54,6 +54,7 @@ namespace BTCPayServer.Lightning.LND
     }
     public partial class LndSwaggerClient
     {
+        HttpClient _DefaultHttpClient;
         public LndSwaggerClient(LndRestSettings settings) : this(settings, null)
         {
 
@@ -62,10 +63,11 @@ namespace BTCPayServer.Lightning.LND
         {
             if (settings == null)
                 throw new ArgumentNullException(nameof(settings));
+            _DefaultHttpClient = httpClient;
             _LndSettings = settings;
             _Authentication = settings.CreateLndAuthentication();
             BaseUrl = settings.Uri.AbsoluteUri.TrimEnd('/');
-            _httpClient = CreateHttpClient(settings, httpClient);
+            _httpClient = CreateHttpClient(settings, _DefaultHttpClient);
             _settings = new System.Lazy<Newtonsoft.Json.JsonSerializerSettings>(() =>
             {
                 var json = new Newtonsoft.Json.JsonSerializerSettings();
@@ -81,21 +83,23 @@ namespace BTCPayServer.Lightning.LND
             _Authentication.AddAuthentication(request);
         }
 
-        internal static HttpClient CreateHttpClient(LndRestSettings settings, HttpClient httpClient)
+        internal static HttpClient CreateHttpClient(LndRestSettings settings, HttpClient defaultHttpClient)
         {
-            if (httpClient != null)
+            // If certificate pinning or https disabled, we need to create a special HttpClientHandler
+            // But if that's not the case, we can just use the default httpclient
+            if (defaultHttpClient != null)
             {
                 // If we allow insecure and want http, we don't need specific http handlers
                 if (settings.AllowInsecure)
                 {
                     if (settings.Uri.Scheme == "http")
-                        return httpClient;
+                        return defaultHttpClient;
                 }
                 // If we do not allow insecure and want https and do not pin certificates, we don't need specific http handlers
                 else if (settings.CertificateThumbprint == null
                          && settings.Uri.Scheme == "https")
                 {
-                    return httpClient;
+                    return defaultHttpClient;
                 }
             }
 
@@ -137,7 +141,7 @@ namespace BTCPayServer.Lightning.LND
 
         internal HttpClient CreateHttpClient()
         {
-            return LndSwaggerClient.CreateHttpClient(_LndSettings);
+            return LndSwaggerClient.CreateHttpClient(_LndSettings, _DefaultHttpClient);
         }
 
         internal T Deserialize<T>(string str)
