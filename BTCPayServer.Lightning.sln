@@ -4,6 +4,9 @@ Microsoft Visual Studio Solution File, Format Version 12.00
 VisualStudioVersion = 15.0.26124.0
 MinimumVisualStudioVersion = 15.0.26124.0
 Project("{2150E333-8FDC-42A3-9474-1A3956D46DE8}") = "src", "src", "{5BA1A1B2-2713-4CF4-9B63-087531598797}"
+	ProjectSection(SolutionItems) = preProject
+		src\PushNuget.ps1 = src\PushNuget.ps1
+	EndProjectSection
 EndProject
 Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "BTCPayServer.Lightning.LND", "src\BTCPayServer.Lightning.LND\BTCPayServer.Lightning.LND.csproj", "{B6390570-4997-477E-8E53-92D514ED816E}"
 EndProject
