@@ -8689,8 +8689,6 @@ namespace BTCPayServer.Lightning.LND
             StatusCode = statusCode;
             Response = response; 
             Headers = headers;
-
-            Debug.WriteLine($"SwaggerException: {response}");
         }
 
         public override string ToString()
