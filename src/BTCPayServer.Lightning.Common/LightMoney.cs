@@ -391,6 +391,8 @@ namespace BTCPayServer.Lightning
 
         public static implicit operator LightMoney(string value)
         {
+            if (string.IsNullOrEmpty(value))
+                return null;
             return LightMoney.Parse(value);
         }
 
