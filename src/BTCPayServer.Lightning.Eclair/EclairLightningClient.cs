@@ -1,9 +1,11 @@
 ﻿using System;
 using System.Collections.Concurrent;
+using System.Collections.Generic;
 using System.Globalization;
 using System.Linq;
 using System.Threading;
 using System.Threading.Tasks;
+using BTCPayServer.Lightning.Eclair.Models;
 using NBitcoin;
 using NBitcoin.RPC;
 using WebSocketSharp;
@@ -15,10 +17,6 @@ namespace BTCPayServer.Lightning.Eclair
         private readonly Uri _address;
         private readonly Network _network;
         private readonly RPCClient _rpcClient;
-
-        private readonly ConcurrentDictionary<string, LightningInvoice> _memoryInvoices =
-            new ConcurrentDictionary<string, LightningInvoice>();
-
         private EclairClient _eclairClient;
 
         public EclairLightningClient(Uri address, string password, Network network, RPCClient rpcClient)
@@ -37,35 +35,45 @@ namespace BTCPayServer.Lightning.Eclair
         public async Task<LightningInvoice> GetInvoice(string invoiceId,
             CancellationToken cancellation = default(CancellationToken))
         {
-            return await UpdateLocalLightningInvoice(invoiceId, cancellation);
+            var result = await _eclairClient.GetInvoice(invoiceId, cancellation);
+            var info = await _eclairClient.GetReceivedInfo(invoiceId);
+            
+            var parsed = BOLT11PaymentRequest.Parse(result.Serialized, _network);
+            var expiresAt = DateTimeOffset.FromUnixTimeMilliseconds(result.Expiry);
+            return new LightningInvoice()
+            {
+                Id = result.PaymentHash,
+                Amount = parsed.MinimumAmount,
+                ExpiresAt = DateTimeOffset.FromUnixTimeMilliseconds(result.Expiry),
+                BOLT11 = result.Serialized,
+                AmountReceived = info.AmountMsat,
+                Status = info.AmountMsat >= parsed.MinimumAmount? LightningInvoiceStatus.Paid: DateTime.Now >= expiresAt? LightningInvoiceStatus.Expired: LightningInvoiceStatus.Unpaid,
+                PaidAt = DateTimeOffset.FromUnixTimeMilliseconds(info.ReceivedAt)
+            };
         }
 
         public async Task<LightningInvoice> CreateInvoice(LightMoney amount, string description, TimeSpan expiry,
             CancellationToken cancellation = default(CancellationToken))
         {
-            var result = await _eclairClient.Receive(
+            var result = await _eclairClient.CreateInvoice(
                 description,
                 amount.MilliSatoshi,
-                Convert.ToInt32(expiry.TotalSeconds), cancellation);
-
-            var decodedBolt = BOLT11PaymentRequest.Parse(result, _network);
+                Convert.ToInt32(expiry.TotalSeconds), null, cancellation);
 
             var invoice = new LightningInvoice()
             {
-                BOLT11 = result,
-                Amount = decodedBolt.MinimumAmount,
-                Id = decodedBolt.PaymentHash.ToString(),
+                BOLT11 = result.Serialized,
+                Amount = amount,
+                Id = result.PaymentHash,
                 Status = LightningInvoiceStatus.Unpaid,
-                ExpiresAt = decodedBolt.ExpiryDate
+                ExpiresAt = DateTimeOffset.FromUnixTimeMilliseconds(result.Expiry)
             };
-
-            _memoryInvoices.TryAdd(invoice.Id, invoice);
             return invoice;
         }
 
-        public async Task<ILightningInvoiceListener> Listen(CancellationToken cancellation = default(CancellationToken))
+        public Task<ILightningInvoiceListener> Listen(CancellationToken cancellation = default(CancellationToken))
         {
-            return new EclairWebsocketListener(this);
+            return Task.FromResult<ILightningInvoiceListener>(new EclairWebsocketListener(this));
         }
 
         public async Task<LightningNodeInformation> GetInfo(CancellationToken cancellation = default(CancellationToken))
@@ -76,8 +84,10 @@ namespace BTCPayServer.Lightning.Eclair
             var host = info.Alias;
             return new LightningNodeInformation()
             {
-                NodeInfo = new NodeInfo(new PubKey(info.NodeId), host,
-                    info.Port == 0 ? 9735 : info.Port),
+                NodeInfoList = new List<NodeInfo>()
+                {
+                    new NodeInfo(new PubKey(info.NodeId), host,9735 )  
+                },
                 BlockHeight = info.BlockHeight
             };
         }
@@ -86,16 +96,10 @@ namespace BTCPayServer.Lightning.Eclair
         {
             try
             {
-                var sendResult = await _eclairClient.Send(bolt11, cancellation);
-                if (sendResult.failures != null && sendResult.failures.Any(item =>
-                        item.t.Equals("route not found", StringComparison.InvariantCultureIgnoreCase)))
-                {
-                    return new PayResponse(PayResult.CouldNotFindRoute);
-                }
-
+                await _eclairClient.PayInvoice(bolt11, null,null, cancellation);
                 return new PayResponse(PayResult.Ok);
             }
-            catch (Exception)
+            catch (EclairClient.EclairApiException)
             {
                 return new PayResponse(PayResult.CouldNotFindRoute);
             }
@@ -106,10 +110,10 @@ namespace BTCPayServer.Lightning.Eclair
         {
             try
             {
-                var result = await _eclairClient.OpenChannel(openChannelRequest.NodeInfo.NodeId.ToString(),
+                var result = await _eclairClient.Open(openChannelRequest.NodeInfo.NodeId,
                     openChannelRequest.ChannelAmount.Satoshi
-                    , 0,
-                    Convert.ToInt64(openChannelRequest.FeeRate.SatoshiPerByte), cancellation);
+                    , null,
+                    Convert.ToInt64(openChannelRequest.FeeRate.SatoshiPerByte), null,  cancellation);
 
                 if (result.Contains("already exists"))
                 {
@@ -140,44 +144,21 @@ namespace BTCPayServer.Lightning.Eclair
 
         public async Task ConnectTo(NodeInfo nodeInfo)
         {
-            await _eclairClient.ConnectToNode(nodeInfo.NodeId.ToString(), nodeInfo.Host, nodeInfo.Port);
+            await _eclairClient.Connect(nodeInfo.NodeId, nodeInfo.Host, nodeInfo.Port);
         }
 
-        private async Task<LightningInvoice> UpdateLocalLightningInvoice(string paymentHash,
-            CancellationToken cancellation)
+        public Task<LightningChannel[]> ListChannels(CancellationToken cancellation = default(CancellationToken))
         {
-            var paid = await _eclairClient.CheckPayment(paymentHash, cancellation);
-            if (!_memoryInvoices.ContainsKey(paymentHash))
-                return new LightningInvoice()
-                {
-                    Id = paymentHash,
-                    Status = paid ? LightningInvoiceStatus.Paid : LightningInvoiceStatus.Unpaid,
-                    PaidAt = paid ? DateTimeOffset.Now : (DateTimeOffset?) null
-                };
-            var invoice = _memoryInvoices[paymentHash];
-            if (invoice.ExpiresAt <= DateTimeOffset.Now && !paid)
-            {
-                invoice.Status = LightningInvoiceStatus.Expired;
-            }
-            else if (paid)
-            {
-                invoice.Status = LightningInvoiceStatus.Paid;
-                invoice.PaidAt = DateTimeOffset.Now;
-            }
-            else
-            {
-                invoice.Status = LightningInvoiceStatus.Unpaid;
-            }
-
-            return invoice;
+            throw new NotImplementedException();
         }
 
         public class EclairWebsocketListener : ILightningInvoiceListener
         {
             private readonly EclairLightningClient _eclairLightningClient;
+            
             private readonly string _address;
-            private WebSocket _websocketConnection;
             private ConcurrentQueue<string> _receivedInvoiceQueue = new ConcurrentQueue<string>();
+            private EclairWebsocketClient _eclairWebsocketClient;
 
             public EclairWebsocketListener(EclairLightningClient eclairLightningClient)
             {
@@ -186,53 +167,46 @@ namespace BTCPayServer.Lightning.Eclair
                     .AbsoluteUri
                     .Replace("https", "wss")
                     .Replace("http", "ws");
-
-                Connect();
+                _eclairWebsocketClient = new EclairWebsocketClient(_address);
+                _eclairWebsocketClient.PaymentReceivedEvent +=EclairWebsocketClientOnPaymentReceivedEvent;
+                
+                _eclairWebsocketClient.Connect();
             }
 
-            private void Connect()
+            private void EclairWebsocketClientOnPaymentReceivedEvent(object sender, PaymentReceivedEvent e)
             {
-                _websocketConnection = new WebSocket(_address);
-                _websocketConnection.OnMessage += WebsocketConnectionOnOnMessage;
-                _websocketConnection.OnError += (sender, args) => { Console.WriteLine(args.Message); };
-                _websocketConnection.Connect();
-            }
-
-            private void WebsocketConnectionOnOnMessage(object sender, MessageEventArgs e)
-            {
-                if (e.IsText)
-                {
-                    _receivedInvoiceQueue.Enqueue(e.Data);
-                }
-            }
-
-            public void Dispose()
-            {
-                _websocketConnection.Close();
+                _receivedInvoiceQueue.Enqueue(e.PaymentHash);
             }
 
             public async Task<LightningInvoice> WaitInvoice(CancellationToken cancellation)
             {
                 while (!cancellation.IsCancellationRequested)
                 {
-                    if (!_websocketConnection.IsAlive)
+                    
+                    
+                    if (!_eclairWebsocketClient.IsAlive)
                     {
-                        Dispose();
-                        Connect();
+                        _eclairWebsocketClient.Connect();
                     }
 
                     if (_receivedInvoiceQueue.IsEmpty)
                     {
-                        await Task.Delay(TimeSpan.FromMilliseconds(500), cancellation);
+                        await Task.Delay(TimeSpan.FromSeconds(1), cancellation);
                         continue;
                     }
 
                     if (!_receivedInvoiceQueue.TryDequeue(out var paymentHash)) continue;
 
-                    return await _eclairLightningClient.UpdateLocalLightningInvoice(paymentHash, cancellation);
+                    return await _eclairLightningClient.GetInvoice(paymentHash, cancellation);
                 }
 
                 return null;
+            }
+
+            public void Dispose()
+            {
+                _eclairWebsocketClient.Dispose();
+                
             }
         }
     }
