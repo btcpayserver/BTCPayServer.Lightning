@@ -36,10 +36,22 @@ namespace BTCPayServer.Lightning.Eclair
             CancellationToken cancellation = default(CancellationToken))
         {
             var result = await _eclairClient.GetInvoice(invoiceId, cancellation);
-            var info = await _eclairClient.GetReceivedInfo(invoiceId);
+            GetReceivedInfoResponse info;
+            try
+            {
+                info = await _eclairClient.GetReceivedInfo(invoiceId);
+            }
+            catch (EclairClient.EclairApiException e)
+            {
+                info = new GetReceivedInfoResponse()
+                {
+                    AmountMsat = 0,
+                    ReceivedAt = 0,
+                    PaymentHash = invoiceId
+                };
+            }
             
             var parsed = BOLT11PaymentRequest.Parse(result.Serialized, _network);
-            var expiresAt = DateTimeOffset.FromUnixTimeMilliseconds(result.Expiry);
             return new LightningInvoice()
             {
                 Id = result.PaymentHash,
@@ -47,8 +59,8 @@ namespace BTCPayServer.Lightning.Eclair
                 ExpiresAt = DateTimeOffset.FromUnixTimeMilliseconds(result.Expiry),
                 BOLT11 = result.Serialized,
                 AmountReceived = info.AmountMsat,
-                Status = info.AmountMsat >= parsed.MinimumAmount? LightningInvoiceStatus.Paid: DateTime.Now >= expiresAt? LightningInvoiceStatus.Expired: LightningInvoiceStatus.Unpaid,
-                PaidAt = DateTimeOffset.FromUnixTimeMilliseconds(info.ReceivedAt)
+                Status = info.AmountMsat >= parsed.MinimumAmount? LightningInvoiceStatus.Paid: DateTime.Now >= parsed.ExpiryDate? LightningInvoiceStatus.Expired: LightningInvoiceStatus.Unpaid,
+                PaidAt = info.ReceivedAt == 0? (DateTimeOffset?) null:  DateTimeOffset.FromUnixTimeMilliseconds(info.ReceivedAt)
             };
         }
 
@@ -60,13 +72,14 @@ namespace BTCPayServer.Lightning.Eclair
                 amount.MilliSatoshi,
                 Convert.ToInt32(expiry.TotalSeconds), null, cancellation);
 
+            var parsed = BOLT11PaymentRequest.Parse(result.Serialized, _network);
             var invoice = new LightningInvoice()
             {
                 BOLT11 = result.Serialized,
                 Amount = amount,
                 Id = result.PaymentHash,
                 Status = LightningInvoiceStatus.Unpaid,
-                ExpiresAt = DateTimeOffset.FromUnixTimeMilliseconds(result.Expiry)
+                ExpiresAt = parsed.ExpiryDate
             };
             return invoice;
         }
