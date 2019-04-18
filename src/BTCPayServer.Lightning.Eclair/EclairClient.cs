@@ -1,5 +1,6 @@
 using System;
 using System.Collections.Generic;
+using System.Linq;
 using System.Net.Http;
 using System.Net.Http.Headers;
 using System.Text;
@@ -8,6 +9,7 @@ using System.Threading.Tasks;
 using BTCPayServer.Lightning.Eclair.Models;
 using NBitcoin;
 using Newtonsoft.Json;
+using Newtonsoft.Json.Linq;
 using Newtonsoft.Json.Serialization;
 
 namespace BTCPayServer.Lightning.Eclair
@@ -305,7 +307,17 @@ namespace BTCPayServer.Lightning.Eclair
             HttpContent content = null;
             if (data != null && !(data is NoRequestModel))
             {
-                content = new StringContent(JsonConvert.SerializeObject(data, jsonSerializer), Encoding.UTF8, "application/json");
+                var jobj = JObject.FromObject(data, JsonSerializer.Create(jsonSerializer));
+                Dictionary<string,string> x = new Dictionary<string, string>();
+                foreach (var item in jobj)
+                {
+                    if (item.Value == null || (item.Value.Type == JTokenType.Null))
+                    {
+                        continue;
+                    }
+                    x.Add(item.Key, item.Value.ToString());
+                }
+                content = new FormUrlEncodedContent(x.Select(pair => pair));
             }
             
             var rawResult = await _httpClient.PostAsync(method, content, cts);
