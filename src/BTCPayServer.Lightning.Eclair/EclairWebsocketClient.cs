@@ -39,16 +39,8 @@ namespace BTCPayServer.Lightning.Eclair
                 MyReconnectStrategy = new ReconnectStrategy(2000, 4000, 20)
             });
             _websocketConnection.OnMessage += WebsocketConnectionOnOnMessage;
-            _websocketConnection.OnData += WebsocketConnectionOnOnMessage2;
-            _websocketConnection.OnError += exception => { Console.WriteLine(exception.Message); };
             _websocketConnection.Connect();
         }
-
-        private void WebsocketConnectionOnOnMessage2(byte[] data)
-        {
-            throw new NotImplementedException();
-        }
-
         private void WebsocketConnectionOnOnMessage(string message)
         {
             var obj = JObject.Parse(message);
