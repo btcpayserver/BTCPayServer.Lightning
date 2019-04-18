@@ -2,50 +2,20 @@ using System.Collections.Generic;
 
 namespace BTCPayServer.Lightning.Eclair.Models
 {
-    public class ChannelResponse
+    public partial class ChannelResponse
     {
         public string NodeId { get; set; }
         public string ChannelId { get; set; }
         public string State { get; set; }
         public ChannelData Data { get; set; }
 
+
         public partial class ChannelData
         {
             public Commitments Commitments { get; set; }
-            public string ShortChannelId { get; set; }
-            public bool Buried { get; set; }
-            public ChannelAnnouncement ChannelAnnouncement { get; set; }
-            public ChannelUpdate ChannelUpdate { get; set; }
-        }
-
-        public partial class ChannelAnnouncement
-        {
-            public string NodeSignature1 { get; set; }
-            public string NodeSignature2 { get; set; }
-            public string BitcoinSignature1 { get; set; }
-            public string BitcoinSignature2 { get; set; }
-            public string Features { get; set; }
-            public string ChainHash { get; set; }
-            public string ShortChannelId { get; set; }
-            public string NodeId1 { get; set; }
-            public string NodeId2 { get; set; }
-            public string BitcoinKey1 { get; set; }
-            public string BitcoinKey2 { get; set; }
-        }
-
-        public partial class ChannelUpdate
-        {
-            public string Signature { get; set; }
-            public string ChainHash { get; set; }
-            public string ShortChannelId { get; set; }
-            public long Timestamp { get; set; }
-            public long MessageFlags { get; set; }
-            public long ChannelFlags { get; set; }
-            public long CltvExpiryDelta { get; set; }
-            public long HtlcMinimumMsat { get; set; }
-            public long FeeBaseMsat { get; set; }
-            public long FeeProportionalMillionths { get; set; }
-            public long HtlcMaximumMsat { get; set; }
+            public string FundingTx { get; set; }
+            public long WaitingSince { get; set; }
+            public LastSent LastSent { get; set; }
         }
 
         public partial class Commitments
@@ -113,7 +83,7 @@ namespace BTCPayServer.Lightning.Eclair.Models
             public bool IsFunder { get; set; }
             public string DefaultFinalScriptPubKey { get; set; }
             public string GlobalFeatures { get; set; }
-            public long LocalFeatures { get; set; }
+            public string LocalFeatures { get; set; }
         }
 
         public partial class ChannelKeyPath
@@ -151,5 +121,12 @@ namespace BTCPayServer.Lightning.Eclair.Models
             public string LocalFeatures { get; set; }
         }
 
+        public partial class LastSent
+        {
+            public string TemporaryChannelId { get; set; }
+            public string FundingTxid { get; set; }
+            public long FundingOutputIndex { get; set; }
+            public string Signature { get; set; }
+        }
     }
 }

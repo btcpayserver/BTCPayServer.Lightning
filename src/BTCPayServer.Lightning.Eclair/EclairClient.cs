@@ -191,10 +191,10 @@ namespace BTCPayServer.Lightning.Eclair
                 }, cts);
         }
         
-        public async Task<GetSentInfoResponse> GetSentInfo(string paymentHash, string id = null,
+        public async Task<List<GetSentInfoResponse>> GetSentInfo(string paymentHash, string id = null,
             CancellationToken cts = default(CancellationToken))
         {
-            return await SendCommandAsync<GetSentInfoRequest, GetSentInfoResponse>("getsentinfo",
+            return await SendCommandAsync<GetSentInfoRequest, List<GetSentInfoResponse>>("getsentinfo",
                 new GetSentInfoRequest()
                 {
                     PaymentHash = paymentHash,

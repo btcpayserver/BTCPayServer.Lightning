@@ -1,6 +1,7 @@
 ﻿using System;
 using System.Collections.Concurrent;
 using System.Collections.Generic;
+using System.Linq;
 using System.Threading;
 using System.Threading.Tasks;
 using BTCPayServer.Lightning.Eclair.Models;
@@ -108,13 +109,27 @@ namespace BTCPayServer.Lightning.Eclair
         {
             try
             {
-                await _eclairClient.PayInvoice(bolt11, null,null, cancellation);
-                return new PayResponse(PayResult.Ok);
+                var uuid = await _eclairClient.PayInvoice(bolt11, null,null, cancellation);
+                while (!cancellation.IsCancellationRequested)
+                {
+                  var status = await _eclairClient.GetSentInfo(null,uuid,cancellation);
+                  switch (status.First().Status)
+                  {
+                      case "SUCCEEDED":
+                          return new PayResponse(PayResult.Ok);
+                      case "FAILED":
+                          return new PayResponse(PayResult.CouldNotFindRoute);
+                      case "PENDING":
+                          await Task.Delay(200, cancellation);
+                          break;
+                  }
+                }
             }
-            catch (EclairClient.EclairApiException)
+            catch (EclairClient.EclairApiException e)
             {
-                return new PayResponse(PayResult.CouldNotFindRoute);
+                
             }
+            return new PayResponse(PayResult.CouldNotFindRoute);
         }
 
         public async Task<OpenChannelResponse> OpenChannel(OpenChannelRequest openChannelRequest,
@@ -127,21 +142,34 @@ namespace BTCPayServer.Lightning.Eclair
                     , null,
                     Convert.ToInt64(openChannelRequest.FeeRate.SatoshiPerByte), null,  cancellation);
 
-                if (result.Contains("already exists"))
+                if (result.Contains("created channel"))
                 {
-                    return new OpenChannelResponse(OpenChannelResult.AlreadyExists); 
+                    var channelId = result.Replace("created channel", "").Trim();
+                    var channel = await _eclairClient.Channel(channelId, cancellation);
+                    switch (channel.State)
+                    { 
+                        case "WAIT_FOR_FUNDING_CONFIRMED":
+                        case "WAIT_FOR_FUNDING_LOCKED":
+                            return new OpenChannelResponse(OpenChannelResult.NeedMoreConf);
+
+                    }
+                }
+                if (result.Contains("couldn't publish funding tx"))
+                {
+                    return new OpenChannelResponse(OpenChannelResult.CannotAffordFunding); 
                 }
                 
                 return new OpenChannelResponse(OpenChannelResult.Ok);
             }
             catch (Exception e)
             {
-                if (e.Message.Contains("command failed: not connected") || e.Message.Contains("command failed: no connection to peer"))
+                
+                if (e.Message.Contains("not connected") || e.Message.Contains("no connection to peer"))
                 {
                     return new OpenChannelResponse(OpenChannelResult.PeerNotConnected);
                 }
 
-                if (e.Message.Contains("command failed: Insufficient funds"))
+                if (e.Message.Contains("insufficient funds" ))
                 {
                     return new OpenChannelResponse(OpenChannelResult.CannotAffordFunding);
                 }
