@@ -9,7 +9,7 @@
     </ItemGroup>
 
     <ItemGroup>
-      <PackageReference Include="WebSocketSharp" Version="1.0.3-rc11" />
+      <PackageReference Include="PureWebSockets" Version="2.4.3" />
     </ItemGroup>
 
 </Project>

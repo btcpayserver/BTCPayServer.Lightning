@@ -23,13 +23,11 @@ namespace BTCPayServer.Lightning.Eclair
         {
             if (address == null)
                 throw new ArgumentNullException(nameof(address));
-
             _httpClient = new HttpClient();
             _httpClient.BaseAddress = address;
             _httpClient.DefaultRequestHeaders.Accept.Clear();
             _httpClient.DefaultRequestHeaders.Accept.Add(new MediaTypeWithQualityHeaderValue("application/json"));
-            _httpClient.DefaultRequestHeaders.Authorization = new AuthenticationHeaderValue("Basic",
-                Convert.ToBase64String(Encoding.Default.GetBytes($":{password}")));
+            _httpClient.DefaultRequestHeaders.Authorization = new AuthenticationHeaderValue("Basic",Convert.ToBase64String(Encoding.Default.GetBytes($":{password}")));
         }
 
         public async Task<GetInfoResponse> GetInfo(CancellationToken cts = default(CancellationToken))

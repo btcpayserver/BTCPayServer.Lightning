@@ -1,23 +1,21 @@
 ﻿using System;
 using System.Collections.Concurrent;
 using System.Collections.Generic;
-using System.Globalization;
-using System.Linq;
 using System.Threading;
 using System.Threading.Tasks;
 using BTCPayServer.Lightning.Eclair.Models;
 using NBitcoin;
 using NBitcoin.RPC;
-using WebSocketSharp;
 
 namespace BTCPayServer.Lightning.Eclair
 {
     public class EclairLightningClient : ILightningClient
     {
         private readonly Uri _address;
+        private readonly string _password;
         private readonly Network _network;
         private readonly RPCClient _rpcClient;
-        private EclairClient _eclairClient;
+        private readonly  EclairClient _eclairClient;
 
         public EclairLightningClient(Uri address, string password, Network network, RPCClient rpcClient)
         {
@@ -26,6 +24,7 @@ namespace BTCPayServer.Lightning.Eclair
             if (network == null)
                 throw new ArgumentNullException(nameof(network));
             _address = address;
+            _password = password;
             _network = network;
             _rpcClient = rpcClient;
             _eclairClient = new EclairClient(address, password);
@@ -39,7 +38,7 @@ namespace BTCPayServer.Lightning.Eclair
             GetReceivedInfoResponse info;
             try
             {
-                info = await _eclairClient.GetReceivedInfo(invoiceId);
+                info = await _eclairClient.GetReceivedInfo(invoiceId, null, cancellation);
             }
             catch (EclairClient.EclairApiException e)
             {
@@ -56,7 +55,7 @@ namespace BTCPayServer.Lightning.Eclair
             {
                 Id = result.PaymentHash,
                 Amount = parsed.MinimumAmount,
-                ExpiresAt = DateTimeOffset.FromUnixTimeMilliseconds(result.Expiry),
+                ExpiresAt = parsed.ExpiryDate,
                 BOLT11 = result.Serialized,
                 AmountReceived = info.AmountMsat,
                 Status = info.AmountMsat >= parsed.MinimumAmount? LightningInvoiceStatus.Paid: DateTime.Now >= parsed.ExpiryDate? LightningInvoiceStatus.Expired: LightningInvoiceStatus.Unpaid,
@@ -86,7 +85,7 @@ namespace BTCPayServer.Lightning.Eclair
 
         public Task<ILightningInvoiceListener> Listen(CancellationToken cancellation = default(CancellationToken))
         {
-            return Task.FromResult<ILightningInvoiceListener>(new EclairWebsocketListener(this));
+            return Task.FromResult<ILightningInvoiceListener>(new EclairWebsocketListener(this, _password));
         }
 
         public async Task<LightningNodeInformation> GetInfo(CancellationToken cancellation = default(CancellationToken))
@@ -173,14 +172,11 @@ namespace BTCPayServer.Lightning.Eclair
             private ConcurrentQueue<string> _receivedInvoiceQueue = new ConcurrentQueue<string>();
             private EclairWebsocketClient _eclairWebsocketClient;
 
-            public EclairWebsocketListener(EclairLightningClient eclairLightningClient)
+            public EclairWebsocketListener(EclairLightningClient eclairLightningClient, string password)
             {
                 _eclairLightningClient = eclairLightningClient;
-                _address = new Uri(_eclairLightningClient._address, "ws")
-                    .AbsoluteUri
-                    .Replace("https", "wss")
-                    .Replace("http", "ws");
-                _eclairWebsocketClient = new EclairWebsocketClient(_address);
+                _address = WebsocketHelper.ToWebsocketUri(new Uri(_eclairLightningClient._address, "ws").AbsoluteUri);
+                _eclairWebsocketClient = new EclairWebsocketClient(_address, password);
                 _eclairWebsocketClient.PaymentReceivedEvent +=EclairWebsocketClientOnPaymentReceivedEvent;
                 
                 _eclairWebsocketClient.Connect();
@@ -195,13 +191,6 @@ namespace BTCPayServer.Lightning.Eclair
             {
                 while (!cancellation.IsCancellationRequested)
                 {
-                    
-                    
-                    if (!_eclairWebsocketClient.IsAlive)
-                    {
-                        _eclairWebsocketClient.Connect();
-                    }
-
                     if (_receivedInvoiceQueue.IsEmpty)
                     {
                         await Task.Delay(TimeSpan.FromSeconds(1), cancellation);
