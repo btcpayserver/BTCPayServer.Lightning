@@ -13,7 +13,6 @@ jobs:
       - checkout
       - run:
           command: |
-            set -e
             cd tests
             docker-compose down --v
             docker-compose up --build tests

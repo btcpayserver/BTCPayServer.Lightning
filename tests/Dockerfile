@@ -6,4 +6,5 @@ RUN apk add --no-cache icu-libs
 ENV LC_ALL en_US.UTF-8
 ENV LANG en_US.UTF-8
 COPY . .
-ENTRYPOINT ["dotnet", "test"]
+
+ENTRYPOINT ["tests/docker-entrypoint.sh"]
