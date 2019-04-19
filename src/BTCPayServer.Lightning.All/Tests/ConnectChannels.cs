@@ -24,7 +24,7 @@ namespace BTCPayServer.Lightning.Tests
         {
             if(await cashCow.GetBlockCountAsync() <= cashCow.Network.Consensus.CoinbaseMaturity)
             {
-                await cashCow.GenerateAsync(cashCow.Network.Consensus.CoinbaseMaturity * 2);
+                await cashCow.GenerateAsync(cashCow.Network.Consensus.CoinbaseMaturity + 1);
             }
 
 
@@ -54,16 +54,7 @@ namespace BTCPayServer.Lightning.Tests
                     if(openChannel.Result == OpenChannelResult.CannotAffordFunding)
                     {
                         var address = await sender.GetDepositAddress();
-                        var balance = await cashCow.GetBalanceAsync(100,false);
-                        if (balance < Money.FromUnit(Decimal.One, MoneyUnit.BTC))
-                        {
-                            cashCow.Generate(300);
-                        }
-
-                        await Task.Delay(3000);
-                        balance = await cashCow.GetBalanceAsync(100,false);
-                     
-                        await cashCow.SendToAddressAsync(address, balance,null,null,true);
+                        await cashCow.SendToAddressAsync(address, Money.Coins(1.0m),null,null,true);
                         await cashCow.GenerateAsync(10);
                         await WaitLNSynched(cashCow, sender);
                         await WaitLNSynched(cashCow, dest);
