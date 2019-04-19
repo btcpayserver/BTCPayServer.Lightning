@@ -46,7 +46,7 @@ namespace BTCPayServer.Lightning.Tests
 
         public static CLightningClient CreateCLightningClientDest()
         {
-            return new CLightningClient(new Uri("http://127.0.0.1:42549"), Network);
+            return new CLightningClient(new Uri("tcp://127.0.0.1:42549"), Network);
         }
 
         public static EclairLightningClient CreateEclairClient()
