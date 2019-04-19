@@ -154,7 +154,7 @@ services:
   eclair:
     restart: unless-stopped
     stop_signal: SIGKILL
-    image: localeclair
+    image: kukks/eclair:fc1df9
     environment:
       PUBLIC_HOST: "eclair"
       JAVA_OPTS: |
@@ -190,7 +190,7 @@ services:
   eclair_dest:
     restart: unless-stopped
     stop_signal: SIGKILL
-    image: localeclair
+    image: kukks/eclair:fc1df9
     environment:
       PUBLIC_HOST: "eclair_dest"
       JAVA_OPTS: |
