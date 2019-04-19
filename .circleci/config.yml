@@ -15,9 +15,7 @@ jobs:
           command: |
             cd tests
             docker-compose down --v
-            docker-compose build
-            cd ../
-            dotnet test
+            docker-compose up --build tests
 
 workflows:
   version: 2
