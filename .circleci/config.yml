@@ -15,7 +15,8 @@ jobs:
           command: |
             cd tests
             docker-compose down --v
-            docker-compose up --build tests
+            docker-compose build
+            docker-compose run tests
 
 workflows:
   version: 2

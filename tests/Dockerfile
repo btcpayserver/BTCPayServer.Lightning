@@ -7,4 +7,4 @@ ENV LC_ALL en_US.UTF-8
 ENV LANG en_US.UTF-8
 COPY . .
 
-ENTRYPOINT ["tests/docker-entrypoint.sh"]
+ENTRYPOINT ["./tests/docker-entrypoint.sh"]
