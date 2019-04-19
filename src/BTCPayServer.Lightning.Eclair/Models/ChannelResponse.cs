@@ -1,4 +1,5 @@
 using System.Collections.Generic;
+using Newtonsoft.Json.Linq;
 
 namespace BTCPayServer.Lightning.Eclair.Models
 {
@@ -30,11 +31,46 @@ namespace BTCPayServer.Lightning.Eclair.Models
             public long LocalNextHtlcId { get; set; }
             public long RemoteNextHtlcId { get; set; }
             public OriginChannels OriginChannels { get; set; }
-            public string RemoteNextCommitInfo { get; set; }
+            public JToken RemoteNextCommitInfo { get; set; }
+            
+            
             public CommitInput CommitInput { get; set; }
             public object RemotePerCommitmentSecrets { get; set; }
             public string ChannelId { get; set; }
         }
+        
+        
+        public partial class RemoteNextCommitInfo
+        {
+            public NextRemoteCommit NextRemoteCommit { get; set; }
+            public Sent Sent { get; set; }
+            public long SentAfterLocalCommitIndex { get; set; }
+            public bool ReSignAsap { get; set; }
+        }
+
+        public partial class NextRemoteCommit
+        {
+            public long Index { get; set; }
+            public Spec Spec { get; set; }
+            public string Txid { get; set; }
+            public string RemotePerCommitmentPoint { get; set; }
+        }
+
+        public partial class Spec
+        {
+            public List<object> Htlcs { get; set; }
+            public long FeeratePerKw { get; set; }
+            public long ToLocalMsat { get; set; }
+            public long ToRemoteMsat { get; set; }
+        }
+
+        public partial class Sent
+        {
+            public string ChannelId { get; set; }
+            public string Signature { get; set; }
+            public List<object> HtlcSignatures { get; set; }
+        }
+
 
         public partial class CommitInput
         {
@@ -60,14 +96,6 @@ namespace BTCPayServer.Lightning.Eclair.Models
         {
             public string CommitTx { get; set; }
             public List<object> HtlcTxsAndSigs { get; set; }
-        }
-
-        public partial class Spec
-        {
-            public List<object> Htlcs { get; set; }
-            public long FeeratePerKw { get; set; }
-            public long ToLocalMsat { get; set; }
-            public long ToRemoteMsat { get; set; }
         }
 
         public partial class LocalParams

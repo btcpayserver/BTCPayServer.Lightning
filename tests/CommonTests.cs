@@ -34,9 +34,9 @@ namespace BTCPayServer.Lightning.Tests
             ILightningClientFactory factory = new LightningClientFactory(Tester.Network);
             foreach(var connectionString in new[]
             {
-//                "type=charge;server=http://api-token:foiewnccewuify@127.0.0.1:37462",
-//                "type=lnd-rest;server=https://127.0.0.1:42802;allowinsecure=true",
-//                "type=clightning;server=tcp://127.0.0.1:48532",
+                "type=charge;server=http://api-token:foiewnccewuify@127.0.0.1:37462",
+                "type=lnd-rest;server=https://127.0.0.1:42802;allowinsecure=true",
+                "type=clightning;server=tcp://127.0.0.1:48532",
                 "type=eclair;server=http://127.0.0.1:4570;password=bukkake;bitcoin-host=127.0.0.1:37393;bitcoin-auth=ceiwHEbqWI83:DwubwWsoo3",
                 
             })

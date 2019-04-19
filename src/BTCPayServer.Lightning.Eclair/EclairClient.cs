@@ -328,8 +328,20 @@ namespace BTCPayServer.Lightning.Eclair
                 };
             }
 
-            return JsonConvert.DeserializeObject<TResponse>(rawJson, jsonSerializer);
+            try
+            {
+
+                return JsonConvert.DeserializeObject<TResponse>(rawJson, jsonSerializer);
+            }
+            catch (Exception e)
+            {
+                
+                Console.WriteLine(e.Message);
+                Console.WriteLine(rawJson);
+                throw;
+            }
         }
+        
 
         internal class NoRequestModel
         {

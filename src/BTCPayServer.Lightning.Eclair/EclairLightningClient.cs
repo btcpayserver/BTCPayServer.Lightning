@@ -96,15 +96,13 @@ namespace BTCPayServer.Lightning.Eclair
         public async Task<LightningNodeInformation> GetInfo(CancellationToken cancellation = default(CancellationToken))
         {
             var info = await _eclairClient.GetInfo(cancellation);
-
-            //HACK: public ip cannot use host name in eclair...
-            var host = info.Alias;
             return new LightningNodeInformation()
             {
-                NodeInfoList = new List<NodeInfo>()
+                NodeInfoList = info.PublicAddresses.Select(s =>
                 {
-                    new NodeInfo(new PubKey(info.NodeId), host, 9735)
-                },
+                    var split = s.Split(':');
+                    return new NodeInfo(new PubKey(info.NodeId), split[0], int.Parse(split[1]));
+                }).ToList(),
                 BlockHeight = info.BlockHeight
             };
         }
@@ -117,6 +115,10 @@ namespace BTCPayServer.Lightning.Eclair
                 while (!cancellation.IsCancellationRequested)
                 {
                     var status = await _eclairClient.GetSentInfo(null, uuid, cancellation);
+                    if (!status.Any())
+                    {
+                        continue;
+                    }
                     switch (status.First().Status)
                     {
                         case "SUCCEEDED":
@@ -200,8 +202,12 @@ namespace BTCPayServer.Lightning.Eclair
             var channels = await _eclairClient.Channels(null, cancellation);
             return channels.Select(response =>
             {
-                Debug.WriteLine($"asaa {response.Data.Commitments.CommitInput.OutPoint}");
-                var o = OutPoint.Parse(response.Data.Commitments.CommitInput.OutPoint);
+
+                if (!OutPoint.TryParse(response.Data.Commitments.CommitInput.OutPoint.Replace(":", "-"), out var outPoint))
+                {
+                    Console.WriteLine(response.Data.Commitments.CommitInput.OutPoint);
+                    throw new Exception("hello: " + response.Data.Commitments.CommitInput.OutPoint);
+                }
                 return new LightningChannel()
                 {
                     IsPublic = ((ChannelFlags) response.Data.Commitments.ChannelFlags) == ChannelFlags.Public,
@@ -209,7 +215,7 @@ namespace BTCPayServer.Lightning.Eclair
                     IsActive = response.State == "NORMAL",
                     LocalBalance = new LightMoney(response.Data.Commitments.LocalCommit.Spec.ToLocalMsat),
                     Capacity = new LightMoney(response.Data.Commitments.CommitInput.AmountSatoshis),
-                    ChannelPoint = o,
+                    ChannelPoint = outPoint,
                 };
             }).ToArray();
         }

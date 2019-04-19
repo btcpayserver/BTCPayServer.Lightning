@@ -70,24 +70,23 @@ namespace BTCPayServer.Lightning.Tests
 
         public static IEnumerable<ILightningClient> GetLightningClients()
         {
-//            yield return CreateChargeClient();
-//            yield return CreateCLightningClient();
-//            yield return CreateLndClient();
+            yield return CreateChargeClient();
+            yield return CreateCLightningClient();
+            yield return CreateLndClient();
             yield return CreateEclairClient();
         }
 
         public static IEnumerable<ILightningClient> GetLightningSenderClients()
         {
-//            yield return CreateCLightningClient();
-//            yield return CreateLndClient();
-            
+            yield return CreateCLightningClient();
+            yield return CreateLndClient();
             yield return CreateEclairClient();
             
         }
         public static IEnumerable<ILightningClient> GetLightningDestClients()
         {
-//            yield return CreateCLightningClientDest();
-//            yield return CreateLndClientDest();
+            yield return CreateCLightningClientDest();
+            yield return CreateLndClientDest();
             yield return CreateEclairClientDest();
         }
     }
