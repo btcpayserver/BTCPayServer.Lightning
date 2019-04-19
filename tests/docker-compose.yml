@@ -222,6 +222,23 @@ services:
       - "eclair_dest_dir:/data"
     links:
       - bitcoind
+
+  tests:
+    build:
+      context: ..
+      dockerfile: tests/Dockerfile
+    expose:
+      - "80"
+    links:
+      - bitcoind
+      - charge
+      - eclair
+      - eclair_dest
+      - lightningd
+      - lightningd_dest
+      - lnd
+      - lnd_dest
+
 volumes:
   lnd_dir:
   lnd_dest_dir:
