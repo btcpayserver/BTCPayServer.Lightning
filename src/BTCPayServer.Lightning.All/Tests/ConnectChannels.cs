@@ -9,7 +9,7 @@ using System.Threading.Tasks;
 namespace BTCPayServer.Lightning.Tests
 {
     /// <summary>
-    /// Utilities to connect channels on regtest
+    /// Utilities to connect channels on regtest 
     /// </summary>
     public static class ConnectChannels
     {
