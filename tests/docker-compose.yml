@@ -154,15 +154,15 @@ services:
   eclair:
     restart: unless-stopped
     stop_signal: SIGKILL
-    image: kukks/eclair:fc1df9
+    image: localeclair
     environment:
-      PUBLIC_HOST: "eclair"
+      # PUBLIC_HOST: ""
       JAVA_OPTS: |
         -Declair.printToConsole
         -Declair.headless
         -Declair.chain=regtest
         -Declair.server.binding-ip=0.0.0.0
-        -Declair.server.public-ips.0=127.0.0.1
+        -Declair.server.public-ips.0=eclair
         -Declair.server.port=9735
         -Declair.api.enabled=true
         -Declair.api.binding-ip=0.0.0.0
@@ -192,13 +192,12 @@ services:
     stop_signal: SIGKILL
     image: kukks/eclair:fc1df9
     environment:
-      PUBLIC_HOST: "eclair_dest"
       JAVA_OPTS: |
         -Declair.printToConsole
         -Declair.headless
         -Declair.chain=regtest
         -Declair.server.binding-ip=0.0.0.0
-        -Declair.server.public-ips.0=10.5.0.2
+        -Declair.server.public-ips.0=eclair_dest
         -Declair.server.port=9736
         -Declair.api.enabled=true
         -Declair.api.binding-ip=0.0.0.0
