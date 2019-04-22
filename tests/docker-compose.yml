@@ -157,7 +157,7 @@ services:
   eclair:
     restart: unless-stopped
     stop_signal: SIGKILL
-    image: localeclair
+    image: kukks/eclair:fc1df9
     environment:
       # PUBLIC_HOST: ""
       JAVA_OPTS: |
