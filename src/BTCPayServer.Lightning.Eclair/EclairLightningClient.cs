@@ -3,6 +3,7 @@ using System.Collections.Concurrent;
 using System.Collections.Generic;
 using System.Diagnostics;
 using System.Linq;
+using System.Net.Http;
 using System.Threading;
 using System.Threading.Tasks;
 using BTCPayServer.Lightning.Eclair.Models;
@@ -19,7 +20,8 @@ namespace BTCPayServer.Lightning.Eclair
         private readonly RPCClient _rpcClient;
         private readonly EclairClient _eclairClient;
 
-        public EclairLightningClient(Uri address, string password, Network network, RPCClient rpcClient)
+        public EclairLightningClient(Uri address, string password, Network network, RPCClient rpcClient,
+            HttpClient httpClient = null)
         {
             if (address == null)
                 throw new ArgumentNullException(nameof(address));
@@ -29,7 +31,7 @@ namespace BTCPayServer.Lightning.Eclair
             _password = password;
             _network = network;
             _rpcClient = rpcClient;
-            _eclairClient = new EclairClient(address, password);
+            _eclairClient = new EclairClient(address, password, httpClient);
         }
 
 
@@ -119,6 +121,7 @@ namespace BTCPayServer.Lightning.Eclair
                     {
                         continue;
                     }
+
                     switch (status.First().Status)
                     {
                         case "SUCCEEDED":
@@ -202,12 +205,13 @@ namespace BTCPayServer.Lightning.Eclair
             var channels = await _eclairClient.Channels(null, cancellation);
             return channels.Select(response =>
             {
-
-                if (!OutPoint.TryParse(response.Data.Commitments.CommitInput.OutPoint.Replace(":", "-"), out var outPoint))
+                if (!OutPoint.TryParse(response.Data.Commitments.CommitInput.OutPoint.Replace(":", "-"),
+                    out var outPoint))
                 {
                     Console.WriteLine(response.Data.Commitments.CommitInput.OutPoint);
                     throw new Exception("hello: " + response.Data.Commitments.CommitInput.OutPoint);
                 }
+
                 return new LightningChannel()
                 {
                     IsPublic = ((ChannelFlags) response.Data.Commitments.ChannelFlags) == ChannelFlags.Public,
@@ -270,7 +274,6 @@ namespace BTCPayServer.Lightning.Eclair
                 {
                     throw new OperationCanceledException(e.Message);
                 }
-                
             }
 
             public void Dispose()

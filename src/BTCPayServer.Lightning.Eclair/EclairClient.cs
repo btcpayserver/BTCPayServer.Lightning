@@ -19,11 +19,11 @@ namespace BTCPayServer.Lightning.Eclair
         private HttpClient _httpClient;
 
 
-        public EclairClient(Uri address, string password)
+        public EclairClient(Uri address, string password, HttpClient httpClient = null)
         {
             if (address == null)
                 throw new ArgumentNullException(nameof(address));
-            _httpClient = new HttpClient();
+            _httpClient = httpClient?? new HttpClient();
             _httpClient.BaseAddress = address;
             _httpClient.DefaultRequestHeaders.Accept.Clear();
             _httpClient.DefaultRequestHeaders.Accept.Add(new MediaTypeWithQualityHeaderValue("application/json"));
