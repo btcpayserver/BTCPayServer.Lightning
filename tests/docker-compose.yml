@@ -42,6 +42,7 @@ services:
         log-level=debug
         dev-broadcast-interval=1000
         dev-bitcoind-poll=1
+        dev-setfees==4000 4000 4000
     ports:
       - "48532:9835" # api port
     expose:
@@ -68,6 +69,8 @@ services:
         log-level=debug
         dev-broadcast-interval=1000
         dev-bitcoind-poll=1
+        dev-setfees=4000 4000 4000
+        
     ports:
       - "42549:9835" # api port
     expose:
