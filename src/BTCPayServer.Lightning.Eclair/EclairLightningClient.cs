@@ -237,9 +237,10 @@ namespace BTCPayServer.Lightning.Eclair
             {
                 _eclairLightningClient = eclairLightningClient;
                 _address = WebsocketHelper.ToWebsocketUri(new Uri(_eclairLightningClient._address, "ws").AbsoluteUri);
-                _eclairWebsocketClient = new EclairWebsocketClient(_address, password);
-                _eclairWebsocketClient.PaymentReceivedEvent += EclairWebsocketClientOnPaymentReceivedEvent;
-
+                _eclairWebsocketClient = new EclairWebsocketClient(_address, password)
+                {
+                    PaymentReceivedEvent += EclairWebsocketClientOnPaymentReceivedEvent
+                };
                 _eclairWebsocketClient.Connect();
             }
 

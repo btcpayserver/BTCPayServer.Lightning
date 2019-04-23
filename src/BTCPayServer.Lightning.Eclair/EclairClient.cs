@@ -16,18 +16,19 @@ namespace BTCPayServer.Lightning.Eclair
 {
     public class EclairClient
     {
-        private HttpClient _httpClient;
+        private readonly Uri _address;
+        private readonly string _password;
+        private readonly HttpClient _httpClient;
+        private static readonly HttpClient SharedClient = new HttpClient();
 
 
         public EclairClient(Uri address, string password, HttpClient httpClient = null)
         {
             if (address == null)
                 throw new ArgumentNullException(nameof(address));
-            _httpClient = httpClient?? new HttpClient();
-            _httpClient.BaseAddress = address;
-            _httpClient.DefaultRequestHeaders.Accept.Clear();
-            _httpClient.DefaultRequestHeaders.Accept.Add(new MediaTypeWithQualityHeaderValue("application/json"));
-            _httpClient.DefaultRequestHeaders.Authorization = new AuthenticationHeaderValue("Basic",Convert.ToBase64String(Encoding.Default.GetBytes($":{password}")));
+            _address = address;
+            _password = password;
+            _httpClient = httpClient?? SharedClient; 
         }
 
         public async Task<GetInfoResponse> GetInfo(CancellationToken cts = default(CancellationToken))
@@ -317,8 +318,18 @@ namespace BTCPayServer.Lightning.Eclair
                 }
                 content = new FormUrlEncodedContent(x.Select(pair => pair));
             }
+
+            var httpRequest = new HttpRequestMessage()
+            {
+                Method = HttpMethod.Post,
+                RequestUri = new Uri(_address, method),
+                Content = content
+            };
+            httpRequest.Headers.Accept.Clear();
+            httpRequest.Headers.Accept.Add(new MediaTypeWithQualityHeaderValue("application/json"));
+            httpRequest.Headers.Authorization = new AuthenticationHeaderValue("Basic",Convert.ToBase64String(Encoding.Default.GetBytes($":{_password}")));
             
-            var rawResult = await _httpClient.PostAsync(method, content, cts);
+            var rawResult = await _httpClient.SendAsync(httpRequest, cts);
             var rawJson = await rawResult.Content.ReadAsStringAsync();
             if (!rawResult.IsSuccessStatusCode)
             {
