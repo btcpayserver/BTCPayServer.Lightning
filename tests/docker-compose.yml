@@ -42,7 +42,6 @@ services:
         log-level=debug
         dev-broadcast-interval=1000
         dev-bitcoind-poll=1
-        dev-setfees==4000 4000 4000
     ports:
       - "48532:9835" # api port
     expose:
@@ -69,8 +68,6 @@ services:
         log-level=debug
         dev-broadcast-interval=1000
         dev-bitcoind-poll=1
-        dev-setfees=4000 4000 4000
-        
     ports:
       - "42549:9835" # api port
     expose:
@@ -159,7 +156,6 @@ services:
     stop_signal: SIGKILL
     image: kukks/eclair:fc1df9
     environment:
-      # PUBLIC_HOST: ""
       JAVA_OPTS: |
         -Declair.printToConsole
         -Declair.headless
@@ -178,6 +174,7 @@ services:
         -Declair.bitcoind.rpcpassword=DwubwWsoo3
         -Declair.bitcoind.zmqblock=tcp://bitcoind:28332
         -Declair.bitcoind.zmqtx=tcp://bitcoind:28333
+        -Declair.max-feerate-mismatch=10000
     ports:
       - "4570:8080" # api port
       - "9735:9735" # server port
@@ -190,6 +187,17 @@ services:
     links:
       - bitcoind
       - eclair_dest
+  dev:
+    image: luca3m/sleep
+    depends_on:
+      - bitcoind
+      - charge
+      - eclair
+      - eclair_dest
+      - lightningd
+      - lightningd_dest
+      - lnd
+      - lnd_dest
   eclair_dest:
     restart: unless-stopped
     stop_signal: SIGKILL
@@ -213,6 +221,7 @@ services:
         -Declair.bitcoind.rpcpassword=DwubwWsoo3
         -Declair.bitcoind.zmqblock=tcp://bitcoind:28332
         -Declair.bitcoind.zmqtx=tcp://bitcoind:28333
+        -Declair.max-feerate-mismatch=10000
     ports:
       - "4571:8080" # api port
       - "9736:9736" # server port
