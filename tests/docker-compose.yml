@@ -235,30 +235,30 @@ services:
       - lightningd_dest
       - lnd
       - lnd_dest
-#  tests:
-#    build:
-#      context: ..
-#      dockerfile: tests/Dockerfile
-#    expose:
-#      - "80"
-#    links:
-#      - bitcoind
-#      - charge
-#      - eclair
-#      - eclair_dest
-#      - lightningd
-#      - lightningd_dest
-#      - lnd
-#      - lnd_dest
-#    depends_on:
-#      - bitcoind
-#      - charge
-#      - eclair
-#      - eclair_dest
-#      - lightningd
-#      - lightningd_dest
-#      - lnd
-#      - lnd_dest
+  tests:
+    build:
+      context: ..
+      dockerfile: tests/Dockerfile
+    expose:
+      - "80"
+    links:
+      - bitcoind
+      - charge
+      - eclair
+      - eclair_dest
+      - lightningd
+      - lightningd_dest
+      - lnd
+      - lnd_dest
+    depends_on:
+      - bitcoind
+      - charge
+      - eclair
+      - eclair_dest
+      - lightningd
+      - lightningd_dest
+      - lnd
+      - lnd_dest
 volumes:
   lnd_dir:
   lnd_dest_dir:
