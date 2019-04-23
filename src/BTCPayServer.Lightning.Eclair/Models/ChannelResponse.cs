@@ -60,8 +60,8 @@ namespace BTCPayServer.Lightning.Eclair.Models
         {
             public List<object> Htlcs { get; set; }
             public long FeeratePerKw { get; set; }
-            public long ToLocalMsat { get; set; }
-            public long ToRemoteMsat { get; set; }
+            public ulong ToLocalMsat { get; set; }
+            public ulong ToRemoteMsat { get; set; }
         }
 
         public partial class Sent
@@ -75,7 +75,7 @@ namespace BTCPayServer.Lightning.Eclair.Models
         public partial class CommitInput
         {
             public string OutPoint { get; set; }
-            public long AmountSatoshis { get; set; }
+            public ulong  AmountSatoshis { get; set; }
         }
 
         public partial class Changes
@@ -87,7 +87,7 @@ namespace BTCPayServer.Lightning.Eclair.Models
 
         public partial class LocalCommit
         {
-            public long Index { get; set; }
+            public ulong  Index { get; set; }
             public Spec Spec { get; set; }
             public PublishableTxs PublishableTxs { get; set; }
         }
@@ -102,10 +102,10 @@ namespace BTCPayServer.Lightning.Eclair.Models
         {
             public string NodeId { get; set; }
             public ChannelKeyPath ChannelKeyPath { get; set; }
-            public long DustLimitSatoshis { get; set; }
-            public long MaxHtlcValueInFlightMsat { get; set; }
-            public long ChannelReserveSatoshis { get; set; }
-            public long HtlcMinimumMsat { get; set; }
+            public ulong  DustLimitSatoshis { get; set; }
+            public ulong  MaxHtlcValueInFlightMsat { get; set; }
+            public ulong  ChannelReserveSatoshis { get; set; }
+            public ulong  HtlcMinimumMsat { get; set; }
             public long ToSelfDelay { get; set; }
             public long MaxAcceptedHtlcs { get; set; }
             public bool IsFunder { get; set; }
@@ -134,11 +134,11 @@ namespace BTCPayServer.Lightning.Eclair.Models
         public partial class RemoteParams
         {
             public string NodeId { get; set; }
-            public long DustLimitSatoshis { get; set; }
-            public long MaxHtlcValueInFlightMsat { get; set; }
-            public long ChannelReserveSatoshis { get; set; }
-            public long HtlcMinimumMsat { get; set; }
-            public long ToSelfDelay { get; set; }
+            public ulong  DustLimitSatoshis { get; set; }
+            public ulong  MaxHtlcValueInFlightMsat { get; set; }
+            public ulong  ChannelReserveSatoshis { get; set; }
+            public ulong  HtlcMinimumMsat { get; set; }
+            public ulong  ToSelfDelay { get; set; }
             public long MaxAcceptedHtlcs { get; set; }
             public string FundingPubKey { get; set; }
             public string RevocationBasepoint { get; set; }
