@@ -1,9 +1,11 @@
 using System;
 using System.Net.Http.Headers;
+using System.Net.WebSockets;
 using System.Text;
+using System.Threading;
+using System.Threading.Tasks;
 using BTCPayServer.Lightning.Eclair.Models;
 using Newtonsoft.Json.Linq;
-using PureWebSockets;
 
 namespace BTCPayServer.Lightning.Eclair
 {
@@ -11,7 +13,9 @@ namespace BTCPayServer.Lightning.Eclair
     {
         private readonly string _address;
         private readonly string _password;
-        private PureWebSocket _websocketConnection;
+        private ClientWebSocket _socket;
+        private ArraySegment<byte> _buffer;
+        private CancellationTokenSource _cts = new CancellationTokenSource();
         public event EventHandler<object> PaymentEvent;
         public event EventHandler<PaymentRelayedEvent> PaymentRelayedEvent;
         public event EventHandler<PaymentReceivedEvent> PaymentReceivedEvent;
@@ -25,22 +29,88 @@ namespace BTCPayServer.Lightning.Eclair
             _password = password;
         }
 
-        public void Connect()
+        public async Task Connect(CancellationToken cancellation = default(CancellationToken))
         {
-            _websocketConnection = new PureWebSocket(_address, new PureWebSocketOptions()
+            using (var cancellation2 =
+                CancellationTokenSource.CreateLinkedTokenSource(cancellation, _cts.Token))
             {
-                Headers = new[]
-                {
-                    new Tuple<string, string>("Authorization",
+                try
+                {;
+                    var rawBuffer = new byte[WebsocketHelper.ORIGINAL_BUFFER_SIZE];
+                    _buffer = new ArraySegment<byte>(rawBuffer, 0, rawBuffer.Length);
+                    _socket = await WebsocketHelper.CreateClientWebSocket(_address,
                         new AuthenticationHeaderValue("Basic",
-                            Convert.ToBase64String(Encoding.Default.GetBytes($":{_password}"))).ToString())
-                },
-                DebugMode = true,
-                MyReconnectStrategy = new ReconnectStrategy(2000, 4000, 20)
-            });
-            _websocketConnection.OnMessage += WebsocketConnectionOnOnMessage;
-            _websocketConnection.Connect();
+                            Convert.ToBase64String(Encoding.Default.GetBytes($":{_password}"))).ToString(),
+                        cancellation2.Token);
+
+
+                    var buffer = _buffer;
+                    var array = _buffer.Array;
+                    var originalSize = _buffer.Array.Length;
+                    var newSize = _buffer.Array.Length;
+                    while (!cancellation2.IsCancellationRequested)
+                    {
+                        var message = await _socket.ReceiveAsync(buffer, cancellation2.Token);
+                        if (message.MessageType == WebSocketMessageType.Close)
+                        {
+                            await WebsocketHelper.CloseSocketAndThrow(buffer, _socket,
+                                WebSocketCloseStatus.NormalClosure,
+                                "Close message received from the peer", cancellation2.Token);
+                            break;
+                        }
+
+                        if (message.MessageType != WebSocketMessageType.Text)
+                        {
+                            await WebsocketHelper.CloseSocketAndThrow(buffer, _socket,
+                                WebSocketCloseStatus.InvalidMessageType, "Only Text is supported", cancellation2.Token);
+                            break;
+                        }
+
+                        if (message.EndOfMessage)
+                        {
+                            buffer = new ArraySegment<byte>(array, 0, buffer.Offset + message.Count);
+                            try
+                            {
+                                var o = WebsocketHelper.GetStringFromBuffer(buffer);
+                                if (newSize != originalSize)
+                                {
+                                    Array.Resize(ref array, originalSize);
+                                }
+
+                                WebsocketConnectionOnOnMessage(o);
+                            }
+                            catch (Exception ex)
+                            {
+                                await WebsocketHelper.CloseSocketAndThrow(buffer, _socket,
+                                    WebSocketCloseStatus.InvalidPayloadData, $"Invalid payload: {ex.Message}",
+                                    cancellation2.Token);
+                            }
+                        }
+                        else
+                        {
+                            if (buffer.Count - message.Count <= 0)
+                            {
+                                newSize *= 2;
+                                if (newSize > WebsocketHelper.MAX_BUFFER_SIZE)
+                                    await WebsocketHelper.CloseSocketAndThrow(buffer, _socket,
+                                        WebSocketCloseStatus.MessageTooBig, "Message is too big", cancellation);
+                                Array.Resize(ref array, newSize);
+                                buffer = new ArraySegment<byte>(array, buffer.Offset, newSize - buffer.Offset);
+                            }
+
+                            buffer = new ArraySegment<byte>(buffer.Array, buffer.Offset + message.Count,
+                                buffer.Count - message.Count);
+                        }
+                    }
+                }
+                catch (Exception e)
+                {
+                    Console.WriteLine(e);
+                    throw;
+                }
+            }
         }
+
         private void WebsocketConnectionOnOnMessage(string message)
         {
             var obj = JObject.Parse(message);
@@ -75,9 +145,10 @@ namespace BTCPayServer.Lightning.Eclair
             }
         }
 
-        public void Dispose()
+        public async void Dispose()
         {
-            _websocketConnection.Dispose();
+            _cts.Cancel();
+            await WebsocketHelper.CloseSocket(_socket);
         }
     }
 }

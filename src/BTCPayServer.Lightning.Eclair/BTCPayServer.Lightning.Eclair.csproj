@@ -8,8 +8,4 @@
       <ProjectReference Include="..\BTCPayServer.Lightning.Common\BTCPayServer.Lightning.Common.csproj" />
     </ItemGroup>
 
-    <ItemGroup>
-      <PackageReference Include="PureWebSockets" Version="2.4.3" />
-    </ItemGroup>
-
 </Project>

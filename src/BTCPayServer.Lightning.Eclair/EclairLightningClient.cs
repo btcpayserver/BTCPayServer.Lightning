@@ -230,17 +230,15 @@ namespace BTCPayServer.Lightning.Eclair
             private CancellationTokenSource _cts = new CancellationTokenSource();
             private readonly EclairLightningClient _eclairLightningClient;
 
-            private readonly string _address;
             private ConcurrentQueue<string> _receivedInvoiceQueue = new ConcurrentQueue<string>();
             private EclairWebsocketClient _eclairWebsocketClient;
 
             public EclairWebsocketListener(EclairLightningClient eclairLightningClient, string password)
             {
                 _eclairLightningClient = eclairLightningClient;
-                _address = WebsocketHelper.ToWebsocketUri(new Uri(_eclairLightningClient._address, "ws").AbsoluteUri);
-                _eclairWebsocketClient = new EclairWebsocketClient(_address, password);
+                _eclairWebsocketClient = new EclairWebsocketClient(_eclairLightningClient._address.AbsoluteUri, password);
                 _eclairWebsocketClient.PaymentReceivedEvent += EclairWebsocketClientOnPaymentReceivedEvent;
-                _eclairWebsocketClient.Connect();
+                _ = _eclairWebsocketClient.Connect(_cts.Token);
             }
 
             private void EclairWebsocketClientOnPaymentReceivedEvent(object sender, PaymentReceivedEvent e)

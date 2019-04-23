@@ -34,13 +34,10 @@ namespace BTCPayServer.Lightning.Charge
     public class ChargeSession : ILightningInvoiceListener
     {
         private ClientWebSocket socket;
-
-        const int ORIGINAL_BUFFER_SIZE = 1024 * 5;
-        const int MAX_BUFFER_SIZE = 1024 * 1024 * 5;
         public ChargeSession(ClientWebSocket socket)
         {
             this.socket = socket;
-            var buffer = new byte[ORIGINAL_BUFFER_SIZE];
+            var buffer = new byte[WebsocketHelper.ORIGINAL_BUFFER_SIZE];
             _Buffer = new ArraySegment<byte>(buffer, 0, buffer.Length);
         }
 
@@ -56,12 +53,12 @@ namespace BTCPayServer.Lightning.Charge
                 var message = await socket.ReceiveAsync(buffer, cancellation);
                 if (message.MessageType == WebSocketMessageType.Close)
                 {
-                    await CloseSocketAndThrow(WebSocketCloseStatus.NormalClosure, "Close message received from the peer", cancellation);
+                    await WebsocketHelper.CloseSocketAndThrow(buffer, socket, WebSocketCloseStatus.NormalClosure, "Close message received from the peer", cancellation);
                     break;
                 }
                 if (message.MessageType != WebSocketMessageType.Text)
                 {
-                    await CloseSocketAndThrow(WebSocketCloseStatus.InvalidMessageType, "Only Text is supported", cancellation);
+                    await WebsocketHelper.CloseSocketAndThrow(buffer, socket, WebSocketCloseStatus.InvalidMessageType, "Only Text is supported", cancellation);
                     break;
                 }
                 if (message.EndOfMessage)
@@ -78,7 +75,7 @@ namespace BTCPayServer.Lightning.Charge
                     }
                     catch (Exception ex)
                     {
-                        await CloseSocketAndThrow(WebSocketCloseStatus.InvalidPayloadData, $"Invalid payload: {ex.Message}", cancellation);
+                        await WebsocketHelper.CloseSocketAndThrow(buffer, socket, WebSocketCloseStatus.InvalidPayloadData, $"Invalid payload: {ex.Message}", cancellation);
                     }
                 }
                 else
@@ -86,8 +83,8 @@ namespace BTCPayServer.Lightning.Charge
                     if (buffer.Count - message.Count <= 0)
                     {
                         newSize *= 2;
-                        if (newSize > MAX_BUFFER_SIZE)
-                            await CloseSocketAndThrow(WebSocketCloseStatus.MessageTooBig, "Message is too big", cancellation);
+                        if (newSize > WebsocketHelper.MAX_BUFFER_SIZE)
+                            await WebsocketHelper.CloseSocketAndThrow(buffer, socket, WebSocketCloseStatus.MessageTooBig, "Message is too big", cancellation);
                         Array.Resize(ref array, newSize);
                         buffer = new ArraySegment<byte>(array, buffer.Offset, newSize - buffer.Offset);
                     }
@@ -97,47 +94,25 @@ namespace BTCPayServer.Lightning.Charge
             throw new InvalidOperationException("Should never happen");
         }
 
-        static UTF8Encoding UTF8 = new UTF8Encoding(false, true);
+        
         private ChargeInvoice ParseMessage(ArraySegment<byte> buffer)
         {
-            var str = UTF8.GetString(buffer.Array, 0, buffer.Count);
-            return JsonConvert.DeserializeObject<ChargeInvoice>(str, new JsonSerializerSettings());
+            return JsonConvert.DeserializeObject<ChargeInvoice>(WebsocketHelper.GetStringFromBuffer(buffer), new JsonSerializerSettings());
         }
 
-        private async Task CloseSocketAndThrow(WebSocketCloseStatus status, string description, CancellationToken cancellation)
-        {
-            var array = _Buffer.Array;
-            if (array.Length != ORIGINAL_BUFFER_SIZE)
-                Array.Resize(ref array, ORIGINAL_BUFFER_SIZE);
-            await CloseSocket(socket, status, description, cancellation);
-            throw new WebSocketException($"The socket has been closed ({status}: {description})");
-        }
+        
 
         public async void Dispose()
         {
-            await CloseSocket(socket);
+            await WebsocketHelper.CloseSocket(socket);
         }
 
         public async Task DisposeAsync()
         {
-            await CloseSocket(socket);
+            await WebsocketHelper.CloseSocket(socket);
         }
 
-        public static async Task CloseSocket(WebSocket webSocket, WebSocketCloseStatus status = WebSocketCloseStatus.NormalClosure, string description = null, CancellationToken cancellationToken = default(CancellationToken))
-        {
-
-            try
-            {
-                if(webSocket.State == WebSocketState.Open)
-                {
-                    CancellationTokenSource cts = new CancellationTokenSource();
-                    cts.CancelAfter(5000);
-                    await webSocket.CloseAsync(WebSocketCloseStatus.NormalClosure, description ?? "Closing", cts.Token);
-                }
-            }
-            catch { }
-            finally { try { webSocket.Dispose(); } catch { } }
-        }
+        
 
         async Task<LightningInvoice> ILightningInvoiceListener.WaitInvoice(CancellationToken token)
         {

@@ -175,6 +175,7 @@ services:
         -Declair.bitcoind.zmqblock=tcp://bitcoind:28332
         -Declair.bitcoind.zmqtx=tcp://bitcoind:28333
         -Declair.max-feerate-mismatch=10000
+        -Declair.ping-disconnect=false
     ports:
       - "4570:8080" # api port
       - "9735:9735" # server port
@@ -187,17 +188,6 @@ services:
     links:
       - bitcoind
       - eclair_dest
-  dev:
-    image: luca3m/sleep
-    depends_on:
-      - bitcoind
-      - charge
-      - eclair
-      - eclair_dest
-      - lightningd
-      - lightningd_dest
-      - lnd
-      - lnd_dest
   eclair_dest:
     restart: unless-stopped
     stop_signal: SIGKILL
@@ -222,25 +212,21 @@ services:
         -Declair.bitcoind.zmqblock=tcp://bitcoind:28332
         -Declair.bitcoind.zmqtx=tcp://bitcoind:28333
         -Declair.max-feerate-mismatch=10000
+        -Declair.ping-disconnect=false
     ports:
       - "4571:8080" # api port
       - "9736:9736" # server port
     expose:
-      - "9735" # server port
+      - "9736" # server port
       - "8080" # api port
     volumes:
       - "bitcoind_dir:/etc/bitcoin"
       - "eclair_dest_dir:/data"
     links:
       - bitcoind
-
-  tests:
-    build:
-      context: ..
-      dockerfile: tests/Dockerfile
-    expose:
-      - "80"
-    links:
+  dev:
+    image: luca3m/sleep
+    depends_on:
       - bitcoind
       - charge
       - eclair
@@ -249,7 +235,30 @@ services:
       - lightningd_dest
       - lnd
       - lnd_dest
-
+#  tests:
+#    build:
+#      context: ..
+#      dockerfile: tests/Dockerfile
+#    expose:
+#      - "80"
+#    links:
+#      - bitcoind
+#      - charge
+#      - eclair
+#      - eclair_dest
+#      - lightningd
+#      - lightningd_dest
+#      - lnd
+#      - lnd_dest
+#    depends_on:
+#      - bitcoind
+#      - charge
+#      - eclair
+#      - eclair_dest
+#      - lightningd
+#      - lightningd_dest
+#      - lnd
+#      - lnd_dest
 volumes:
   lnd_dir:
   lnd_dest_dir:
