@@ -185,6 +185,11 @@ namespace BTCPayServer.Lightning.Eclair
                 {
                     return new OpenChannelResponse(OpenChannelResult.CannotAffordFunding);
                 }
+                if (e.Message.Contains("peer sent error: 'Multiple channels unsupported'"))
+                {
+                    return new OpenChannelResponse(OpenChannelResult.AlreadyExists);
+                }
+                
 
                 return new OpenChannelResponse(OpenChannelResult.AlreadyExists);
             }
@@ -205,12 +210,8 @@ namespace BTCPayServer.Lightning.Eclair
             var channels = await _eclairClient.Channels(null, cancellation);
             return channels.Select(response =>
             {
-                if (!OutPoint.TryParse(response.Data.Commitments.CommitInput.OutPoint.Replace(":", "-"),
-                    out var outPoint))
-                {
-                    Console.WriteLine(response.Data.Commitments.CommitInput.OutPoint);
-                    throw new Exception("hello: " + response.Data.Commitments.CommitInput.OutPoint);
-                }
+                OutPoint.TryParse(response.Data.Commitments.CommitInput.OutPoint.Replace(":", "-"),
+                    out var outPoint);
 
                 return new LightningChannel()
                 {
