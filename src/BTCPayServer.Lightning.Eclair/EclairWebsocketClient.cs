@@ -34,79 +34,71 @@ namespace BTCPayServer.Lightning.Eclair
             using (var cancellation2 =
                 CancellationTokenSource.CreateLinkedTokenSource(cancellation, _cts.Token))
             {
-                try
-                {;
-                    var rawBuffer = new byte[WebsocketHelper.ORIGINAL_BUFFER_SIZE];
-                    _buffer = new ArraySegment<byte>(rawBuffer, 0, rawBuffer.Length);
-                    _socket = await WebsocketHelper.CreateClientWebSocket(_address,
-                        new AuthenticationHeaderValue("Basic",
-                            Convert.ToBase64String(Encoding.Default.GetBytes($":{_password}"))).ToString(),
-                        cancellation2.Token);
+                var rawBuffer = new byte[WebsocketHelper.ORIGINAL_BUFFER_SIZE];
+                _buffer = new ArraySegment<byte>(rawBuffer, 0, rawBuffer.Length);
+                _socket = await WebsocketHelper.CreateClientWebSocket(_address,
+                    new AuthenticationHeaderValue("Basic",
+                        Convert.ToBase64String(Encoding.Default.GetBytes($":{_password}"))).ToString(),
+                    cancellation2.Token);
 
 
-                    var buffer = _buffer;
-                    var array = _buffer.Array;
-                    var originalSize = _buffer.Array.Length;
-                    var newSize = _buffer.Array.Length;
-                    while (!cancellation2.IsCancellationRequested)
+                var buffer = _buffer;
+                var array = _buffer.Array;
+                var originalSize = _buffer.Array.Length;
+                var newSize = _buffer.Array.Length;
+                while (!cancellation2.IsCancellationRequested)
+                {
+                    var message = await _socket.ReceiveAsync(buffer, cancellation2.Token);
+                    if (message.MessageType == WebSocketMessageType.Close)
                     {
-                        var message = await _socket.ReceiveAsync(buffer, cancellation2.Token);
-                        if (message.MessageType == WebSocketMessageType.Close)
+                        await WebsocketHelper.CloseSocketAndThrow(buffer, _socket,
+                            WebSocketCloseStatus.NormalClosure,
+                            "Close message received from the peer", cancellation2.Token);
+                        break;
+                    }
+
+                    if (message.MessageType != WebSocketMessageType.Text)
+                    {
+                        await WebsocketHelper.CloseSocketAndThrow(buffer, _socket,
+                            WebSocketCloseStatus.InvalidMessageType, "Only Text is supported", cancellation2.Token);
+                        break;
+                    }
+
+                    if (message.EndOfMessage)
+                    {
+                        buffer = new ArraySegment<byte>(array, 0, buffer.Offset + message.Count);
+                        try
+                        {
+                            var o = WebsocketHelper.GetStringFromBuffer(buffer);
+                            if (newSize != originalSize)
+                            {
+                                Array.Resize(ref array, originalSize);
+                            }
+
+                            WebsocketConnectionOnOnMessage(o);
+                        }
+                        catch (Exception ex)
                         {
                             await WebsocketHelper.CloseSocketAndThrow(buffer, _socket,
-                                WebSocketCloseStatus.NormalClosure,
-                                "Close message received from the peer", cancellation2.Token);
-                            break;
-                        }
-
-                        if (message.MessageType != WebSocketMessageType.Text)
-                        {
-                            await WebsocketHelper.CloseSocketAndThrow(buffer, _socket,
-                                WebSocketCloseStatus.InvalidMessageType, "Only Text is supported", cancellation2.Token);
-                            break;
-                        }
-
-                        if (message.EndOfMessage)
-                        {
-                            buffer = new ArraySegment<byte>(array, 0, buffer.Offset + message.Count);
-                            try
-                            {
-                                var o = WebsocketHelper.GetStringFromBuffer(buffer);
-                                if (newSize != originalSize)
-                                {
-                                    Array.Resize(ref array, originalSize);
-                                }
-
-                                WebsocketConnectionOnOnMessage(o);
-                            }
-                            catch (Exception ex)
-                            {
-                                await WebsocketHelper.CloseSocketAndThrow(buffer, _socket,
-                                    WebSocketCloseStatus.InvalidPayloadData, $"Invalid payload: {ex.Message}",
-                                    cancellation2.Token);
-                            }
-                        }
-                        else
-                        {
-                            if (buffer.Count - message.Count <= 0)
-                            {
-                                newSize *= 2;
-                                if (newSize > WebsocketHelper.MAX_BUFFER_SIZE)
-                                    await WebsocketHelper.CloseSocketAndThrow(buffer, _socket,
-                                        WebSocketCloseStatus.MessageTooBig, "Message is too big", cancellation);
-                                Array.Resize(ref array, newSize);
-                                buffer = new ArraySegment<byte>(array, buffer.Offset, newSize - buffer.Offset);
-                            }
-
-                            buffer = new ArraySegment<byte>(buffer.Array, buffer.Offset + message.Count,
-                                buffer.Count - message.Count);
+                                WebSocketCloseStatus.InvalidPayloadData, $"Invalid payload: {ex.Message}",
+                                cancellation2.Token);
                         }
                     }
-                }
-                catch (Exception e)
-                {
-                    Console.WriteLine(e);
-                    throw;
+                    else
+                    {
+                        if (buffer.Count - message.Count <= 0)
+                        {
+                            newSize *= 2;
+                            if (newSize > WebsocketHelper.MAX_BUFFER_SIZE)
+                                await WebsocketHelper.CloseSocketAndThrow(buffer, _socket,
+                                    WebSocketCloseStatus.MessageTooBig, "Message is too big", cancellation);
+                            Array.Resize(ref array, newSize);
+                            buffer = new ArraySegment<byte>(array, buffer.Offset, newSize - buffer.Offset);
+                        }
+
+                        buffer = new ArraySegment<byte>(buffer.Array, buffer.Offset + message.Count,
+                            buffer.Count - message.Count);
+                    }
                 }
             }
         }
