@@ -225,7 +225,7 @@ services:
     links:
       - bitcoind
   dev:
-    image: luca3m/sleep
+    image: coscale/docker-sleep
     depends_on:
       - bitcoind
       - charge
