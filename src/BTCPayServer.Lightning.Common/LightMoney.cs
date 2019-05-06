@@ -110,7 +110,6 @@ namespace BTCPayServer.Lightning
             MilliSatoshi = checked(money.Satoshi * 1000);
         }
         
-        [JsonConstructor]
         public LightMoney(long msatoshis)
         {
             MilliSatoshi = msatoshis;
