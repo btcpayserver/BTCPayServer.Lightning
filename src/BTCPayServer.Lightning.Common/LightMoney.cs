@@ -4,6 +4,7 @@ using System.Globalization;
 using System.Linq;
 using System.Threading.Tasks;
 using NBitcoin;
+using Newtonsoft.Json;
 
 namespace BTCPayServer.Lightning
 {
@@ -108,6 +109,8 @@ namespace BTCPayServer.Lightning
         {
             MilliSatoshi = checked(money.Satoshi * 1000);
         }
+        
+        [JsonConstructor]
         public LightMoney(long msatoshis)
         {
             MilliSatoshi = msatoshis;

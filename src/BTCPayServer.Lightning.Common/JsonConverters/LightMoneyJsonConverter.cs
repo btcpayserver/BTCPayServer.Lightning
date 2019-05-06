@@ -13,7 +13,7 @@ namespace BTCPayServer.Lightning.JsonConverters
     {
         public override bool CanConvert(Type objectType)
         {
-            return typeof(LightMoneyJsonConverter).GetTypeInfo().IsAssignableFrom(objectType.GetTypeInfo());
+            return typeof(LightMoney).GetTypeInfo().IsAssignableFrom(objectType.GetTypeInfo());
         }
 
         Type longType = typeof(long).GetTypeInfo();
