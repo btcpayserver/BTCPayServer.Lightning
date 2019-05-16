@@ -85,24 +85,9 @@ namespace BTCPayServer.Lightning.Charge
 
         public async Task<ChargeSession> Listen(CancellationToken cancellation = default(CancellationToken))
         {
-            var socket = new ClientWebSocket();
-            socket.Options.SetRequestHeader("Authorization", $"Basic {ChargeAuthentication.GetBase64Creds()}");
-            var uri = new UriBuilder(Uri) { UserName = null, Password = null }.Uri.AbsoluteUri;
-            if (!uri.EndsWith("/"))
-                uri += "/";
-            uri += "ws";
-            uri = ToWebsocketUri(uri);
-            await socket.ConnectAsync(new Uri(uri), cancellation);
-            return new ChargeSession(socket);
-        }
-
-        private static string ToWebsocketUri(string uri)
-        {
-            if (uri.StartsWith("https://", StringComparison.OrdinalIgnoreCase))
-                uri = uri.Replace("https://", "wss://");
-            if (uri.StartsWith("http://", StringComparison.OrdinalIgnoreCase))
-                uri = uri.Replace("http://", "ws://");
-            return uri;
+            return new ChargeSession(
+                await WebsocketHelper.CreateClientWebSocket(Uri.ToString(), 
+                    $"Basic {ChargeAuthentication.GetBase64Creds()}", cancellation));
         }
 
         public ChargeAuthentication ChargeAuthentication { get; set; }

@@ -1,4 +1,4 @@
-﻿using System;
+using System;
 using System.Threading.Tasks;
 using Xunit;
 using System.Linq;
@@ -14,6 +14,14 @@ namespace BTCPayServer.Lightning.Tests
 {
     public class CommonTests
     {
+        
+        public CommonTests()
+        {
+            Docker = !string.IsNullOrEmpty(Environment.GetEnvironmentVariable("IN_DOCKER_CONTAINER"));
+        }
+
+        public static bool Docker { get; set; }
+
         [Fact]
         public async Task CanCreateInvoice()
         {
@@ -32,12 +40,25 @@ namespace BTCPayServer.Lightning.Tests
         public async Task CanCreateInvoiceUsingConnectionString()
         {
             ILightningClientFactory factory = new LightningClientFactory(Tester.Network);
-            foreach(var connectionString in new[]
-            {
-                "type=charge;server=http://api-token:foiewnccewuify@127.0.0.1:37462",
-                "type=lnd-rest;server=https://127.0.0.1:42802;allowinsecure=true",
-                "type=clightning;server=tcp://127.0.0.1:48532"
-            })
+
+            var connectionStrings = Docker
+                ? new[]
+                {
+                    "type=charge;server=http://api-token:foiewnccewuify@charge:9112",
+                    "type=lnd-rest;server=https://lnd_dest:8080;allowinsecure=true",
+                    "type=clightning;server=tcp://lightningd:9835",
+                    "type=eclair;server=http://eclair:8080;password=bukkake;bitcoin-host=bitcoind:43782;bitcoin-auth=ceiwHEbqWI83:DwubwWsoo3",
+
+                }
+                : new[]
+                {
+                    "type=charge;server=http://api-token:foiewnccewuify@127.0.0.1:37462",
+                    "type=lnd-rest;server=https://127.0.0.1:42802;allowinsecure=true",
+                    "type=clightning;server=tcp://127.0.0.1:48532",
+                    "type=eclair;server=http://127.0.0.1:4570;password=bukkake;bitcoin-host=127.0.0.1:37393;bitcoin-auth=ceiwHEbqWI83:DwubwWsoo3",
+
+                };
+            foreach(var connectionString in connectionStrings)
             {
                 ILightningClient client = factory.Create(connectionString);
                 var createdInvoice = await client.CreateInvoice(10000, "CanCreateInvoice", TimeSpan.FromMinutes(5));
@@ -133,14 +154,14 @@ namespace BTCPayServer.Lightning.Tests
                 var senderChannels = await sender.ListChannels();
                 var senderInfo = await sender.GetInfo();
                 Assert.NotEmpty(senderChannels);
-                Assert.Equal(2, senderChannels.GroupBy(s => s.RemoteNode).Count());
+                Assert.Equal(3, senderChannels.GroupBy(s => s.RemoteNode).Count());
 
                 foreach (var dest in Tester.GetLightningDestClients())
                 {
                     var destChannels = await dest.ListChannels();
                     var destInfo = await dest.GetInfo();
                     Assert.NotEmpty(destChannels);
-                    Assert.Equal(2, destChannels.GroupBy(s => s.RemoteNode).Count());
+                    Assert.Equal(3, destChannels.GroupBy(s => s.RemoteNode).Count());
                     foreach (var c in senderChannels)
                     {
                         Assert.NotNull(c.RemoteNode);

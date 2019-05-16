@@ -14,7 +14,8 @@ namespace BTCPayServer.Lightning
         Charge,
         CLightning,
         LndREST,
-        LndGRPC
+        LndGRPC,
+        Eclair
     }
     public class LightningConnectionString
     {
@@ -27,6 +28,7 @@ namespace BTCPayServer.Lightning
             typeMapping.Add("charge", LightningConnectionType.Charge);
             typeMapping.Add("lnd-rest", LightningConnectionType.LndREST);
             typeMapping.Add("lnd-grpc", LightningConnectionType.LndGRPC);
+            typeMapping.Add("eclair", LightningConnectionType.Eclair);
             typeMappingReverse = new Dictionary<LightningConnectionType, string>();
             foreach (var kv in typeMapping)
             {
@@ -293,6 +295,40 @@ namespace BTCPayServer.Lightning
                         }
                     }
                     break;
+                case LightningConnectionType.Eclair:
+                    
+                    
+                    var eclairserver = Take(keyValues, "server");
+                    
+                    if (eclairserver == null)
+                    {
+                        error = $"The key 'server' is mandatory for lnd connection strings";
+                        return false;
+                    }
+                    if (!Uri.TryCreate(eclairserver, UriKind.Absolute, out var eclairuri)
+                        || (eclairuri.Scheme != "http" && eclairuri.Scheme != "https"))
+                    {
+                        error = $"The key 'server' should be an URI starting by http:// or https://";
+                        return false;
+                    }
+
+                    result.BaseUri = eclairuri;
+                    result.Password = Take(keyValues, "password");
+                    result.BitcoinHost  = Take(keyValues, "bitcoin-host");
+
+                    if (result.BitcoinHost != null)
+                    {
+                        result.BitcoinAuth = Take(keyValues, "bitcoin-auth");
+
+                        if (result.BitcoinAuth == null)
+                        {
+                            error =
+                                $"The key 'bitcoin-auth' is mandatory for eclair connection strings when bitcoin-host is specified";
+                            return false;
+                        }
+                    }
+
+                    break;
                 default:
                     throw new NotSupportedException(connectionType.ToString());
             }
@@ -401,6 +437,9 @@ namespace BTCPayServer.Lightning
         public string CookieFilePath { get; set; }
         public string MacaroonDirectoryPath { get; set; }
 
+        public string BitcoinHost { get; set; }
+        public string BitcoinAuth { get; set; }
+        
         public Uri ToUri(bool withCredentials)
         {
             if (withCredentials)
@@ -472,6 +511,26 @@ namespace BTCPayServer.Lightning
                         builder.Append($";allowinsecure=true");
                     }
                     break;
+                case LightningConnectionType.Eclair:
+                    builder.Append($";server={BaseUri}");
+                    if (Password != null)
+                    {
+                        builder.Append($";password={Password}");
+                    }
+                    if (Password != null)
+                    {
+                        builder.Append($";password={Password}");
+                    }
+                    if (BitcoinHost != null)
+                    {
+                        builder.Append($";bitcoin-host={BitcoinHost}");
+                    }
+                    if (BitcoinAuth != null)
+                    {
+                        builder.Append($";bitcoin-auth={BitcoinAuth}");
+                    }
+                    
+                    break; 
                 default:
                     throw new NotSupportedException(type);
             }

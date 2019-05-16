@@ -9,7 +9,7 @@ using System.Threading.Tasks;
 namespace BTCPayServer.Lightning.Tests
 {
     /// <summary>
-    /// Utilities to connect channels on regtest
+    /// Utilities to connect channels on regtest 
     /// </summary>
     public static class ConnectChannels
     {
@@ -54,7 +54,7 @@ namespace BTCPayServer.Lightning.Tests
                     if(openChannel.Result == OpenChannelResult.CannotAffordFunding)
                     {
                         var address = await sender.GetDepositAddress();
-                        await cashCow.SendToAddressAsync(address, Money.Coins(1.0m));
+                        await cashCow.SendToAddressAsync(address, Money.Coins(1.0m),null,null,true);
                         await cashCow.GenerateAsync(10);
                         await WaitLNSynched(cashCow, sender);
                         await WaitLNSynched(cashCow, dest);

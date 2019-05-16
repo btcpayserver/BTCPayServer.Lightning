@@ -5,8 +5,10 @@ using System.Net.Http;
 using System.Threading.Tasks;
 using BTCPayServer.Lightning.Charge;
 using BTCPayServer.Lightning.CLightning;
+using BTCPayServer.Lightning.Eclair;
 using BTCPayServer.Lightning.LND;
 using NBitcoin;
+using NBitcoin.RPC;
 
 namespace BTCPayServer.Lightning
 {
@@ -19,37 +21,36 @@ namespace BTCPayServer.Lightning
 
         public static ILightningClient CreateClient(string connectionString, Network network)
         {
-            if(!LightningConnectionString.TryParse(connectionString, false, out var conn, out string error))
+            if (!LightningConnectionString.TryParse(connectionString, false, out var conn, out string error))
                 throw new FormatException($"Invalid format ({error})");
             return LightningClientFactory.CreateClient(conn, network);
         }
 
         public LightningClientFactory(Network network)
         {
-            if(network == null)
+            if (network == null)
                 throw new ArgumentNullException(nameof(network));
             Network = network;
         }
 
-        public Network Network
-        {
-            get;
-        }
+        public Network Network { get; }
         public HttpClient HttpClient { get; set; }
 
         public ILightningClient Create(string connectionString)
         {
             return LightningClientFactory.CreateClient(connectionString, Network);
         }
+
         public ILightningClient Create(LightningConnectionString connectionString)
         {
-            if(connectionString == null)
+            if (connectionString == null)
                 throw new ArgumentNullException(nameof(connectionString));
             if (connectionString.ConnectionType == LightningConnectionType.Charge)
             {
                 if (connectionString.CookieFilePath != null)
                 {
-                    return new ChargeClient(connectionString.BaseUri, connectionString.CookieFilePath, Network, HttpClient);
+                    return new ChargeClient(connectionString.BaseUri, connectionString.CookieFilePath, Network,
+                        HttpClient);
                 }
                 else
                 {
@@ -70,8 +71,22 @@ namespace BTCPayServer.Lightning
                     AllowInsecure = connectionString.AllowInsecure,
                 }, HttpClient), Network);
             }
+            else if (connectionString.ConnectionType == LightningConnectionType.Eclair)
+            {
+                var rpcClient =
+                    !string.IsNullOrEmpty(connectionString.BitcoinHost) &&
+                    !string.IsNullOrEmpty(connectionString.BitcoinAuth)
+                        ? new RPCClient(connectionString.BitcoinAuth, connectionString.BitcoinHost, Network)
+                        {
+                            HttpClient = HttpClient
+                        }
+                        : null;
+                return new EclairLightningClient(connectionString.BaseUri, connectionString.Password, Network, rpcClient
+                    , HttpClient);
+            }
             else
-                throw new NotSupportedException($"Unsupported connection string for lightning server ({connectionString.ConnectionType})");
+                throw new NotSupportedException(
+                    $"Unsupported connection string for lightning server ({connectionString.ConnectionType})");
         }
     }
 }

@@ -1,4 +1,4 @@
-﻿using System;
+using System;
 using System.Collections.Generic;
 using System.Globalization;
 using System.IO;
@@ -335,7 +335,7 @@ namespace BTCPayServer.Lightning.LND
 
 
 
-
+//TODO: There is a bug here somewhere where we do not detect "requires funding channel message"
         async Task<OpenChannelResponse> ILightningClient.OpenChannel(OpenChannelRequest openChannelRequest, CancellationToken cancellation)
         {
             OpenChannelRequest.AssertIsSane(openChannelRequest);
@@ -412,7 +412,7 @@ namespace BTCPayServer.Lightning.LND
             {
                 Addr = new LnrpcLightningAddress()
                 {
-                    Host = nodeInfo.Host,
+                    Host = $"{nodeInfo.Host}:{nodeInfo.Port}",
                     Pubkey = nodeInfo.NodeId.ToString()
                 }
             });

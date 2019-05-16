@@ -1,4 +1,4 @@
-version: "3"    
+version: "3"
 
 services:
 
@@ -16,6 +16,8 @@ services:
         whitelist=0.0.0.0/0
         zmqpubrawblock=tcp://0.0.0.0:28332
         zmqpubrawtx=tcp://0.0.0.0:28333
+        deprecatedrpc=signrawtransaction
+        addresstype=p2sh-segwit
     ports: 
       - "37393:43782"
       - "23823:28332"
@@ -29,7 +31,7 @@ services:
     restart: unless-stopped
     stop_signal: SIGKILL
     image: btcpayserver/lightning:v0.7.0-1-dev
-    environment: 
+    environment:
       EXPOSE_TCP: "true"
       LIGHTNINGD_OPT: |
         bitcoin-datadir=/etc/bitcoin
@@ -55,7 +57,7 @@ services:
     restart: unless-stopped
     stop_signal: SIGKILL
     image: btcpayserver/lightning:v0.7.0-1-dev
-    environment: 
+    environment:
       EXPOSE_TCP: "true"
       LIGHTNINGD_OPT: |
         bitcoin-datadir=/etc/bitcoin
@@ -149,12 +151,121 @@ services:
       - "bitcoind_dir:/deps/.bitcoin"
     links:
       - bitcoind
-
+  eclair:
+    restart: unless-stopped
+    stop_signal: SIGKILL
+    image: acinq/eclair:v0.3
+    environment:
+      JAVA_OPTS: |
+        -Declair.printToConsole
+        -Declair.headless
+        -Declair.chain=regtest
+        -Declair.server.binding-ip=0.0.0.0
+        -Declair.server.public-ips.0=eclair
+        -Declair.server.port=9735
+        -Declair.api.enabled=true
+        -Declair.api.binding-ip=0.0.0.0
+        -Declair.api.port=8080
+        -Declair.node-alias=eclair
+        -Declair.api.password=bukkake
+        -Declair.bitcoind.host=bitcoind
+        -Declair.bitcoind.rpcport=43782
+        -Declair.bitcoind.rpcuser=ceiwHEbqWI83
+        -Declair.bitcoind.rpcpassword=DwubwWsoo3
+        -Declair.bitcoind.zmqblock=tcp://bitcoind:28332
+        -Declair.bitcoind.zmqtx=tcp://bitcoind:28333
+        -Declair.max-feerate-mismatch=10000
+        -Declair.ping-disconnect=false
+    ports:
+      - "4570:8080" # api port
+      - "9735:9735" # server port
+    expose:
+      - "9735" # server port
+      - "8080" # api port
+    volumes:
+      - "bitcoind_dir:/etc/bitcoin"
+      - "eclair_dir:/data"
+    links:
+      - bitcoind
+      - eclair_dest
+  eclair_dest:
+    restart: unless-stopped
+    stop_signal: SIGKILL
+    image: acinq/eclair:v0.3
+    environment:
+      JAVA_OPTS: |
+        -Declair.printToConsole
+        -Declair.headless
+        -Declair.chain=regtest
+        -Declair.server.binding-ip=0.0.0.0
+        -Declair.server.public-ips.0=eclair_dest
+        -Declair.server.port=9736
+        -Declair.api.enabled=true
+        -Declair.api.binding-ip=0.0.0.0
+        -Declair.api.port=8080
+        -Declair.api.password=bukkake
+        -Declair.node-alias=eclair_dest
+        -Declair.bitcoind.host=bitcoind
+        -Declair.bitcoind.rpcport=43782
+        -Declair.bitcoind.rpcuser=ceiwHEbqWI83
+        -Declair.bitcoind.rpcpassword=DwubwWsoo3
+        -Declair.bitcoind.zmqblock=tcp://bitcoind:28332
+        -Declair.bitcoind.zmqtx=tcp://bitcoind:28333
+        -Declair.max-feerate-mismatch=10000
+        -Declair.ping-disconnect=false
+    ports:
+      - "4571:8080" # api port
+      - "9736:9736" # server port
+    expose:
+      - "9736" # server port
+      - "8080" # api port
+    volumes:
+      - "bitcoind_dir:/etc/bitcoin"
+      - "eclair_dest_dir:/data"
+    links:
+      - bitcoind
+  dev:
+    image: coscale/docker-sleep
+    depends_on:
+      - bitcoind
+      - charge
+      - eclair
+      - eclair_dest
+      - lightningd
+      - lightningd_dest
+      - lnd
+      - lnd_dest
+  tests:
+    build:
+      context: ..
+      dockerfile: tests/Dockerfile
+    expose:
+      - "80"
+    links:
+      - bitcoind
+      - charge
+      - eclair
+      - eclair_dest
+      - lightningd
+      - lightningd_dest
+      - lnd
+      - lnd_dest
+    depends_on:
+      - bitcoind
+      - charge
+      - eclair
+      - eclair_dest
+      - lightningd
+      - lightningd_dest
+      - lnd
+      - lnd_dest
 volumes:
-    lnd_dir:
-    lnd_dest_dir:
-    bitcoind_dir:
-    lightningd_dir:
-    lightning_charge_dir:
-    lightningd_dest_dir:
+  lnd_dir:
+  lnd_dest_dir:
+  bitcoind_dir:
+  lightningd_dir:
+  lightning_charge_dir:
+  lightningd_dest_dir:
+  eclair_dir:
+  eclair_dest_dir:
 
