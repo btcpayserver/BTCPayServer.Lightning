@@ -73,11 +73,16 @@ namespace BTCPayServer.Lightning
             }
             else if (connectionString.ConnectionType == LightningConnectionType.Eclair)
             {
-                return new EclairLightningClient(connectionString.BaseUri, connectionString.Password, Network,
-                    new RPCClient(connectionString.BitcoinAuth, connectionString.BitcoinHost, Network)
-                    {
-                        HttpClient = HttpClient
-                    }, HttpClient);
+                var rpcClient =
+                    !string.IsNullOrEmpty(connectionString.BitcoinHost) &&
+                    !string.IsNullOrEmpty(connectionString.BitcoinAuth)
+                        ? new RPCClient(connectionString.BitcoinAuth, connectionString.BitcoinHost, Network)
+                        {
+                            HttpClient = HttpClient
+                        }
+                        : null;
+                return new EclairLightningClient(connectionString.BaseUri, connectionString.Password, Network, rpcClient
+                    , HttpClient);
             }
             else
                 throw new NotSupportedException(
