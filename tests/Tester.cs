@@ -70,26 +70,26 @@ namespace BTCPayServer.Lightning.Tests
             }, Network.RegTest);
         }
 
-        public static IEnumerable<ILightningClient> GetLightningClients()
+        public static IEnumerable<(string Name, ILightningClient Client)> GetLightningClients()
         {
-            yield return CreateChargeClient();
-            yield return CreateCLightningClient();
-            yield return CreateLndClient();
-            yield return CreateEclairClient();
+            yield return ("Charge (Client)", CreateChargeClient());
+            yield return ("C-Lightning (Client)", CreateCLightningClient());
+            yield return ("LND (Client)", CreateLndClient());
+            yield return ("Eclair (Client)", CreateEclairClient());
         }
 
-        public static IEnumerable<ILightningClient> GetLightningSenderClients()
+        public static IEnumerable<(string Name, ILightningClient Client)> GetLightningSenderClients()
         {
-            yield return CreateCLightningClient();
-            yield return CreateLndClient();
-            yield return CreateEclairClient();
-            
+            yield return ("C-Lightning (Client)", CreateCLightningClient());
+            yield return ("LND (Client)", CreateLndClient());
+            yield return ("Eclair (Client)", CreateEclairClient());
+
         }
-        public static IEnumerable<ILightningClient> GetLightningDestClients()
+        public static IEnumerable<(string Name, ILightningClient Client)> GetLightningDestClients()
         {
-            yield return CreateCLightningClientDest();
-            yield return CreateLndClientDest();
-            yield return CreateEclairClientDest();
+            yield return ("C-Lightning (Client)", CreateCLightningClientDest());
+            yield return ("LND (Client)", CreateLndClientDest());
+            yield return ("Eclair (Client)", CreateEclairClientDest());
         }
     }
 }

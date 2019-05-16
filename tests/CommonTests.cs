@@ -9,15 +9,18 @@ using System.Security.Cryptography.X509Certificates;
 using System.Security.Cryptography;
 using System.Threading;
 using NBitcoin.Crypto;
+using Xunit.Abstractions;
 
 namespace BTCPayServer.Lightning.Tests
 {
     public class CommonTests
     {
         
-        public CommonTests()
+        public CommonTests(ITestOutputHelper helper)
         {
             Docker = !string.IsNullOrEmpty(Environment.GetEnvironmentVariable("IN_DOCKER_CONTAINER"));
+            Logs.Tester = new XUnitLog(helper) { Name = "Tests" };
+            Logs.LogProvider = new XUnitLogProvider(helper);
         }
 
         public static bool Docker { get; set; }
@@ -27,8 +30,9 @@ namespace BTCPayServer.Lightning.Tests
         {
             foreach(var client in Tester.GetLightningClients())
             {
-                var createdInvoice = await client.CreateInvoice(10000, "CanCreateInvoice", TimeSpan.FromMinutes(5));
-                var retrievedInvoice = await client.GetInvoice(createdInvoice.Id);
+                Logs.Tester.LogInformation($"{client.Name}: {nameof(CanCreateInvoice)}");
+                var createdInvoice = await client.Client.CreateInvoice(10000, "CanCreateInvoice", TimeSpan.FromMinutes(5));
+                var retrievedInvoice = await client.Client.GetInvoice(createdInvoice.Id);
                 AssertUnpaid(createdInvoice);
                 Assert.True(createdInvoice.ExpiresAt > DateTimeOffset.UtcNow);
                 AssertUnpaid(retrievedInvoice);
@@ -75,7 +79,8 @@ namespace BTCPayServer.Lightning.Tests
             var blockHeight = Tester.CreateRPC().GetBlockCount();
             foreach(var client in Tester.GetLightningClients())
             {
-                var info = await client.GetInfo();
+                Logs.Tester.LogInformation($"{client.Name}: {nameof(CanGetInfo)}");
+                var info = await client.Client.GetInfo();
                 Assert.NotNull(info);
                 Assert.Equal(blockHeight, info.BlockHeight);
                 Assert.NotNull(info.NodeInfo);
@@ -91,15 +96,16 @@ namespace BTCPayServer.Lightning.Tests
             {
                 foreach(var dest in Tester.GetLightningDestClients())
                 {
-                    var invoice = await dest.CreateInvoice(10000, "CanPayInvoiceAndReceive", TimeSpan.FromSeconds(5000));
-                    using(var listener = await dest.Listen())
+                    Logs.Tester.LogInformation($"{client.Name} => {dest.Name}: {nameof(CanPayInvoiceAndReceive)}");
+                    var invoice = await dest.Client.CreateInvoice(10000, "CanPayInvoiceAndReceive", TimeSpan.FromSeconds(5000));
+                    using(var listener = await dest.Client.Listen())
                     {
                         var waiting = listener.WaitInvoice(default);
-                        var paidReply = await client.Pay(invoice.BOLT11);
+                        var paidReply = await client.Client.Pay(invoice.BOLT11);
                         Assert.Equal(PayResult.Ok, paidReply.Result);
                         var paidInvoice = await waiting;
                         Assert.Equal(LightningInvoiceStatus.Paid, paidInvoice.Status);
-                        var retrievedInvoice = await dest.GetInvoice(invoice.Id);
+                        var retrievedInvoice = await dest.Client.GetInvoice(invoice.Id);
                         Assert.Equal(LightningInvoiceStatus.Paid, retrievedInvoice.Status);
                     }
                 }
@@ -115,21 +121,22 @@ namespace BTCPayServer.Lightning.Tests
             {
                 foreach(var dest in Tester.GetLightningDestClients())
                 {
-                    var merchantInvoice = await dest.CreateInvoice(10000, "Hello world", TimeSpan.FromSeconds(3600));
-                    var merchantInvoice2 = await dest.CreateInvoice(10000, "Hello world", TimeSpan.FromSeconds(3600));
+                    Logs.Tester.LogInformation($"{src.Name} => {dest.Name}: {nameof(CanWaitListenInvoice)}");
+                    var merchantInvoice = await dest.Client.CreateInvoice(10000, "Hello world", TimeSpan.FromSeconds(3600));
+                    var merchantInvoice2 = await dest.Client.CreateInvoice(10000, "Hello world", TimeSpan.FromSeconds(3600));
 
                     var waitToken = default(CancellationToken);
-                    var listener = await dest.Listen(waitToken);
+                    var listener = await dest.Client.Listen(waitToken);
                     var waitTask = listener.WaitInvoice(waitToken);
 
-                    var payResponse = await src.Pay(merchantInvoice.BOLT11);
+                    var payResponse = await src.Client.Pay(merchantInvoice.BOLT11);
 
                     var invoice = await waitTask;
                     Assert.True(invoice.PaidAt.HasValue);
 
                     var waitTask2 = listener.WaitInvoice(waitToken);
 
-                    payResponse = await src.Pay(merchantInvoice2.BOLT11);
+                    payResponse = await src.Client.Pay(merchantInvoice2.BOLT11);
 
                     invoice = await waitTask2;
                     Assert.True(invoice.PaidAt.HasValue);
@@ -151,15 +158,16 @@ namespace BTCPayServer.Lightning.Tests
 
             foreach (var sender in Tester.GetLightningSenderClients())
             {
-                var senderChannels = await sender.ListChannels();
-                var senderInfo = await sender.GetInfo();
+                Logs.Tester.LogInformation($"{sender.Name}: {nameof(CanListChannels)}");
+                var senderChannels = await sender.Client.ListChannels();
+                var senderInfo = await sender.Client.GetInfo();
                 Assert.NotEmpty(senderChannels);
                 Assert.Equal(3, senderChannels.GroupBy(s => s.RemoteNode).Count());
 
                 foreach (var dest in Tester.GetLightningDestClients())
                 {
-                    var destChannels = await dest.ListChannels();
-                    var destInfo = await dest.GetInfo();
+                    var destChannels = await dest.Client.ListChannels();
+                    var destInfo = await dest.Client.GetInfo();
                     Assert.NotEmpty(destChannels);
                     Assert.Equal(3, destChannels.GroupBy(s => s.RemoteNode).Count());
                     foreach (var c in senderChannels)
@@ -189,7 +197,7 @@ namespace BTCPayServer.Lightning.Tests
 
         private Task EnsureConnectedToDestinations()
         {
-            return ConnectChannels.ConnectAll(Tester.CreateRPC(), Tester.GetLightningSenderClients(), Tester.GetLightningDestClients());
+            return ConnectChannels.ConnectAll(Tester.CreateRPC(), Tester.GetLightningSenderClients().Select(c => c.Client).ToArray(), Tester.GetLightningDestClients().Select(c => c.Client).ToArray());
         }
 
         [Fact]
