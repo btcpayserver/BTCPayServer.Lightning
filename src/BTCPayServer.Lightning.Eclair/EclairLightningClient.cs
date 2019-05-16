@@ -44,7 +44,7 @@ namespace BTCPayServer.Lightning.Eclair
             {
                 info = await _eclairClient.GetReceivedInfo(invoiceId, null, cancellation);
             }
-            catch (EclairClient.EclairApiException e)
+            catch (EclairClient.EclairApiException)
             {
                 info = new GetReceivedInfoResponse()
                 {
@@ -134,7 +134,7 @@ namespace BTCPayServer.Lightning.Eclair
                     }
                 }
             }
-            catch (EclairClient.EclairApiException e)
+            catch (EclairClient.EclairApiException)
             {
             }
 

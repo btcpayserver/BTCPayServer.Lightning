@@ -123,22 +123,30 @@ namespace BTCPayServer.Lightning.Tests
                 {
                     Logs.Tester.LogInformation($"{src.Name} => {dest.Name}: {nameof(CanWaitListenInvoice)}");
                     var merchantInvoice = await dest.Client.CreateInvoice(10000, "Hello world", TimeSpan.FromSeconds(3600));
+                    Logs.Tester.LogInformation($"{src.Name} => {dest.Name}: Created invoice {merchantInvoice.Id}");
                     var merchantInvoice2 = await dest.Client.CreateInvoice(10000, "Hello world", TimeSpan.FromSeconds(3600));
+                    Logs.Tester.LogInformation($"{src.Name} => {dest.Name}: Created invoice {merchantInvoice2.Id}");
 
                     var waitToken = default(CancellationToken);
                     var listener = await dest.Client.Listen(waitToken);
                     var waitTask = listener.WaitInvoice(waitToken);
 
                     var payResponse = await src.Client.Pay(merchantInvoice.BOLT11);
+                    Logs.Tester.LogInformation($"{src.Name} => {dest.Name}: Paid invoice {merchantInvoice.Id}");
 
                     var invoice = await waitTask;
+                    Logs.Tester.LogInformation($"{src.Name} => {dest.Name}: Notification received for {invoice.Id}");
+                    Assert.Equal(invoice.Id, merchantInvoice.Id);
                     Assert.True(invoice.PaidAt.HasValue);
 
                     var waitTask2 = listener.WaitInvoice(waitToken);
 
                     payResponse = await src.Client.Pay(merchantInvoice2.BOLT11);
+                    Logs.Tester.LogInformation($"{src.Name} => {dest.Name}: Paid invoice {merchantInvoice2.Id}");
 
                     invoice = await waitTask2;
+                    Logs.Tester.LogInformation($"{src.Name} => {dest.Name}: Notification received for {invoice.Id}");
+
                     Assert.True(invoice.PaidAt.HasValue);
 
                     Assert.Equal(invoice.Amount, invoice.AmountReceived);
