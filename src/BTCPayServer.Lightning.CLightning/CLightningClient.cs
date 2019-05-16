@@ -246,23 +246,24 @@ namespace BTCPayServer.Lightning.CLightning
 
         async Task<LightningChannel[]> ILightningClient.ListChannels(CancellationToken cancellation)
         {
-            // Since `channels` in listpeers does not contain info about IsActive or not, we need to query listChannels as well
             var listPeersAsync = this.ListPeersAsync(cancellation);
-            var channels = await this.ListChannelsAsync(cancellation: cancellation);
-            return (from p in await listPeersAsync
-                    from c1 in p.Channels
-                    let c2 = channels.Where(c => (c.Source == p.Id)).FirstOrDefault()
-                    where c2 != null
-                    select new LightningChannel()
+            List<LightningChannel> channels = new List<LightningChannel>();
+            foreach (var peer in await listPeersAsync)
+            {
+                foreach (var channel in peer.Channels)
+                {
+                    channels.Add(new LightningChannel()
                     {
-                        RemoteNode = new PubKey(p.Id),
-                        IsPublic = !c1.Private,
-                        IsActive = c2.Active,
-                        Capacity = c2.Capacity,
-                        LocalBalance = c1.ToUs,
-                        ChannelPoint = new OutPoint(c1.FundingTxId, c1.ShortChannelId.TxOutIndex)
-                    }
-                   ).ToArray();
+                        RemoteNode = new PubKey(peer.Id),
+                        IsPublic = !channel.Private,
+                        LocalBalance = channel.ToUs,
+                        ChannelPoint = new OutPoint(channel.FundingTxId, channel.ShortChannelId.TxOutIndex),
+                        Capacity = channel.Total,
+                        IsActive = channel.State == "CHANNELD_NORMAL"
+                    });
+                }
+            }
+            return channels.ToArray();
         }
 
         internal static LightningInvoice ToLightningInvoice(CLightningInvoice invoice)

@@ -162,7 +162,7 @@ namespace BTCPayServer.Lightning.Tests
                 var senderChannels = await sender.Client.ListChannels();
                 var senderInfo = await sender.Client.GetInfo();
                 Assert.NotEmpty(senderChannels);
-                Assert.Equal(3, senderChannels.GroupBy(s => s.RemoteNode).Count());
+                Assert.Equal(3, senderChannels.Where(s => s.IsActive).GroupBy(s => s.RemoteNode).Count());
 
                 foreach (var dest in Tester.GetLightningDestClients())
                 {
