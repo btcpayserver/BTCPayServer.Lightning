@@ -49,6 +49,7 @@ The `connectionString` encapsulates the necessary information BTCPay needs to co
 * `clightning` via TCP or unix domain socket connection
 * `lightning charge` via HTTPS
 * `LND` via the REST proxy
+* `Eclair` via their new REST API
 
 #### Examples
 
@@ -59,6 +60,10 @@ The `connectionString` encapsulates the necessary information BTCPay needs to co
 * `type`=lnd-rest;`server`=<span>https://mylnd:8080/</span>;`macaroon`=abef263adfe...;`certthumbprint`=abef263adfe...
 * `type`=charge;`server`=<span>https://charge:8080/</span>;`api-token`=myapitoken...
 * `type`=charge;`server`=<span>https://charge:8080/</span>;`cookiefilepath`=/path/to/cookie...
+* `type`=eclair;`server`=<span>http://127.0.0.1:4570</span>;`password`=eclairpass;`bitcoin-host`=127.0.0.1:37393;`bitcoin-auth`=user:pass
+
+Note that `bitcoin-host` and `bitcoin-auth` are optional, only useful if you want to call `ILightningClient.GetDepositAddress` on Eclair.
+We expect this won't be needed in the future.
 
 Note that the `certthumbprint` to connect to your LND node can be obtained through this command line:
 
