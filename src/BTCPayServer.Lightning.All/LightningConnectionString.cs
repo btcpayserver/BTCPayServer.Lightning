@@ -316,22 +316,18 @@ namespace BTCPayServer.Lightning
                     result.Password = Take(keyValues, "password");
                     result.BitcoinHost  = Take(keyValues, "bitcoin-host");
 
-                    if (result.BitcoinHost == null)
+                    if (result.BitcoinHost != null)
                     {
-                        error = $"The key 'bitcoin-host' is mandatory for eclair connection strings";
-                        return false;
-                    }
-                    
-                    
+                        result.BitcoinAuth = Take(keyValues, "bitcoin-auth");
 
-                    result.BitcoinAuth= Take(keyValues, "bitcoin-auth");
-                    
-                    if (result.BitcoinAuth == null)
-                    {
-                        error = $"The key 'bitcoin-auth' is mandatory for eclair connection strings";
-                        return false;
+                        if (result.BitcoinAuth == null)
+                        {
+                            error =
+                                $"The key 'bitcoin-auth' is mandatory for eclair connection strings when bitcoin-host is specified";
+                            return false;
+                        }
                     }
-                    
+
                     break;
                 default:
                     throw new NotSupportedException(connectionType.ToString());

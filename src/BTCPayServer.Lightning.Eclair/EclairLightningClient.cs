@@ -1,7 +1,5 @@
 ﻿using System;
 using System.Collections.Concurrent;
-using System.Collections.Generic;
-using System.Diagnostics;
 using System.Linq;
 using System.Net.Http;
 using System.Threading;
@@ -197,6 +195,10 @@ namespace BTCPayServer.Lightning.Eclair
 
         public async Task<BitcoinAddress> GetDepositAddress()
         {
+            if (_rpcClient == null)
+            {
+                throw new NotSupportedException("The bitcoind connection details were not provided.");
+            }
             return await _rpcClient.GetNewAddressAsync();
         }
 
