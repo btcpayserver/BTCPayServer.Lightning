@@ -155,6 +155,7 @@ namespace BTCPayServer.Lightning.Tests
                     var waitTask3 = listener.WaitInvoice(waitToken);
                     await Task.Delay(100);
                     listener.Dispose();
+                    Logs.Tester.LogInformation($"{src.Name} => {dest.Name}: Listener disposed, should throw exception");
                     Assert.Throws<OperationCanceledException>(() => waitTask3.GetAwaiter().GetResult());
                 }
             }

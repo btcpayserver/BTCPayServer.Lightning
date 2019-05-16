@@ -1,3 +1,6 @@
+using Newtonsoft.Json;
+using System;
+
 namespace BTCPayServer.Lightning.Eclair.Models
 {
     public partial class PaymentReceivedEvent
