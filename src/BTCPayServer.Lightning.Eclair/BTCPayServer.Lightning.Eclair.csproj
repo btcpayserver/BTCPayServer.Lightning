@@ -12,11 +12,6 @@
     <PackageTags>lightning;bitcoin;eclair;lapps</PackageTags>
   </PropertyGroup>
 
-
-  <ItemGroup>
-    <PackageReference Include="System.Threading.Channels" Version="4.5.0" />
-  </ItemGroup>
-  
     <ItemGroup>
       <ProjectReference Include="..\BTCPayServer.Lightning.Common\BTCPayServer.Lightning.Common.csproj" />
     </ItemGroup>

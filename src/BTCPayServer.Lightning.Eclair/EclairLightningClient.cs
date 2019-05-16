@@ -2,9 +2,10 @@
 using System.Collections.Concurrent;
 using System.Linq;
 using System.Net.Http;
+using System.Net.Http.Headers;
 using System.Runtime.ExceptionServices;
+using System.Text;
 using System.Threading;
-using System.Threading.Channels;
 using System.Threading.Tasks;
 using BTCPayServer.Lightning.Eclair.Models;
 using NBitcoin;
@@ -90,9 +91,12 @@ namespace BTCPayServer.Lightning.Eclair
             return invoice;
         }
 
-        public Task<ILightningInvoiceListener> Listen(CancellationToken cancellation = default(CancellationToken))
+        public async Task<ILightningInvoiceListener> Listen(CancellationToken cancellation = default(CancellationToken))
         {
-            return Task.FromResult<ILightningInvoiceListener>(new EclairWebsocketListener(this, _password));
+            return new EclairSession(
+               await WebsocketHelper.CreateClientWebSocket(_address.AbsoluteUri,
+                  new AuthenticationHeaderValue("Basic",
+                        Convert.ToBase64String(Encoding.Default.GetBytes($":{_password}"))).ToString(), cancellation), this);
         }
 
         public async Task<LightningNodeInformation> GetInfo(CancellationToken cancellation = default(CancellationToken))
@@ -227,57 +231,6 @@ namespace BTCPayServer.Lightning.Eclair
                     ChannelPoint = outPoint,
                 };
             }).ToArray();
-        }
-
-        public class EclairWebsocketListener : ILightningInvoiceListener
-        {
-            private CancellationTokenSource _cts = new CancellationTokenSource();
-            private readonly EclairLightningClient _eclairLightningClient;
-
-            private Channel<string> _receivedInvoiceQueue = Channel.CreateUnbounded<string>();
-            private EclairWebsocketClient _eclairWebsocketClient;
-
-            public EclairWebsocketListener(EclairLightningClient eclairLightningClient, string password)
-            {
-                _eclairLightningClient = eclairLightningClient;
-                _eclairWebsocketClient = new EclairWebsocketClient(_eclairLightningClient._address.AbsoluteUri, password);
-                _eclairWebsocketClient.PaymentReceivedEvent += EclairWebsocketClientOnPaymentReceivedEvent;
-                _ = _eclairWebsocketClient.Connect(_cts.Token);
-            }
-
-            private void EclairWebsocketClientOnPaymentReceivedEvent(object sender, PaymentReceivedEvent e)
-            {
-                _receivedInvoiceQueue.Writer.TryWrite(e.PaymentHash);
-            }
-
-            public async Task<LightningInvoice> WaitInvoice(CancellationToken cancellation)
-            {
-                using (var cancellation2 =
-                        CancellationTokenSource.CreateLinkedTokenSource(cancellation, _cts.Token))
-                {
-                    try
-                    {
-                        var id = await _receivedInvoiceQueue.Reader.ReadAsync(cancellation2.Token);
-                        return await _eclairLightningClient.GetInvoice(id, cancellation2.Token);
-                    }
-                    catch (ChannelClosedException ex) when (ex.InnerException == null)
-                    {
-                        throw new OperationCanceledException();
-                    }
-                    catch (ChannelClosedException ex)
-                    {
-                        ExceptionDispatchInfo.Capture(ex.InnerException).Throw();
-                        throw;
-                    }
-                }
-            }
-
-            public void Dispose()
-            {
-                _receivedInvoiceQueue.Writer.TryComplete();
-                _cts.Cancel();
-                _eclairWebsocketClient.Dispose();
-            }
         }
     }
 }
