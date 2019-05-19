@@ -157,6 +157,7 @@ services:
     image: acinq/eclair:v0.3
     environment:
       JAVA_OPTS: |
+        -Xmx256m
         -Declair.printToConsole
         -Declair.headless
         -Declair.chain=regtest
@@ -194,6 +195,7 @@ services:
     image: acinq/eclair:v0.3
     environment:
       JAVA_OPTS: |
+        -Xmx256m
         -Declair.printToConsole
         -Declair.headless
         -Declair.chain=regtest
