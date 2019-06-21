@@ -226,12 +226,9 @@ namespace BTCPayServer.Lightning.Ptarmigan
 
                     while (waitFlg)
                     {
-                        if (cancellation2.IsCancellationRequested)
-                        {
-                            throw new OperationCanceledException();
-                        }
+                        cancellation2.Token.ThrowIfCancellationRequested();
 
-                        var listInvoice = _ptarmiganClient.ListAllInvoice();
+                        var listInvoice = _ptarmiganClient.ListAllInvoice(cancellation2.Token);
                         var changedInvoice = CheckInvoice(initListInvoice.Result, listInvoice.Result);
                         if (changedInvoice != null)
                         {
@@ -242,7 +239,7 @@ namespace BTCPayServer.Lightning.Ptarmigan
 
                         if (waitFlg)
                         {
-                            System.Threading.Thread.Sleep(1000);
+                            await Task.Delay(1000, cancellation2.Token);
                         }
                     }
                     return result;
