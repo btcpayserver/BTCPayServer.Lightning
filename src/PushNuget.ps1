@@ -18,6 +18,10 @@ cd BTCPayServer.Lightning.Eclair
 .\PushNuget.ps1
 cd ..
 
+cd BTCPayServer.Lightning.Ptarmigan
+.\PushNuget.ps1
+cd ..
+
 cd BTCPayServer.Lightning.All
 .\PushNuget.ps1
 cd ..
