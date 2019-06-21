@@ -15,7 +15,9 @@ namespace BTCPayServer.Lightning.Tests
 {
     public class CommonTests
     {
-        
+
+        private static readonly int CHANNELS_NUMBER = 4;
+
         public CommonTests(ITestOutputHelper helper)
         {
             Docker = !string.IsNullOrEmpty(Environment.GetEnvironmentVariable("IN_DOCKER_CONTAINER"));
@@ -52,6 +54,7 @@ namespace BTCPayServer.Lightning.Tests
                     "type=lnd-rest;server=https://lnd_dest:8080;allowinsecure=true",
                     "type=clightning;server=tcp://lightningd:9835",
                     "type=eclair;server=http://eclair:8080;password=bukkake;bitcoin-host=bitcoind:43782;bitcoin-auth=ceiwHEbqWI83:DwubwWsoo3",
+                    "type=ptarmigan;server=http://ptarmigan:3000",
 
                 }
                 : new[]
@@ -60,6 +63,7 @@ namespace BTCPayServer.Lightning.Tests
                     "type=lnd-rest;server=https://127.0.0.1:42802;allowinsecure=true",
                     "type=clightning;server=tcp://127.0.0.1:48532",
                     "type=eclair;server=http://127.0.0.1:4570;password=bukkake;bitcoin-host=127.0.0.1:37393;bitcoin-auth=ceiwHEbqWI83:DwubwWsoo3",
+                    "type=ptarmigan;server=http://127.0.0.1:3000",
 
                 };
             foreach(var connectionString in connectionStrings)
@@ -172,14 +176,14 @@ namespace BTCPayServer.Lightning.Tests
                 var senderChannels = await sender.Client.ListChannels();
                 var senderInfo = await sender.Client.GetInfo();
                 Assert.NotEmpty(senderChannels);
-                Assert.Equal(3, senderChannels.Where(s => s.IsActive).GroupBy(s => s.RemoteNode).Count());
+                Assert.Equal(CHANNELS_NUMBER, senderChannels.Where(s => s.IsActive).GroupBy(s => s.RemoteNode).Count());
 
                 foreach (var dest in Tester.GetLightningDestClients())
                 {
                     var destChannels = await dest.Client.ListChannels();
                     var destInfo = await dest.Client.GetInfo();
                     Assert.NotEmpty(destChannels);
-                    Assert.Equal(3, destChannels.GroupBy(s => s.RemoteNode).Count());
+                    Assert.Equal(CHANNELS_NUMBER, destChannels.GroupBy(s => s.RemoteNode).Count());
                     foreach (var c in senderChannels)
                     {
                         Assert.NotNull(c.RemoteNode);
