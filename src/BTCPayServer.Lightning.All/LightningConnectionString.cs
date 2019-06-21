@@ -15,7 +15,8 @@ namespace BTCPayServer.Lightning
         CLightning,
         LndREST,
         LndGRPC,
-        Eclair
+        Eclair,
+        Ptarmigan
     }
     public class LightningConnectionString
     {
@@ -29,6 +30,7 @@ namespace BTCPayServer.Lightning
             typeMapping.Add("lnd-rest", LightningConnectionType.LndREST);
             typeMapping.Add("lnd-grpc", LightningConnectionType.LndGRPC);
             typeMapping.Add("eclair", LightningConnectionType.Eclair);
+            typeMapping.Add("ptarmigan", LightningConnectionType.Ptarmigan);
             typeMappingReverse = new Dictionary<LightningConnectionType, string>();
             foreach (var kv in typeMapping)
             {
@@ -329,6 +331,25 @@ namespace BTCPayServer.Lightning
                     }
 
                     break;
+                case LightningConnectionType.Ptarmigan:
+
+                    var ptarmiganserver = Take(keyValues, "server");
+
+                    if (ptarmiganserver == null)
+                    {
+                        error = $"The key 'server' is mandatory for lnd connection strings";
+                        return false;
+                    }
+                    if (!Uri.TryCreate(ptarmiganserver, UriKind.Absolute, out var ptarmiganuri)
+                        || (ptarmiganuri.Scheme != "http" && ptarmiganuri.Scheme != "https"))
+                    {
+                        error = $"The key 'server' should be an URI starting by http:// or https://";
+                        return false;
+                    }
+
+                    result.BaseUri = ptarmiganuri;
+
+                    break;
                 default:
                     throw new NotSupportedException(connectionType.ToString());
             }
@@ -530,7 +551,10 @@ namespace BTCPayServer.Lightning
                         builder.Append($";bitcoin-auth={BitcoinAuth}");
                     }
                     
-                    break; 
+                    break;
+                case LightningConnectionType.Ptarmigan:
+                    builder.Append($";server={BaseUri}");
+                    break;
                 default:
                     throw new NotSupportedException(type);
             }

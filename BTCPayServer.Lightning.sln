@@ -22,6 +22,8 @@ Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "BTCPayServer.Lightning.All"
 EndProject
 Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "BTCPayServer.Lightning.Eclair", "src\BTCPayServer.Lightning.Eclair\BTCPayServer.Lightning.Eclair.csproj", "{542D3F73-7067-4873-89EF-FA0345E32C04}"
 EndProject
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "BTCPayServer.Lightning.Ptarmigan", "src\BTCPayServer.Lightning.Ptarmigan\BTCPayServer.Lightning.Ptarmigan.csproj", "{58B60560-55F2-4F95-98E9-F532D8282492}"
+EndProject
 Global
 	GlobalSection(SolutionConfigurationPlatforms) = preSolution
 		Debug|Any CPU = Debug|Any CPU
@@ -116,6 +118,18 @@ Global
 		{542D3F73-7067-4873-89EF-FA0345E32C04}.Release|x64.Build.0 = Release|Any CPU
 		{542D3F73-7067-4873-89EF-FA0345E32C04}.Release|x86.ActiveCfg = Release|Any CPU
 		{542D3F73-7067-4873-89EF-FA0345E32C04}.Release|x86.Build.0 = Release|Any CPU
+		{58B60560-55F2-4F95-98E9-F532D8282492}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{58B60560-55F2-4F95-98E9-F532D8282492}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{58B60560-55F2-4F95-98E9-F532D8282492}.Debug|x64.ActiveCfg = Debug|Any CPU
+		{58B60560-55F2-4F95-98E9-F532D8282492}.Debug|x64.Build.0 = Debug|Any CPU
+		{58B60560-55F2-4F95-98E9-F532D8282492}.Debug|x86.ActiveCfg = Debug|Any CPU
+		{58B60560-55F2-4F95-98E9-F532D8282492}.Debug|x86.Build.0 = Debug|Any CPU
+		{58B60560-55F2-4F95-98E9-F532D8282492}.Release|Any CPU.ActiveCfg = Release|Any CPU
+		{58B60560-55F2-4F95-98E9-F532D8282492}.Release|Any CPU.Build.0 = Release|Any CPU
+		{58B60560-55F2-4F95-98E9-F532D8282492}.Release|x64.ActiveCfg = Release|Any CPU
+		{58B60560-55F2-4F95-98E9-F532D8282492}.Release|x64.Build.0 = Release|Any CPU
+		{58B60560-55F2-4F95-98E9-F532D8282492}.Release|x86.ActiveCfg = Release|Any CPU
+		{58B60560-55F2-4F95-98E9-F532D8282492}.Release|x86.Build.0 = Release|Any CPU
 	EndGlobalSection
 	GlobalSection(SolutionProperties) = preSolution
 		HideSolutionNode = FALSE
@@ -127,6 +141,7 @@ Global
 		{CA4021BC-41F4-44C6-B249-F2DC05429E44} = {5BA1A1B2-2713-4CF4-9B63-087531598797}
 		{691B1F98-4CC3-47FF-B3F3-B97FC0AB4C94} = {5BA1A1B2-2713-4CF4-9B63-087531598797}
 		{542D3F73-7067-4873-89EF-FA0345E32C04} = {5BA1A1B2-2713-4CF4-9B63-087531598797}
+		{58B60560-55F2-4F95-98E9-F532D8282492} = {5BA1A1B2-2713-4CF4-9B63-087531598797}
 	EndGlobalSection
 	GlobalSection(ExtensibilityGlobals) = postSolution
 		SolutionGuid = {5E91C820-C650-4ACA-B064-05ECE0A74CE8}

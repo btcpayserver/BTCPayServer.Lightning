@@ -7,6 +7,7 @@ using System;
 using System.Collections.Generic;
 using System.Text;
 using BTCPayServer.Lightning.Eclair;
+using BTCPayServer.Lightning.Ptarmigan;
 
 namespace BTCPayServer.Lightning.Tests
 {
@@ -54,12 +55,22 @@ namespace BTCPayServer.Lightning.Tests
         public static EclairLightningClient CreateEclairClient()
         {
             return new EclairLightningClient(new Uri(CommonTests.Docker? "http://eclair:8080": "http://127.0.0.1:4570"), "bukkake", Network, CreateRPC());
-        }  
+        }
+
         public static EclairLightningClient CreateEclairClientDest()
         {
             return new EclairLightningClient(new Uri(CommonTests.Docker? "http://eclair_dest:8080": "http://127.0.0.1:4571"), "bukkake", Network, CreateRPC());
         }
-        
+
+        public static PtarmiganLightningClient CreatePtarmiganClient()
+        {
+            return new PtarmiganLightningClient(new Uri(CommonTests.Docker ? "http://ptarmigan:3000" : "http://127.0.0.1:3000"), Network, CreateRPC());
+        }
+
+        public static PtarmiganLightningClient CreatePtarmiganClientDest()
+        {
+            return new PtarmiganLightningClient(new Uri(CommonTests.Docker ? "http://ptarmigan_dest:3000" : "http://127.0.0.1:3001"), Network, CreateRPC());
+        }
 
         public static LndClient CreateLndClientDest()
         {
@@ -76,6 +87,7 @@ namespace BTCPayServer.Lightning.Tests
             yield return ("C-Lightning (Client)", CreateCLightningClient());
             yield return ("LND (Client)", CreateLndClient());
             yield return ("Eclair (Client)", CreateEclairClient());
+            yield return ("Ptarmigan (Client)", CreatePtarmiganClient());
         }
 
         public static IEnumerable<(string Name, ILightningClient Client)> GetLightningSenderClients()
@@ -83,13 +95,15 @@ namespace BTCPayServer.Lightning.Tests
             yield return ("C-Lightning (Client)", CreateCLightningClient());
             yield return ("LND (Client)", CreateLndClient());
             yield return ("Eclair (Client)", CreateEclairClient());
-
+            yield return ("Ptarmigan (Client)", CreatePtarmiganClient());
         }
+
         public static IEnumerable<(string Name, ILightningClient Client)> GetLightningDestClients()
         {
             yield return ("C-Lightning (Client)", CreateCLightningClientDest());
             yield return ("LND (Client)", CreateLndClientDest());
             yield return ("Eclair (Client)", CreateEclairClientDest());
+            yield return ("Ptarmigan (Client)", CreatePtarmiganClientDest());
         }
     }
 }
