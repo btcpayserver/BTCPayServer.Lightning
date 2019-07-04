@@ -169,10 +169,10 @@ namespace BTCPayServer.Lightning.Tests
         public void LightMoneyOverflowTest()
         {
             var maxSupply = 21_000_000m;
-            LightMoney.Coins(maxSupply);
-            LightMoney.Bits(maxSupply * (decimal)LightMoneyUnit.Bit);
-            LightMoney.Cents(maxSupply * (decimal)LightMoneyUnit.Bit);
-            LightMoney.Satoshis(maxSupply * (decimal)LightMoneyUnit.Satoshi);
+            var v = LightMoney.Coins(maxSupply);
+            Assert.Equal(v, LightMoney.Satoshis(maxSupply * (decimal)Math.Pow(10, 8)));
+            Assert.Equal(v, LightMoney.Bits(maxSupply * (decimal)Math.Pow(10, 6)));
+            Assert.Equal(v, LightMoney.MilliSatoshis((long)(maxSupply * (decimal)Math.Pow(10, 11))));
         }
 
         [Fact]

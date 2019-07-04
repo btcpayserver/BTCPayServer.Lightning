@@ -203,19 +203,12 @@ namespace BTCPayServer.Lightning
         {
             // overflow safe.
             // decimal operations are checked by default
-            return new LightMoney(bits * (ulong)LightMoneyUnit.Bit, LightMoneyUnit.MilliBTC);
-        }
-
-        public static LightMoney Cents(decimal cents)
-        {
-            // overflow safe.
-            // decimal operations are checked by default
-            return new LightMoney(cents * (ulong)LightMoneyUnit.Bit, LightMoneyUnit.MilliSatoshi);
+            return new LightMoney(bits, LightMoneyUnit.Bit);
         }
 
         public static LightMoney Satoshis(decimal sats)
         {
-            return new LightMoney(sats * (ulong)LightMoneyUnit.Satoshi, LightMoneyUnit.MilliSatoshi);
+            return new LightMoney(sats, LightMoneyUnit.Satoshi);
         }
 
         public static LightMoney Satoshis(ulong sats)

@@ -100,12 +100,12 @@ services:
 
   lnd:
     restart: unless-stopped
-    image: btcpayserver/lnd:v0.6-beta
+    image: btcpayserver/lnd:v0.7.0-beta
     environment:
       LND_CHAIN: "btc"
       LND_ENVIRONMENT: "regtest"
       LND_EXTRA_ARGS: |
-        restlisten=0.0.0.0:8080
+        restlisten=lnd:8080
         bitcoin.node=bitcoind
         bitcoind.rpchost=bitcoind:43782
         bitcoind.zmqpubrawblock=tcp://bitcoind:28332
@@ -127,12 +127,12 @@ services:
 
   lnd_dest:
     restart: unless-stopped
-    image: btcpayserver/lnd:v0.6-beta
+    image: btcpayserver/lnd:v0.7.0-beta
     environment:
       LND_CHAIN: "btc"
       LND_ENVIRONMENT: "regtest"
       LND_EXTRA_ARGS: |
-        restlisten=0.0.0.0:8080
+        restlisten=lnd_dest:8080
         bitcoin.node=bitcoind
         bitcoind.rpchost=bitcoind:43782
         bitcoind.zmqpubrawblock=tcp://bitcoind:28332
