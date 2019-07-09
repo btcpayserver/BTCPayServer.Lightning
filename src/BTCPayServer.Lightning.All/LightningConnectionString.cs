@@ -347,7 +347,15 @@ namespace BTCPayServer.Lightning
                         return false;
                     }
 
+                    var ptarmiganApiToken = Take(keyValues, "api-token");
+                    if (ptarmiganApiToken == null)
+                    {
+                        error = $"The key 'api-token' is not found";
+                        return false;
+                    }
+
                     result.BaseUri = ptarmiganuri;
+                    result.ApiToken = ptarmiganApiToken;
 
                     break;
                 default:
@@ -460,7 +468,9 @@ namespace BTCPayServer.Lightning
 
         public string BitcoinHost { get; set; }
         public string BitcoinAuth { get; set; }
-        
+
+        public string ApiToken { get; set; }
+
         public Uri ToUri(bool withCredentials)
         {
             if (withCredentials)

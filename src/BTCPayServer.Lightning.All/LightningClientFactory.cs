@@ -95,7 +95,7 @@ namespace BTCPayServer.Lightning
                             HttpClient = HttpClient
                         }
                         : null;
-                return new PtarmiganLightningClient(connectionString.BaseUri, Network, rpcClient, HttpClient);
+                return new PtarmiganLightningClient(connectionString.BaseUri, connectionString.ApiToken, Network, rpcClient, HttpClient);
             }
             else
                 throw new NotSupportedException(

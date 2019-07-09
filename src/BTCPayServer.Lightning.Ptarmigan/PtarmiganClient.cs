@@ -16,11 +16,13 @@ namespace BTCPayServer.Lightning.Ptarmigan
 
         private readonly Uri _address;
         private readonly HttpClient _httpClient;
+        private readonly string _apiToken;
         private static readonly HttpClient SharedClient = new HttpClient();
 
-        public PtarmiganClient(Uri address, HttpClient httpClient = null)
+        public PtarmiganClient(Uri address, string apiToken, HttpClient httpClient = null)
         {
             _address = address;
+            _apiToken = apiToken;
             _httpClient = httpClient ?? SharedClient;
         }
 
@@ -142,6 +144,7 @@ namespace BTCPayServer.Lightning.Ptarmigan
             };
             httpRequest.Headers.Accept.Clear();
             httpRequest.Headers.Accept.Add(new MediaTypeWithQualityHeaderValue("application/json"));
+            httpRequest.Headers.Add("Authorization", "Bearer " + _apiToken);
 
             var rawResult = await _httpClient.SendAsync(httpRequest, cts);
             var rawJson = await rawResult.Content.ReadAsStringAsync();
