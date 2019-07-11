@@ -232,7 +232,7 @@ services:
   ptarmigan:
     restart: unless-stopped
     stop_signal: SIGKILL
-    image: nayutaco/ptarmigan:0.1.5
+    image: nayutaco/ptarmigan:0.1.7
     environment:
       NODE_NAME: test
       CHAIN: regtest
@@ -242,6 +242,7 @@ services:
       RPC_PASSWORD: DwubwWsoo3
       RPC_URL: bitcoind
       ANNOUNCE_IP: ptarmigan
+      API_TOKEN: ptarmigan
     ports:
       - "3000:3000"
       - "12345:12345"
@@ -257,7 +258,7 @@ services:
   ptarmigan_dest:
     restart: unless-stopped
     stop_signal: SIGKILL
-    image: nayutaco/ptarmigan:0.1.5
+    image: nayutaco/ptarmigan:0.1.7
     environment:
       NODE_NAME: test
       CHAIN: regtest
@@ -267,6 +268,7 @@ services:
       RPC_PASSWORD: DwubwWsoo3
       RPC_URL: bitcoind
       ANNOUNCE_IP: ptarmigan_dest
+      API_TOKEN: ptarmigan
     ports:
       - "3001:3000"
       - "54321:54321"

@@ -64,12 +64,12 @@ namespace BTCPayServer.Lightning.Tests
 
         public static PtarmiganLightningClient CreatePtarmiganClient()
         {
-            return new PtarmiganLightningClient(new Uri(CommonTests.Docker ? "http://ptarmigan:3000" : "http://127.0.0.1:3000"), Network, CreateRPC());
+            return new PtarmiganLightningClient(new Uri(CommonTests.Docker ? "http://ptarmigan:3000" : "http://127.0.0.1:3000"), "ptarmigan", Network, CreateRPC());
         }
 
         public static PtarmiganLightningClient CreatePtarmiganClientDest()
         {
-            return new PtarmiganLightningClient(new Uri(CommonTests.Docker ? "http://ptarmigan_dest:3000" : "http://127.0.0.1:3001"), Network, CreateRPC());
+            return new PtarmiganLightningClient(new Uri(CommonTests.Docker ? "http://ptarmigan_dest:3000" : "http://127.0.0.1:3001"), "ptarmigan", Network, CreateRPC());
         }
 
         public static LndClient CreateLndClientDest()

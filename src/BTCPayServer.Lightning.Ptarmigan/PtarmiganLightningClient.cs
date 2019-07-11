@@ -2,6 +2,8 @@
 using System.Collections.Generic;
 using System.Linq;
 using System.Net.Http;
+using System.Net.Http.Headers;
+using System.Text;
 using System.Threading;
 using System.Threading.Tasks;
 using BTCPayServer.Lightning.Ptarmigan.Models;
@@ -16,18 +18,21 @@ namespace BTCPayServer.Lightning.Ptarmigan
         private readonly Network _network;
         private readonly RPCClient _rpcClient;
         private readonly PtarmiganClient _ptarmiganClient;
+        private readonly Uri _address;
+        private readonly string _apiToken;
 
-        public PtarmiganLightningClient(Uri address, Network network, RPCClient rpcClient, HttpClient httpClient = null)
+        public PtarmiganLightningClient(Uri address, string apiToken, Network network, RPCClient rpcClient, HttpClient httpClient = null)
         {
 
             if (address == null)
                 throw new ArgumentNullException(nameof(address));
             if (network == null)
                 throw new ArgumentNullException(nameof(network));
+            _address = address;
             _network = network;
             _rpcClient = rpcClient;
-            _ptarmiganClient = new PtarmiganClient(address, httpClient);
-
+            _apiToken = apiToken;
+            _ptarmiganClient = new PtarmiganClient(address, apiToken, httpClient);
         }
 
         public async Task ConnectTo(NodeInfo nodeInfo)
@@ -193,100 +198,11 @@ namespace BTCPayServer.Lightning.Ptarmigan
 
         public async Task<ILightningInvoiceListener> Listen(CancellationToken cancellation = default(CancellationToken))
         {
-            return await Task.FromResult<ILightningInvoiceListener>(new PtarmiganInvoiceListener(_ptarmiganClient, _network));
+            return new PtarmiganSession(
+                await WebsocketHelper.CreateClientWebSocket(_address.ToString(), "Bearer " + _apiToken, cancellation), _network, this);
         }
 
-        class PtarmiganInvoiceListener : ILightningInvoiceListener
-        {
-            CancellationTokenSource _Cts = new CancellationTokenSource();
-            readonly PtarmiganClient _ptarmiganClient;
-            readonly Network _network;
-
-            public PtarmiganInvoiceListener(PtarmiganClient parent, Network network)
-            {
-                if (parent == null)
-                    throw new ArgumentNullException(nameof(parent));
-                _ptarmiganClient = parent;
-                _network = network;
-            }
-            public void Dispose()
-            {
-                _Cts.Cancel();
-            }
-
-            public async Task<LightningInvoice> WaitInvoice(CancellationToken cancellation)
-            {
-                using (var cancellation2 = CancellationTokenSource.CreateLinkedTokenSource(cancellation, _Cts.Token))
-                {
-                    var latestListInvoiceResponse = await _ptarmiganClient.GetLatestInvoice();
-                    var initListInvoice = _ptarmiganClient.ListAllInvoice();
-
-                    var waitFlg = true;
-                    LightningInvoice result = null;
-
-                    while (waitFlg)
-                    {
-                        cancellation2.Token.ThrowIfCancellationRequested();
-
-                        var listInvoice = _ptarmiganClient.ListAllInvoice(cancellation2.Token);
-                        var changedInvoice = CheckInvoice(initListInvoice.Result, listInvoice.Result);
-                        if (changedInvoice != null)
-                        {
-                            result = GetLightningInvoiceObject(changedInvoice, _network);
-                            waitFlg = false;
-                            break;
-                        }
-
-                        if (waitFlg)
-                        {
-                            await Task.Delay(1000, cancellation2.Token);
-                        }
-                    }
-                    return result;
-                }
-            }
-
-            private ListInvoiceResultResponse CheckInvoice(ListInvoiceResponse initListInvoice, ListInvoiceResponse listInvoice)
-            {
-                foreach (ListInvoiceResultResponse initInvoice in initListInvoice.Result)
-                {
-                    foreach (ListInvoiceResultResponse invoice in listInvoice.Result)
-                    {
-                        if (initInvoice.Hash == invoice.Hash)
-                        {
-                            if (initInvoice.State == "unused" && invoice.State == "used")
-                            {
-                                return invoice;
-                            }
-                            else if (initInvoice.State == "unused" && invoice.State == "expire")
-                            {
-                                return invoice;
-                            }
-                        }
-                    }
-                }
-                return null;
-            }
-        }
-
-        private static LightningInvoiceStatus ToStatus(string status)
-        {
-            switch (status)
-            {
-                case "used":
-                    return LightningInvoiceStatus.Paid;
-                case "unused":
-                    return LightningInvoiceStatus.Unpaid;
-                case "expire":
-                    return LightningInvoiceStatus.Expired;
-                case "unknown":
-                    throw new NotSupportedException($"'{status}' can't map to any LightningInvoiceStatus");
-                default:
-                    throw new NotSupportedException($"'{status}' can't map to any LightningInvoiceStatus");
-            }
-        }
-
-        internal static LightningInvoice GetLightningInvoiceObject(ListInvoiceResultResponse invoice, Network network)
+        internal LightningInvoice GetLightningInvoiceObject(ListInvoiceResultResponse invoice, Network network)
         {
             var parsed = BOLT11PaymentRequest.Parse(invoice.Bolt11, network);
 
@@ -308,6 +224,23 @@ namespace BTCPayServer.Lightning.Ptarmigan
 
             return lightningInvoice;
 
+        }
+
+        private static LightningInvoiceStatus ToStatus(string status)
+        {
+            switch (status)
+            {
+                case "used":
+                    return LightningInvoiceStatus.Paid;
+                case "unused":
+                    return LightningInvoiceStatus.Unpaid;
+                case "expire":
+                    return LightningInvoiceStatus.Expired;
+                case "unknown":
+                    throw new NotSupportedException($"'{status}' can't map to any LightningInvoiceStatus");
+                default:
+                    throw new NotSupportedException($"'{status}' can't map to any LightningInvoiceStatus");
+            }
         }
     }
 }
