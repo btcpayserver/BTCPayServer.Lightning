@@ -238,13 +238,12 @@ namespace BTCPayServer.Lightning.LND
 
             try
             {
-                var node = await SwaggerClient.GetNodeInfoAsync(resp.Identity_pubkey, cancellation);
                 var pubkey = new PubKey(resp.Identity_pubkey);
-                var nodeInfos = node.Node.Addresses.Select(addr =>
+                var nodeInfos = resp.Uris.Select(n =>
                 {
-                    var externalHostPort = addr.Addr.Split(':');
-                    return new NodeInfo(pubkey, externalHostPort[0], ConvertInv.ToInt32(externalHostPort[1]));
-                }).ToList();
+                    NodeInfo.TryParse(n, out var ni);
+                    return ni;
+                }).Where(n => n != null).ToList();
                 if (nodeInfos.Count == 0)
                 {
                     nodeInfos.Add(new NodeInfo(pubkey, "127.0.0.1", 9735));

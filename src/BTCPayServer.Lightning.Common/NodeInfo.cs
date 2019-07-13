@@ -17,7 +17,7 @@ namespace BTCPayServer.Lightning
             Host = host;
             NodeId = nodeId;
         }
-        public bool TryParse(string str, out NodeInfo nodeInfo)
+        public static bool TryParse(string str, out NodeInfo nodeInfo)
         {
             if(str == null)
                 throw new ArgumentNullException(nameof(str));
@@ -51,7 +51,7 @@ namespace BTCPayServer.Lightning
             string host = str.Substring(atIndex + 1, portIndex - atIndex - 1);
             if(host.Length == 0)
                 return false;
-            nodeInfo = new NodeInfo(NodeId, host, port);
+            nodeInfo = new NodeInfo(nodeId, host, port);
             return true;
         }
 
