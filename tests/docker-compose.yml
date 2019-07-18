@@ -39,7 +39,6 @@ services:
         bitcoin-datadir=/etc/bitcoin
         bitcoin-rpcconnect=bitcoind
         network=regtest
-        bind-addr=0.0.0.0
         announce-addr=lightningd
         log-level=debug
         dev-broadcast-interval=1000
@@ -67,7 +66,6 @@ services:
         bitcoin-datadir=/etc/bitcoin
         bitcoin-rpcconnect=bitcoind
         network=regtest
-        bind-addr=0.0.0.0
         announce-addr=lightningd_dest
         log-level=debug
         dev-broadcast-interval=1000
