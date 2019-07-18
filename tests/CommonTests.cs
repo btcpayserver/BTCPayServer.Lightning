@@ -16,8 +16,6 @@ namespace BTCPayServer.Lightning.Tests
     public class CommonTests
     {
 
-        private static readonly int CHANNELS_NUMBER = 4;
-
         public CommonTests(ITestOutputHelper helper)
         {
             Docker = !string.IsNullOrEmpty(Environment.GetEnvironmentVariable("IN_DOCKER_CONTAINER"));
@@ -177,6 +175,7 @@ namespace BTCPayServer.Lightning.Tests
         public async Task CanListChannels()
         {
             await EnsureConnectedToDestinations();
+            int channelCount = Tester.GetLightningSenderClients().Count();
 
             foreach (var sender in Tester.GetLightningSenderClients())
             {
@@ -184,14 +183,14 @@ namespace BTCPayServer.Lightning.Tests
                 var senderChannels = await sender.Client.ListChannels();
                 var senderInfo = await sender.Client.GetInfo();
                 Assert.NotEmpty(senderChannels);
-                Assert.Equal(CHANNELS_NUMBER, senderChannels.Where(s => s.IsActive).GroupBy(s => s.RemoteNode).Count());
+                Assert.Equal(channelCount, senderChannels.Where(s => s.IsActive).GroupBy(s => s.RemoteNode).Count());
 
                 foreach (var dest in Tester.GetLightningDestClients())
                 {
                     var destChannels = await dest.Client.ListChannels();
                     var destInfo = await dest.Client.GetInfo();
                     Assert.NotEmpty(destChannels);
-                    Assert.Equal(CHANNELS_NUMBER, destChannels.GroupBy(s => s.RemoteNode).Count());
+                    Assert.Equal(channelCount, destChannels.GroupBy(s => s.RemoteNode).Count());
                     foreach (var c in senderChannels)
                     {
                         Assert.NotNull(c.RemoteNode);
