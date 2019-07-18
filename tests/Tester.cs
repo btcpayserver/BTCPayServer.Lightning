@@ -87,7 +87,6 @@ namespace BTCPayServer.Lightning.Tests
             yield return ("C-Lightning (Client)", CreateCLightningClient());
             yield return ("LND (Client)", CreateLndClient());
             yield return ("Eclair (Client)", CreateEclairClient());
-            yield return ("Ptarmigan (Client)", CreatePtarmiganClient());
         }
 
         public static IEnumerable<(string Name, ILightningClient Client)> GetLightningSenderClients()
@@ -95,7 +94,6 @@ namespace BTCPayServer.Lightning.Tests
             yield return ("C-Lightning (Client)", CreateCLightningClient());
             yield return ("LND (Client)", CreateLndClient());
             yield return ("Eclair (Client)", CreateEclairClient());
-            yield return ("Ptarmigan (Client)", CreatePtarmiganClient());
         }
 
         public static IEnumerable<(string Name, ILightningClient Client)> GetLightningDestClients()
@@ -103,7 +101,6 @@ namespace BTCPayServer.Lightning.Tests
             yield return ("C-Lightning (Client)", CreateCLightningClientDest());
             yield return ("LND (Client)", CreateLndClientDest());
             yield return ("Eclair (Client)", CreateEclairClientDest());
-            yield return ("Ptarmigan (Client)", CreatePtarmiganClientDest());
         }
     }
 }
