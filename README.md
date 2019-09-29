@@ -1,3 +1,5 @@
+[![CircleCI](https://circleci.com/gh/btcpayserver/BTCPayServer.Lightning.svg?style=svg)](https://circleci.com/gh/btcpayserver/BTCPayServer.Lightning)
+
 # A C# library for Lightning Network clients
 
 ## Introduction
