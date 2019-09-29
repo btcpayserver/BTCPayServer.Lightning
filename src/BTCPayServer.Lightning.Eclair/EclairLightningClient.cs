@@ -102,15 +102,19 @@ namespace BTCPayServer.Lightning.Eclair
         public async Task<LightningNodeInformation> GetInfo(CancellationToken cancellation = default(CancellationToken))
         {
             var info = await _eclairClient.GetInfo(cancellation);
-            return new LightningNodeInformation()
-            {
-                NodeInfoList = info.PublicAddresses.Select(s =>
-                {
-                    var split = s.Split(':');
-                    return new NodeInfo(new PubKey(info.NodeId), split[0], int.Parse(split[1]));
-                }).ToList(),
-                BlockHeight = info.BlockHeight
-            };
+			var nodeInfo = new LightningNodeInformation()
+			{
+				BlockHeight = info.BlockHeight
+			};
+			if (info.PublicAddresses != null)
+			{
+				nodeInfo.NodeInfoList.AddRange(info.PublicAddresses.Select(s =>
+				{
+					var split = s.Split(':');
+					return new NodeInfo(new PubKey(info.NodeId), split[0], int.Parse(split[1]));
+				}));
+			}
+			return nodeInfo;
         }
 
         public async Task<PayResponse> Pay(string bolt11, CancellationToken cancellation = default(CancellationToken))

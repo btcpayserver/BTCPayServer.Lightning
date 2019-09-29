@@ -42,23 +42,19 @@ namespace BTCPayServer.Lightning.Ptarmigan
 
         public async Task<LightningNodeInformation> GetInfo(CancellationToken cancellation = default(CancellationToken))
         {
-            var info = await _ptarmiganClient.GetInfo(cancellation);
+			var info = await _ptarmiganClient.GetInfo(cancellation);
+			var nodeInfo = new LightningNodeInformation()
+			{
+				BlockHeight = info.Result.BlockCount ?? 0
+			};
 
-            var ptarmiganIpAddressAndNode = info.Result.AnnounceIp ?? "0.0.0.0";
-
-            string[] ptarmiganIpAddress = ptarmiganIpAddressAndNode.Split(':');
-
-            var pubkey = new PubKey(info.Result.NodeId);
-            var nodeInfos = new List<NodeInfo>
-            {
-                new NodeInfo(pubkey, ptarmiganIpAddress[0], info.Result.NodePort)
-            };
-
-            return new LightningNodeInformation()
-            {
-                NodeInfoList = nodeInfos,
-                BlockHeight = info.Result.BlockCount ?? 0
-            };
+			if (!String.IsNullOrEmpty(info.Result.AnnounceIp))
+			{
+				nodeInfo.NodeInfoList.Add(new NodeInfo(new PubKey(info.Result.NodeId),
+										  info.Result.AnnounceIp.Split(':')[0],
+										  info.Result.NodePort));
+			}
+			return nodeInfo;
         }
 
         public async Task<LightningInvoice> CreateInvoice(LightMoney amount, string description, TimeSpan expiry,
