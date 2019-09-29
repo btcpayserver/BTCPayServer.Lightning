@@ -75,7 +75,6 @@ namespace BTCPayServer.Lightning.Tests
         [Fact]
         public async Task CanGetInfo()
         {
-            await EnsureConnectedToDestinations();
             var blockHeight = Tester.CreateRPC().GetBlockCount();
             foreach(var client in Tester.GetLightningClients())
             {
