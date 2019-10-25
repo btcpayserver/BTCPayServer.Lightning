@@ -130,13 +130,13 @@ namespace BTCPayServer.Lightning.Eclair
                         continue;
                     }
 
-                    switch (status.First().Status)
+                    switch (status.First().Status.type)
                     {
-                        case "SUCCEEDED":
+                        case "sent":
                             return new PayResponse(PayResult.Ok);
-                        case "FAILED":
+                        case "failed":
                             return new PayResponse(PayResult.CouldNotFindRoute);
-                        case "PENDING":
+                        case "pending":
                             await Task.Delay(200, cancellation);
                             break;
                     }
@@ -192,12 +192,7 @@ namespace BTCPayServer.Lightning.Eclair
                 if (e.Message.Contains("insufficient funds"))
                 {
                     return new OpenChannelResponse(OpenChannelResult.CannotAffordFunding);
-                }
-                if (e.Message.Contains("peer sent error: 'Multiple channels unsupported'"))
-                {
-                    return new OpenChannelResponse(OpenChannelResult.AlreadyExists);
-                }
-                
+                }                
 
                 return new OpenChannelResponse(OpenChannelResult.AlreadyExists);
             }

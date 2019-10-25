@@ -10,6 +10,6 @@ namespace BTCPayServer.Lightning.Eclair.Models
         public long AmountMsat { get; set; }
         public long CreatedAt { get; set; }
         public long CompletedAt { get; set; }
-        public string Status { get; set; }
+        public PaymentStatus Status { get; set; }
     }
 }
