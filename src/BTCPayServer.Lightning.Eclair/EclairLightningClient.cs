@@ -192,12 +192,7 @@ namespace BTCPayServer.Lightning.Eclair
                 if (e.Message.Contains("insufficient funds"))
                 {
                     return new OpenChannelResponse(OpenChannelResult.CannotAffordFunding);
-                }
-                if (e.Message.Contains("peer sent error: 'Multiple channels unsupported'"))
-                {
-                    return new OpenChannelResponse(OpenChannelResult.AlreadyExists);
-                }
-                
+                }                
 
                 return new OpenChannelResponse(OpenChannelResult.AlreadyExists);
             }
