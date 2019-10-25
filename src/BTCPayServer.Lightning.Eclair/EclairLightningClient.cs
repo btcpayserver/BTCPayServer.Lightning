@@ -130,13 +130,13 @@ namespace BTCPayServer.Lightning.Eclair
                         continue;
                     }
 
-                    switch (status.First().Status)
+                    switch (status.First().Status.type)
                     {
-                        case "SUCCEEDED":
+                        case "sent":
                             return new PayResponse(PayResult.Ok);
-                        case "FAILED":
+                        case "failed":
                             return new PayResponse(PayResult.CouldNotFindRoute);
-                        case "PENDING":
+                        case "pending":
                             await Task.Delay(200, cancellation);
                             break;
                     }

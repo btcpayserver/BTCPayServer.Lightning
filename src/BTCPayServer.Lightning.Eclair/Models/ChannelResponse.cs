@@ -94,8 +94,14 @@ namespace BTCPayServer.Lightning.Eclair.Models
 
         public partial class PublishableTxs
         {
-            public string CommitTx { get; set; }
+            public CommitTx commitTx { get; set; }
             public List<object> HtlcTxsAndSigs { get; set; }
+        }
+
+        public partial class CommitTx 
+        {
+            public string Txid { get; set; }
+            public string Tx { get; set; }
         }
 
         public partial class LocalParams
