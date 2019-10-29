@@ -52,7 +52,6 @@ namespace BTCPayServer.Lightning.Tests
                     "type=lnd-rest;server=https://lnd_dest:8080;allowinsecure=true",
                     "type=clightning;server=tcp://lightningd:9835",
                     "type=eclair;server=http://eclair:8080;password=bukkake;bitcoin-host=bitcoind:43782;bitcoin-auth=ceiwHEbqWI83:DwubwWsoo3"
-
                 }
                 : new[]
                 {
@@ -62,10 +61,14 @@ namespace BTCPayServer.Lightning.Tests
                     "type=eclair;server=http://127.0.0.1:4570;password=bukkake;bitcoin-host=127.0.0.1:37393;bitcoin-auth=ceiwHEbqWI83:DwubwWsoo3"
 
                 };
-            foreach(var connectionString in connectionStrings)
+
+			var clientTypes = Tester.GetLightningClients().Select(l => l.Client.GetType()).ToArray();
+			foreach (var connectionString in connectionStrings)
             {
                 ILightningClient client = factory.Create(connectionString);
-                var createdInvoice = await client.CreateInvoice(10000, "CanCreateInvoice", TimeSpan.FromMinutes(5));
+				if (!clientTypes.Contains(client.GetType()))
+					continue;
+				var createdInvoice = await client.CreateInvoice(10000, "CanCreateInvoice", TimeSpan.FromMinutes(5));
                 var retrievedInvoice = await client.GetInvoice(createdInvoice.Id);
                 AssertUnpaid(createdInvoice);
                 AssertUnpaid(retrievedInvoice);
