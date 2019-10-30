@@ -312,12 +312,18 @@ namespace BTCPayServer.Lightning
         public uint256 PaymentHash { get; }
         public DateTimeOffset ExpiryDate { get; }
 
-        public static BOLT11PaymentRequest TryParse(string str, out BOLT11PaymentRequest result, Network network)
+        public static bool TryParse(string str, out BOLT11PaymentRequest result, Network network)
         {
             result = null;
-            try { result = Parse(str, network); }
-            catch (FormatException) { throw; }
-            return result;
+            try
+            {
+                result = Parse(str, network);
+                return true;
+            }
+            catch
+            {
+                return false;
+            }
         }
 
         public static BOLT11PaymentRequest Parse(string str, Network network)
