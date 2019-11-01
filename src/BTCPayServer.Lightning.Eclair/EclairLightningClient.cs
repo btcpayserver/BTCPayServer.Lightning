@@ -159,7 +159,7 @@ namespace BTCPayServer.Lightning.Eclair
                     , null,
                     Convert.ToInt64(openChannelRequest.FeeRate.SatoshiPerByte), null, cancellation);
 
-                if (result.Contains("created channel"))
+                if (result.Contains("created channel", StringComparison.OrdinalIgnoreCase))
                 {
                     var channelId = result.Replace("created channel", "").Trim();
                     var channel = await _eclairClient.Channel(channelId, cancellation);
@@ -175,7 +175,7 @@ namespace BTCPayServer.Lightning.Eclair
                     }
                 }
 
-                if (result.Contains("couldn't publish funding tx"))
+                if (result.Contains("couldn't publish funding tx", StringComparison.OrdinalIgnoreCase))
                 {
                     return new OpenChannelResponse(OpenChannelResult.CannotAffordFunding);
                 }
@@ -184,12 +184,12 @@ namespace BTCPayServer.Lightning.Eclair
             }
             catch (Exception e)
             {
-                if (e.Message.Contains("not connected") || e.Message.Contains("no connection to peer"))
+                if (e.Message.Contains("not connected", StringComparison.OrdinalIgnoreCase) || e.Message.Contains("no connection to peer", StringComparison.OrdinalIgnoreCase))
                 {
                     return new OpenChannelResponse(OpenChannelResult.PeerNotConnected);
                 }
 
-                if (e.Message.Contains("insufficient funds"))
+                if (e.Message.Contains("insufficient funds", StringComparison.OrdinalIgnoreCase))
                 {
                     return new OpenChannelResponse(OpenChannelResult.CannotAffordFunding);
                 }                

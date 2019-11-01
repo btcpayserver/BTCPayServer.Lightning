@@ -338,19 +338,7 @@ namespace BTCPayServer.Lightning.Eclair
                     Error = JsonConvert.DeserializeObject<EclairApiError>(rawJson, jsonSerializer)
                 };
             }
-
-            try
-            {
-
-                return JsonConvert.DeserializeObject<TResponse>(rawJson, jsonSerializer);
-            }
-            catch (Exception e)
-            {
-                
-                Console.WriteLine(e.Message);
-                Console.WriteLine(rawJson);
-                throw;
-            }
+            return JsonConvert.DeserializeObject<TResponse>(rawJson, jsonSerializer);
         }
         
 

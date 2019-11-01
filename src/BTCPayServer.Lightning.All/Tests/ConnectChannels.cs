@@ -54,7 +54,15 @@ namespace BTCPayServer.Lightning.Tests
                     if(openChannel.Result == OpenChannelResult.CannotAffordFunding)
                     {
                         var address = await sender.GetDepositAddress();
-                        await cashCow.SendToAddressAsync(address, Money.Coins(1.0m),null,null,true);
+						try
+						{
+							await cashCow.SendToAddressAsync(address, Money.Coins(1.0m), null, null, true);
+						}
+						catch (RPCException ex) when (ex.RPCCode == RPCErrorCode.RPC_WALLET_INSUFFICIENT_FUNDS || ex.RPCCode == RPCErrorCode.RPC_WALLET_ERROR)
+						{
+							await cashCow.GenerateAsync(1);
+							await cashCow.SendToAddressAsync(address, Money.Coins(1.0m), null, null, true);
+						}
                         await cashCow.GenerateAsync(10);
                         await WaitLNSynched(cashCow, sender);
                         await WaitLNSynched(cashCow, dest);
