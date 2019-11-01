@@ -40,35 +40,34 @@ namespace BTCPayServer.Lightning.Eclair
             CancellationToken cancellation = default(CancellationToken))
         {
             var result = await _eclairClient.GetInvoice(invoiceId, cancellation);
-            GetReceivedInfoResponse info;
+            GetReceivedInfoResponse info = null;
             try
             {
                 info = await _eclairClient.GetReceivedInfo(invoiceId, null, cancellation);
             }
             catch (EclairClient.EclairApiException)
             {
-                info = new GetReceivedInfoResponse()
-                {
-                    AmountMsat = 0,
-                    ReceivedAt = 0,
-                    PaymentHash = invoiceId
-                };
             }
-
+			
             var parsed = BOLT11PaymentRequest.Parse(result.Serialized, _network);
-            return new LightningInvoice()
+            var lnInvoice = new LightningInvoice()
             {
                 Id = result.PaymentHash,
                 Amount = parsed.MinimumAmount,
                 ExpiresAt = parsed.ExpiryDate,
-                BOLT11 = result.Serialized,
-                AmountReceived = info.AmountMsat,
-                Status = info.AmountMsat >= parsed.MinimumAmount ? LightningInvoiceStatus.Paid :
-                    DateTime.Now >= parsed.ExpiryDate ? LightningInvoiceStatus.Expired : LightningInvoiceStatus.Unpaid,
-                PaidAt = info.ReceivedAt == 0
-                    ? (DateTimeOffset?) null
-                    : DateTimeOffset.FromUnixTimeMilliseconds(info.ReceivedAt)
+                BOLT11 = result.Serialized
             };
+			if (DateTimeOffset.UtcNow >= parsed.ExpiryDate)
+			{
+				lnInvoice.Status = LightningInvoiceStatus.Expired;
+			}
+			if (info != null && info.Status.Type == "received")
+			{
+				lnInvoice.AmountReceived = info.Status.Amount;
+				lnInvoice.Status = info.Status.Amount >= parsed.MinimumAmount ? LightningInvoiceStatus.Paid : LightningInvoiceStatus.Unpaid;
+				lnInvoice.PaidAt = info.Status.ReceivedAt;
+			}
+			return lnInvoice;
         }
 
         public async Task<LightningInvoice> CreateInvoice(LightMoney amount, string description, TimeSpan expiry,
