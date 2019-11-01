@@ -16,8 +16,7 @@ namespace BTCPayServer.Lightning
         Micro = 100000,
         Satoshi = 1000,
         Nano = 100,
-        MilliSatoshi = 1,
-        Pico = 1
+        MilliSatoshi = 1
     }
 
     public class LightMoney : IComparable, IComparable<LightMoney>, IEquatable<LightMoney>

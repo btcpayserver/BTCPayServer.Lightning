@@ -101,8 +101,7 @@ namespace BTCPayServer.Lightning
                         unit = LightMoneyUnit.Nano;
                         break;
                     case 'p':
-                        unit = LightMoneyUnit.Pico;
-                        break;
+						throw new NotSupportedException("Pico BTC denomination is not supported");
                     default:
                         if (Array.IndexOf(digits, Prefix[Prefix.Length - 1]) == -1)
                             throw new FormatException("Invalid BOLT11: invalid amount multiplier");
