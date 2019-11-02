@@ -338,7 +338,11 @@ namespace BTCPayServer.Lightning.Tests
             Assert.Equal(LightMoney.FromUnit(2m, LightMoneyUnit.MilliSatoshi), p.Routes[0].Hops[1].FeeBase);
             Assert.Equal(30m / 1_000_000m, p.Routes[0].Hops[1].FeeProportional);
             Assert.Equal(4, p.Routes[0].Hops[1].CLTVExpiryDelay);
-        }
+
+			p = BOLT11PaymentRequest.Parse("lnbc9678785340p1pwmna7lpp5gc3xfm08u9qy06djf8dfflhugl6p7lgza6dsjxq454gxhj9t7a0sd8dgfkx7cmtwd68yetpd5s9xar0wfjn5gpc8qhrsdfq24f5ggrxdaezqsnvda3kkum5wfjkzmfqf3jkgem9wgsyuctwdus9xgrcyqcjcgpzgfskx6eqf9hzqnteypzxz7fzypfhg6trddjhygrcyqezcgpzfysywmm5ypxxjemgw3hxjmn8yptk7untd9hxwg3q2d6xjcmtv4ezq7pqxgsxzmnyyqcjqmt0wfjjq6t5v4khxxqyjw5qcqp2rzjq0gxwkzc8w6323m55m4jyxcjwmy7stt9hwkwe2qxmy8zpsgg7jcuwz87fcqqeuqqqyqqqqlgqqqqn3qq9qs4x9qlmd57lq7wwr23n3a6pkayy3jpfucyptlncs2maswe3dnnjy3ce2cgrvykmxlfpvn6ptqfqz4df5uaulvd4hjkckuqxrqqkz8jgphputwh", Network.Main);
+			Assert.Equal("967878534", p.MinimumAmount.MilliSatoshi.ToString());
+			Assert.Equal("0.00967878534", p.MinimumAmount.ToString());
+		}
 
         [Fact]
         public void CanUseLightMoney()
