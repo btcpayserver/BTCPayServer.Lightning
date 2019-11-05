@@ -157,7 +157,7 @@ services:
   eclair:
     restart: unless-stopped
     stop_signal: SIGKILL
-    image: acinq/eclair:v0.3.2
+    image: acinq/eclair:latest
     environment:
       JAVA_OPTS: |
         -Xmx256m
@@ -197,7 +197,7 @@ services:
   eclair_dest:
     restart: unless-stopped
     stop_signal: SIGKILL
-    image: acinq/eclair:v0.3.2
+    image: acinq/eclair:latest
     environment:
       JAVA_OPTS: |
         -Xmx256m

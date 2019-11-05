@@ -74,16 +74,7 @@ namespace BTCPayServer.Lightning
             }
             else if (connectionString.ConnectionType == LightningConnectionType.Eclair)
             {
-                var rpcClient =
-                    !string.IsNullOrEmpty(connectionString.BitcoinHost) &&
-                    !string.IsNullOrEmpty(connectionString.BitcoinAuth)
-                        ? new RPCClient(connectionString.BitcoinAuth, connectionString.BitcoinHost, Network)
-                        {
-                            HttpClient = HttpClient
-                        }
-                        : null;
-                return new EclairLightningClient(connectionString.BaseUri, connectionString.Password, Network, rpcClient
-                    , HttpClient);
+                return new EclairLightningClient(connectionString.BaseUri, connectionString.Password, Network, HttpClient);
             }
             else if (connectionString.ConnectionType == LightningConnectionType.Ptarmigan)
             {

@@ -56,15 +56,14 @@ namespace BTCPayServer.Lightning.Tests
 					"type=charge;server=http://api-token:foiewnccewuify@charge:9112",
 					"type=lnd-rest;server=https://lnd_dest:8080;allowinsecure=true",
 					"type=clightning;server=tcp://lightningd:9835",
-					"type=eclair;server=http://eclair:8080;password=bukkake;bitcoin-host=bitcoind:43782;bitcoin-auth=ceiwHEbqWI83:DwubwWsoo3"
+					"type=eclair;server=http://eclair:8080;password=bukkake"
 				}
 				: new[]
 				{
 					"type=charge;server=http://api-token:foiewnccewuify@127.0.0.1:37462",
 					"type=lnd-rest;server=https://127.0.0.1:42802;allowinsecure=true",
 					"type=clightning;server=tcp://127.0.0.1:48532",
-					"type=eclair;server=http://127.0.0.1:4570;password=bukkake;bitcoin-host=127.0.0.1:37393;bitcoin-auth=ceiwHEbqWI83:DwubwWsoo3"
-
+					"type=eclair;server=http://127.0.0.1:4570;password=bukkake"
 				};
 
 			var clientTypes = Tester.GetLightningClients().Select(l => l.Client.GetType()).ToArray();

@@ -18,11 +18,9 @@ namespace BTCPayServer.Lightning.Eclair
 		private readonly Uri _address;
 		private readonly string _password;
 		private readonly Network _network;
-		private readonly RPCClient _rpcClient;
 		private readonly EclairClient _eclairClient;
 
-		public EclairLightningClient(Uri address, string password, Network network, RPCClient rpcClient,
-			HttpClient httpClient = null)
+		public EclairLightningClient(Uri address, string password, Network network, HttpClient httpClient = null)
 		{
 			if (address == null)
 				throw new ArgumentNullException(nameof(address));
@@ -31,7 +29,6 @@ namespace BTCPayServer.Lightning.Eclair
 			_address = address;
 			_password = password;
 			_network = network;
-			_rpcClient = rpcClient;
 			_eclairClient = new EclairClient(address, password, network, httpClient);
 		}
 
@@ -191,13 +188,9 @@ namespace BTCPayServer.Lightning.Eclair
 			}
 		}
 
-		public async Task<BitcoinAddress> GetDepositAddress()
+		public Task<BitcoinAddress> GetDepositAddress()
 		{
-			if (_rpcClient == null)
-			{
-				throw new NotSupportedException("The bitcoind connection details were not provided.");
-			}
-			return await _rpcClient.GetNewAddressAsync();
+			return _eclairClient.GetNewAddress();
 		}
 
 		public async Task ConnectTo(NodeInfo nodeInfo)

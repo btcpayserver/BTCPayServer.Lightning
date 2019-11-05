@@ -52,12 +52,12 @@ namespace BTCPayServer.Lightning.Tests
 
         public static EclairLightningClient CreateEclairClient()
         {
-            return new EclairLightningClient(new Uri(CommonTests.Docker? "http://eclair:8080": "http://127.0.0.1:4570"), "bukkake", Network, CreateRPC());
+            return new EclairLightningClient(new Uri(CommonTests.Docker? "http://eclair:8080": "http://127.0.0.1:4570"), "bukkake", Network);
         }
 
         public static EclairLightningClient CreateEclairClientDest()
         {
-            return new EclairLightningClient(new Uri(CommonTests.Docker? "http://eclair_dest:8080": "http://127.0.0.1:4571"), "bukkake", Network, CreateRPC());
+            return new EclairLightningClient(new Uri(CommonTests.Docker? "http://eclair_dest:8080": "http://127.0.0.1:4571"), "bukkake", Network);
         }
 
         public static PtarmiganLightningClient CreatePtarmiganClient()
