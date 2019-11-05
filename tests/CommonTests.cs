@@ -15,7 +15,11 @@ namespace BTCPayServer.Lightning.Tests
 {
 	public class CommonTests
 	{
-
+#if DEBUG
+		public const int Timeout = 20 * 60 * 1000;
+#else
+		public const int Timeout = 2 * 60 * 1000;
+#endif
 		public CommonTests(ITestOutputHelper helper)
 		{
 			Docker = !string.IsNullOrEmpty(Environment.GetEnvironmentVariable("IN_DOCKER_CONTAINER"));
@@ -25,7 +29,7 @@ namespace BTCPayServer.Lightning.Tests
 
 		public static bool Docker { get; set; }
 
-		[Fact]
+		[Fact(Timeout = Timeout)]
 		public async Task CanCreateInvoice()
 		{
 			await WaitServersAreUp();
@@ -76,7 +80,7 @@ namespace BTCPayServer.Lightning.Tests
 			}
 		}
 
-		[Fact]
+		[Fact(Timeout = Timeout)]
 		public async Task CanGetInfo()
 		{
 			await WaitServersAreUp();
@@ -93,45 +97,54 @@ namespace BTCPayServer.Lightning.Tests
 
 		private async Task WaitServersAreUp()
 		{
-			foreach (var client in Tester.GetLightningClients())
+			var clients = Tester.GetLightningClients().Select(c => WaitServersAreUp(c.Name, c.Client)).ToArray();
+			await Task.WhenAll(clients);
+		}
+
+		private async Task WaitServersAreUp(string name, ILightningClient client)
+		{
+			await Tester.CreateRPC().GenerateAsync(1);
+			Exception realException = null;
+			using (var cts = new CancellationTokenSource(TimeSpan.FromSeconds(Timeout - 5)))
 			{
-				using (var cts = new CancellationTokenSource(TimeSpan.FromSeconds(40)))
+			retry:
+				try
 				{
-				retry:
-					try
-					{
-						await client.Client.GetInfo(cts.Token);
-					}
-					catch when (!cts.IsCancellationRequested)
-					{
+					if (realException != null)
 						await Task.Delay(1000, cts.Token);
-						goto retry;
-					}
+					await client.GetInfo(cts.Token);
+					Logs.Tester.LogInformation($"{name}: Server is up");
+				}
+				catch (Exception ex) when (!cts.IsCancellationRequested)
+				{
+					realException = ex;
+					goto retry;
+				}
+				catch (Exception)
+				{
+					Logs.Tester.LogInformation(realException.ToString());
+					Assert.False(true, $"{name}: The server could not be started");
 				}
 			}
 		}
 
-		[Fact]
+		[Fact(Timeout = Timeout)]
 		public async Task CanPayInvoiceAndReceive()
 		{
-			await EnsureConnectedToDestinations();
-
-			foreach (var client in Tester.GetLightningSenderClients())
+			foreach (var test in Tester.GetTestedPairs())
 			{
-				foreach (var dest in Tester.GetLightningDestClients())
+				await EnsureConnectedToDestinations(test);
+				Logs.Tester.LogInformation($"{test.Name}: {nameof(CanPayInvoiceAndReceive)}");
+				var invoice = await test.Merchant.CreateInvoice(10000, "CanPayInvoiceAndReceive", TimeSpan.FromSeconds(5000));
+				using (var listener = await test.Merchant.Listen())
 				{
-					Logs.Tester.LogInformation($"{client.Name} => {dest.Name}: {nameof(CanPayInvoiceAndReceive)}");
-					var invoice = await dest.Client.CreateInvoice(10000, "CanPayInvoiceAndReceive", TimeSpan.FromSeconds(5000));
-					using (var listener = await dest.Client.Listen())
-					{
-						var waiting = listener.WaitInvoice(default);
-						var paidReply = await client.Client.Pay(invoice.BOLT11);
-						Assert.Equal(PayResult.Ok, paidReply.Result);
-						var paidInvoice = await waiting;
-						Assert.Equal(LightningInvoiceStatus.Paid, paidInvoice.Status);
-						var retrievedInvoice = await dest.Client.GetInvoice(invoice.Id);
-						Assert.Equal(LightningInvoiceStatus.Paid, retrievedInvoice.Status);
-					}
+					var waiting = listener.WaitInvoice(default);
+					var paidReply = await test.Customer.Pay(invoice.BOLT11);
+					Assert.Equal(PayResult.Ok, paidReply.Result);
+					var paidInvoice = await waiting;
+					Assert.Equal(LightningInvoiceStatus.Paid, paidInvoice.Status);
+					var retrievedInvoice = await test.Merchant.GetInvoice(invoice.Id);
+					Assert.Equal(LightningInvoiceStatus.Paid, retrievedInvoice.Status);
 				}
 			}
 		}
@@ -139,49 +152,47 @@ namespace BTCPayServer.Lightning.Tests
 		[Fact]
 		public async Task CanWaitListenInvoice()
 		{
-			await EnsureConnectedToDestinations();
-
-			foreach (var src in Tester.GetLightningSenderClients())
+			foreach (var test in Tester.GetTestedPairs())
 			{
-				foreach (var dest in Tester.GetLightningDestClients())
-				{
-					Logs.Tester.LogInformation($"{src.Name} => {dest.Name}: {nameof(CanWaitListenInvoice)}");
-					var merchantInvoice = await dest.Client.CreateInvoice(10000, "Hello world", TimeSpan.FromSeconds(3600));
-					Logs.Tester.LogInformation($"{src.Name} => {dest.Name}: Created invoice {merchantInvoice.Id}");
-					var merchantInvoice2 = await dest.Client.CreateInvoice(10000, "Hello world", TimeSpan.FromSeconds(3600));
-					Logs.Tester.LogInformation($"{src.Name} => {dest.Name}: Created invoice {merchantInvoice2.Id}");
+				await EnsureConnectedToDestinations(test);
+				var src = test.Customer;
+				var dest = test.Merchant;
+				Logs.Tester.LogInformation($"{test.Name}: {nameof(CanWaitListenInvoice)}");
+				var merchantInvoice = await dest.CreateInvoice(10000, "Hello world", TimeSpan.FromSeconds(3600));
+				Logs.Tester.LogInformation($"{test.Name}: Created invoice {merchantInvoice.Id}");
+				var merchantInvoice2 = await dest.CreateInvoice(10000, "Hello world", TimeSpan.FromSeconds(3600));
+				Logs.Tester.LogInformation($"{test.Name}: Created invoice {merchantInvoice2.Id}");
 
-					var waitToken = default(CancellationToken);
-					var listener = await dest.Client.Listen(waitToken);
-					var waitTask = listener.WaitInvoice(waitToken);
+				var waitToken = default(CancellationToken);
+				var listener = await dest.Listen(waitToken);
+				var waitTask = listener.WaitInvoice(waitToken);
 
-					var payResponse = await src.Client.Pay(merchantInvoice.BOLT11);
-					Logs.Tester.LogInformation($"{src.Name} => {dest.Name}: Paid invoice {merchantInvoice.Id}");
+				var payResponse = await src.Pay(merchantInvoice.BOLT11);
+				Logs.Tester.LogInformation($"{test.Name}: Paid invoice {merchantInvoice.Id}");
 
-					var invoice = await waitTask;
-					Logs.Tester.LogInformation($"{src.Name} => {dest.Name}: Notification received for {invoice.Id}");
-					Assert.Equal(invoice.Id, merchantInvoice.Id);
-					Assert.True(invoice.PaidAt.HasValue);
+				var invoice = await waitTask;
+				Logs.Tester.LogInformation($"{test.Name}: Notification received for {invoice.Id}");
+				Assert.Equal(invoice.Id, merchantInvoice.Id);
+				Assert.True(invoice.PaidAt.HasValue);
 
-					var waitTask2 = listener.WaitInvoice(waitToken);
+				var waitTask2 = listener.WaitInvoice(waitToken);
 
-					payResponse = await src.Client.Pay(merchantInvoice2.BOLT11);
-					Logs.Tester.LogInformation($"{src.Name} => {dest.Name}: Paid invoice {merchantInvoice2.Id}");
+				payResponse = await src.Pay(merchantInvoice2.BOLT11);
+				Logs.Tester.LogInformation($"{test.Name}: Paid invoice {merchantInvoice2.Id}");
 
-					invoice = await waitTask2;
-					Logs.Tester.LogInformation($"{src.Name} => {dest.Name}: Notification received for {invoice.Id}");
+				invoice = await waitTask2;
+				Logs.Tester.LogInformation($"{test.Name}: Notification received for {invoice.Id}");
 
-					Assert.True(invoice.PaidAt.HasValue);
+				Assert.True(invoice.PaidAt.HasValue);
 
-					Assert.Equal(invoice.Amount, invoice.AmountReceived);
-					Assert.Equal(invoice.Id, merchantInvoice2.Id);
-					Assert.Equal(new LightMoney(10000, LightMoneyUnit.MilliSatoshi), invoice.Amount);
-					var waitTask3 = listener.WaitInvoice(waitToken);
-					await Task.Delay(100);
-					listener.Dispose();
-					Logs.Tester.LogInformation($"{src.Name} => {dest.Name}: Listener disposed, should throw exception");
-					Assert.Throws<OperationCanceledException>(() => waitTask3.GetAwaiter().GetResult());
-				}
+				Assert.Equal(invoice.Amount, invoice.AmountReceived);
+				Assert.Equal(invoice.Id, merchantInvoice2.Id);
+				Assert.Equal(new LightMoney(10000, LightMoneyUnit.MilliSatoshi), invoice.Amount);
+				var waitTask3 = listener.WaitInvoice(waitToken);
+				await Task.Delay(100);
+				listener.Dispose();
+				Logs.Tester.LogInformation($"{test.Name}: Listener disposed, should throw exception");
+				Assert.Throws<OperationCanceledException>(() => waitTask3.GetAwaiter().GetResult());
 			}
 		}
 
@@ -195,39 +206,32 @@ namespace BTCPayServer.Lightning.Tests
 			Assert.Equal(v, LightMoney.MilliSatoshis((long)(maxSupply * (decimal)Math.Pow(10, 11))));
 		}
 
-		[Fact]
+		[Fact(Timeout = Timeout)]
 		public async Task CanListChannels()
 		{
-			await EnsureConnectedToDestinations();
-			int channelCount = Tester.GetLightningSenderClients().Count();
-
-			foreach (var sender in Tester.GetLightningSenderClients())
+			foreach (var test in Tester.GetTestedPairs())
 			{
-				Logs.Tester.LogInformation($"{sender.Name}: {nameof(CanListChannels)}");
-				var senderChannels = await sender.Client.ListChannels();
-				var senderInfo = await sender.Client.GetInfo();
+				await EnsureConnectedToDestinations(test);
+				var senderChannels = await test.Customer.ListChannels();
+				var senderInfo = await test.Customer.GetInfo();
 				Assert.NotEmpty(senderChannels);
-				Assert.Equal(channelCount, senderChannels.Where(s => s.IsActive).GroupBy(s => s.RemoteNode).Count());
+				Assert.Single(senderChannels.Where(s => s.IsActive));
 
-				foreach (var dest in Tester.GetLightningDestClients())
+				var destChannels = await test.Merchant.ListChannels();
+				var destInfo = await test.Merchant.GetInfo();
+				Assert.NotEmpty(destChannels);
+				Assert.Single(destChannels.GroupBy(s => s.RemoteNode));
+				foreach (var c in senderChannels)
 				{
-					var destChannels = await dest.Client.ListChannels();
-					var destInfo = await dest.Client.GetInfo();
-					Assert.NotEmpty(destChannels);
-					Assert.Equal(channelCount, destChannels.GroupBy(s => s.RemoteNode).Count());
-					foreach (var c in senderChannels)
-					{
-						Assert.NotNull(c.RemoteNode);
-						Assert.True(c.IsPublic);
-						Assert.True(c.IsActive);
-						Assert.NotNull(c.Capacity);
-						Assert.NotNull(c.LocalBalance);
-						Assert.NotNull(c.ChannelPoint);
-					}
-
-					Assert.Contains(senderChannels, c => c.RemoteNode.Equals(destInfo.NodeInfo.NodeId));
-					Assert.Contains(destChannels, c => c.RemoteNode.Equals(senderInfo.NodeInfo.NodeId));
+					Assert.NotNull(c.RemoteNode);
+					Assert.True(c.IsPublic);
+					Assert.True(c.IsActive);
+					Assert.NotNull(c.Capacity);
+					Assert.NotNull(c.LocalBalance);
+					Assert.NotNull(c.ChannelPoint);
 				}
+				Assert.Contains(senderChannels, c => c.RemoteNode.Equals(destInfo.NodeInfo.NodeId));
+				Assert.Contains(destChannels, c => c.RemoteNode.Equals(senderInfo.NodeInfo.NodeId));
 			}
 		}
 
@@ -240,10 +244,12 @@ namespace BTCPayServer.Lightning.Tests
 			Assert.Equal(LightningInvoiceStatus.Unpaid, invoice.Status);
 		}
 
-		private async Task EnsureConnectedToDestinations()
+		private async Task EnsureConnectedToDestinations((string Name, ILightningClient Customer, ILightningClient Merchant) test)
 		{
-			await WaitServersAreUp();
-			await ConnectChannels.ConnectAll(Tester.CreateRPC(), Tester.GetLightningSenderClients().Select(c => c.Client).ToArray(), Tester.GetLightningDestClients().Select(c => c.Client).ToArray());
+			await Task.WhenAll(WaitServersAreUp($"{test.Name} (Customer)", test.Customer), WaitServersAreUp($"{test.Name} (Merchant)", test.Merchant));
+			Tests.Logs.Tester.LogInformation($"{test.Name}: Connecting channels...");
+			await ConnectChannels.ConnectAll(Tester.CreateRPC(), new[] { test.Customer }, new[] { test.Merchant });
+			Tests.Logs.Tester.LogInformation($"{test.Name}: Channels connected");
 		}
 
 		[Fact]

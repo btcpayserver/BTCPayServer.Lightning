@@ -1,4 +1,6 @@
 using System.Collections.Generic;
+using NBitcoin;
+using Newtonsoft.Json;
 using Newtonsoft.Json.Linq;
 
 namespace BTCPayServer.Lightning.Eclair.Models
@@ -14,10 +16,18 @@ namespace BTCPayServer.Lightning.Eclair.Models
         public partial class ChannelData
         {
             public Commitments Commitments { get; set; }
-            public string FundingTx { get; set; }
+            public FundingTx FundingTx { get; set; }
             public long WaitingSince { get; set; }
             public LastSent LastSent { get; set; }
         }
+
+		public class FundingTx
+		{
+			[JsonProperty("txid")]
+			public uint256 TxId { get; set; }
+			[JsonProperty("tx")]
+			public Transaction Transaction { get; set; }
+		}
 
         public partial class Commitments
         {

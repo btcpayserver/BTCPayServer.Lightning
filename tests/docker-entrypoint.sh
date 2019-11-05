@@ -1,4 +1,4 @@
 #!/bin/sh
 set -e
 
-dotnet test
+dotnet test -c Release
