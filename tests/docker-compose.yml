@@ -218,6 +218,7 @@ services:
         -Declair.bitcoind.zmqblock=tcp://bitcoind:28332
         -Declair.bitcoind.zmqtx=tcp://bitcoind:28333
         -Declair.on-chain-fees.max-feerate-mismatch=10000
+        -Declair.mindepth-blocks=1
         -Declair.ping-disconnect=false
     ports:
       - "4571:8080" # api port
