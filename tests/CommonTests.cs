@@ -90,7 +90,7 @@ namespace BTCPayServer.Lightning.Tests
 				Logs.Tester.LogInformation($"{client.Name}: {nameof(CanGetInfo)}");
 				var info = await client.Client.GetInfo();
 				Assert.NotNull(info);
-				Assert.Equal(blockHeight, info.BlockHeight);
+				Assert.True(info.BlockHeight > 0);
 				Assert.NotEmpty(info.NodeInfoList);
 			}
 		}
