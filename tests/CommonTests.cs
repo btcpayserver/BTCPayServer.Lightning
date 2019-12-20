@@ -148,7 +148,7 @@ namespace BTCPayServer.Lightning.Tests
 			}
 		}
 
-		[Fact]
+		[Fact(Timeout = Timeout)]
 		public async Task CanWaitListenInvoice()
 		{
 			foreach (var test in Tester.GetTestedPairs())
