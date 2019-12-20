@@ -1,4 +1,4 @@
 #!/bin/sh
 set -e
 
-dotnet test -c Release
+dotnet test -c Release -v n < /dev/null
