@@ -173,6 +173,7 @@ namespace BTCPayServer.Lightning.Tests
 				Logs.Tester.LogInformation($"{test.Name}: Notification received for {invoice.Id}");
 				Assert.Equal(invoice.Id, merchantInvoice.Id);
 				Assert.True(invoice.PaidAt.HasValue);
+				AssertEqual(new LightMoney(10000, LightMoneyUnit.MilliSatoshi), invoice.AmountReceived);
 
 				var waitTask2 = listener.WaitInvoice(waitToken);
 
@@ -184,15 +185,20 @@ namespace BTCPayServer.Lightning.Tests
 
 				Assert.True(invoice.PaidAt.HasValue);
 
-				Assert.Equal(invoice.Amount, invoice.AmountReceived);
+				AssertEqual(invoice.Amount, invoice.AmountReceived);
 				Assert.Equal(invoice.Id, merchantInvoice2.Id);
-				Assert.Equal(new LightMoney(10000, LightMoneyUnit.MilliSatoshi), invoice.Amount);
+				AssertEqual(new LightMoney(10000, LightMoneyUnit.MilliSatoshi), invoice.AmountReceived);
 				var waitTask3 = listener.WaitInvoice(waitToken);
 				await Task.Delay(100);
 				listener.Dispose();
 				Logs.Tester.LogInformation($"{test.Name}: Listener disposed, should throw exception");
 				Assert.Throws<OperationCanceledException>(() => waitTask3.GetAwaiter().GetResult());
 			}
+		}
+
+		private void AssertEqual(LightMoney a, LightMoney b)
+		{
+			Assert.Equal(a.ToDecimal(LightMoneyUnit.Satoshi), a.ToDecimal(LightMoneyUnit.Satoshi), 2);
 		}
 
 		[Fact]
