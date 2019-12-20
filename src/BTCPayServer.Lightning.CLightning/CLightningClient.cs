@@ -354,7 +354,9 @@ namespace BTCPayServer.Lightning.CLightning
 			{
 				return new OpenChannelResponse(OpenChannelResult.CannotAffordFunding);
 			}
-			catch (LightningRPCException ex) when (ex.Message == "Peer not connected" || ex.Message == "Unknown peer")
+			catch (LightningRPCException ex) when (ex.Message == "Peer not connected" ||
+												   ex.Message == "Unknown peer" ||
+												   ex.Message == "Unable to connect, no address known for peer")
 			{
 				return new OpenChannelResponse(OpenChannelResult.PeerNotConnected);
 			}
