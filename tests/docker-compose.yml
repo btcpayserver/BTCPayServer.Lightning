@@ -39,7 +39,6 @@ services:
         bitcoin-datadir=/etc/bitcoin
         bitcoin-rpcconnect=bitcoind
         network=regtest
-        rpc-file=/root/.lightning/lightning-rpc
         announce-addr=lightningd
         log-level=debug
         dev-fast-gossip
@@ -67,7 +66,6 @@ services:
         bitcoin-datadir=/etc/bitcoin
         bitcoin-rpcconnect=bitcoind
         network=regtest
-        rpc-file=/root/.lightning/lightning-rpc
         announce-addr=lightningd_dest
         log-level=debug
         dev-fast-gossip

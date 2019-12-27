@@ -154,6 +154,7 @@ namespace BTCPayServer.Lightning.Tests
 			foreach (var test in Tester.GetTestedPairs())
 			{
 				await EnsureConnectedToDestinations(test);
+
 				var src = test.Customer;
 				var dest = test.Merchant;
 				Logs.Tester.LogInformation($"{test.Name}: {nameof(CanWaitListenInvoice)}");
@@ -161,7 +162,6 @@ namespace BTCPayServer.Lightning.Tests
 				Logs.Tester.LogInformation($"{test.Name}: Created invoice {merchantInvoice.Id}");
 				var merchantInvoice2 = await dest.CreateInvoice(10000, "Hello world", TimeSpan.FromSeconds(3600));
 				Logs.Tester.LogInformation($"{test.Name}: Created invoice {merchantInvoice2.Id}");
-
 				var waitToken = default(CancellationToken);
 				var listener = await dest.Listen(waitToken);
 				var waitTask = listener.WaitInvoice(waitToken);
@@ -179,10 +179,8 @@ namespace BTCPayServer.Lightning.Tests
 
 				payResponse = await src.Pay(merchantInvoice2.BOLT11);
 				Logs.Tester.LogInformation($"{test.Name}: Paid invoice {merchantInvoice2.Id}");
-
 				invoice = await waitTask2;
 				Logs.Tester.LogInformation($"{test.Name}: Notification received for {invoice.Id}");
-
 				Assert.True(invoice.PaidAt.HasValue);
 
 				AssertEqual(invoice.Amount, invoice.AmountReceived);
