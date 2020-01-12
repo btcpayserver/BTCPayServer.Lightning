@@ -5,6 +5,7 @@ using System;
 using System.Collections.Generic;
 using System.Text;
 using System.Threading.Tasks;
+using System.Threading;
 
 namespace BTCPayServer.Lightning.Tests
 {
@@ -42,7 +43,7 @@ namespace BTCPayServer.Lightning.Tests
             var destInvoice = await dest.CreateInvoice(1000, "EnsureConnectedToDestination", TimeSpan.FromSeconds(5000));
             while(true)
             {
-                var result = await sender.Pay(destInvoice.BOLT11);
+                var result = await Pay(sender, destInvoice.BOLT11);
                 if(result.Result == PayResult.CouldNotFindRoute)
                 {
                     var openChannel = await sender.OpenChannel(new OpenChannelRequest()
@@ -85,6 +86,24 @@ namespace BTCPayServer.Lightning.Tests
                 else if(result.Result == PayResult.Ok)
                 {
                     break;
+                }
+            }
+        }
+
+        private static async Task<PayResponse> Pay(ILightningClient sender, string payreq)
+        {
+            using (var cts = new CancellationTokenSource(5000))
+            {
+            retry:
+                try
+                {
+                    return await sender.Pay(payreq);
+                }
+                catch (CLightning.LightningRPCException ex) when (ex.Message.Contains("WIRE_INCORRECT_OR_UNKNOWN_PAYMENT_DETAILS") &&
+                                                                  !cts.IsCancellationRequested)
+                {
+                    await Task.Delay(500);
+                    goto retry;
                 }
             }
         }
