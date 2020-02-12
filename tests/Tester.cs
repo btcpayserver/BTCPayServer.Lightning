@@ -91,7 +91,7 @@ namespace BTCPayServer.Lightning.Tests
 		{
 			yield return ("C-Lightning", CreateCLightningClient(), CreateCLightningClientDest());
 			yield return ("LND", CreateLndClient(), CreateLndClientDest());
-			//yield return ("Eclair", CreateEclairClient(), CreateEclairClientDest());
+			yield return ("Eclair", CreateEclairClient(), CreateEclairClientDest());
 		}
 	}
 }

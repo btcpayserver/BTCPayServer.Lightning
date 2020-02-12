@@ -16,6 +16,7 @@ services:
         whitelist=0.0.0.0/0
         zmqpubrawblock=tcp://0.0.0.0:28332
         zmqpubrawtx=tcp://0.0.0.0:28333
+        txindex=1
         deprecatedrpc=signrawtransaction
     ports: 
       - "37393:43782"
@@ -160,7 +161,7 @@ services:
   eclair:
     restart: unless-stopped
     stop_signal: SIGKILL
-    image: acinq/eclair:btcpay
+    image: acinq/eclair:v0.3.3
     environment:
       JAVA_OPTS: |
         -Xmx256m
@@ -200,7 +201,7 @@ services:
   eclair_dest:
     restart: unless-stopped
     stop_signal: SIGKILL
-    image: acinq/eclair:btcpay
+    image: acinq/eclair:v0.3.3
     environment:
       JAVA_OPTS: |
         -Xmx256m
