@@ -139,12 +139,12 @@ namespace BTCPayServer.Lightning
 
             if (!reader.CanConsume(65))
                 throw new FormatException("Invalid BOLT11: Invalid size");
-            var rs = reader.ReadBytes(65);
+            var rs = reader.ReadBytes(64);
             _OriginalFormat = rs;
-            ECDSASignature = new ECDSASignature(
-                new NBitcoin.BouncyCastle.Math.BigInteger(1, rs, 0, 32),
-                new NBitcoin.BouncyCastle.Math.BigInteger(1, rs, 32, 32));
-            RecoveryId = rs[rs.Length - 1];
+            if (!ECDSASignature.TryParseFromCompact(rs, out var s) || s is null)
+                throw new FormatException("Invalid BOLT11: Invalid ECDSA signature");
+            ECDSASignature = s;
+            RecoveryId = reader.ReadBytes(1)[0];
 
             reader.Position = 0;
             Timestamp = Utils.UnixTimeToDateTime(reader.ReadULongBE(35));
