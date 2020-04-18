@@ -210,7 +210,7 @@ namespace BTCPayServer.Lightning.LND
 
         async Task<LightningChannel[]> ILightningClient.ListChannels(CancellationToken token)
         {
-            var resp = await this.SwaggerClient.ListChannelsAsync(false, false, false, false, token);
+            var resp = await this.SwaggerClient.ListChannelsAsync(false, false, false, false, null, token);
             if (resp.Channels == null)
                 return new LightningChannel[] {};
             return (from c in resp.Channels
@@ -273,8 +273,10 @@ namespace BTCPayServer.Lightning.LND
             {
                 // TODO: Verify id corresponds to R_hash
                 Id = BitString(resp.R_hash),
-                Amount = new LightMoney(ConvertInv.ToInt64(resp.Value), LightMoneyUnit.Satoshi),
-                AmountReceived = string.IsNullOrWhiteSpace(resp.AmountPaid) ? null : new LightMoney(ConvertInv.ToInt64(resp.AmountPaid), LightMoneyUnit.MilliSatoshi),
+                Amount = string.IsNullOrWhiteSpace(resp.Value_msat)
+                         ? new LightMoney(ConvertInv.ToInt64(resp.Value), LightMoneyUnit.Satoshi)
+                         : new LightMoney(ConvertInv.ToInt64(resp.Value_msat), LightMoneyUnit.MilliSatoshi),
+                AmountReceived = null,
                 BOLT11 = resp.Payment_request,
                 Status = LightningInvoiceStatus.Unpaid
             };
@@ -399,7 +401,7 @@ namespace BTCPayServer.Lightning.LND
 
         async Task<BitcoinAddress> ILightningClient.GetDepositAddress()
         {
-            return BitcoinAddress.Create((await SwaggerClient.NewWitnessAddressAsync()).Address, Network);
+            return BitcoinAddress.Create((await SwaggerClient.NewAddressAsync(Type.WITNESS_PUBKEY_HASH)).Address, Network);
         }
 
         async Task ILightningClient.ConnectTo(NodeInfo nodeInfo)
