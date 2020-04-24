@@ -279,7 +279,7 @@ namespace BTCPayServer.Lightning.LND
                 Status = LightningInvoiceStatus.Unpaid
             };
             invoice.ExpiresAt = DateTimeOffset.FromUnixTimeSeconds(ConvertInv.ToInt64(resp.Creation_date) + ConvertInv.ToInt64(resp.Expiry));
-            if (resp.Settle_date != null)
+            if (resp.Settled == true)
             {
                 invoice.PaidAt = DateTimeOffset.FromUnixTimeSeconds(ConvertInv.ToInt64(resp.Settle_date));
                 
