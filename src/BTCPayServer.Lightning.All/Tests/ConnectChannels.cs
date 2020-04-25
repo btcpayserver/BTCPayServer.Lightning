@@ -82,6 +82,13 @@ namespace BTCPayServer.Lightning.Tests
                     {
                         await Task.Delay(1000);
                     }
+                    if(openChannel.Result == OpenChannelResult.Ok)
+                    {
+                        // generate one block to confirm channel opening
+                        await cashCow.GenerateAsync(1);
+                        await WaitLNSynched(cashCow, sender);
+                        await WaitLNSynched(cashCow, dest);
+                    }
                 }
                 else if(result.Result == PayResult.Ok)
                 {
