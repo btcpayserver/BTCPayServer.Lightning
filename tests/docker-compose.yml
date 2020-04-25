@@ -119,7 +119,6 @@ services:
         no-macaroons=1
         debuglevel=debug
         trickledelay=1000
-        maxpendingchannels=5
     ports:
       - "32736:8080"
     expose:
@@ -149,7 +148,6 @@ services:
         no-macaroons=1
         debuglevel=debug
         trickledelay=1000
-        maxpendingchannels=5
     ports:
       - "42802:8080"
     expose:
