@@ -314,9 +314,21 @@ namespace BTCPayServer.Lightning.LND
                     Payment_request = bolt11
                 }, cancellation);
 
-                if(response.Payment_error != null)
+                if(String.IsNullOrEmpty(response.Payment_error) && response.Payment_preimage != null)
+                {
+                    return new PayResponse(PayResult.Ok);
+                }
+                else if(response.Payment_error == "invoice is already paid")
+                {
+                    return new PayResponse(PayResult.Ok);
+                }
+                else if (response.Payment_error == "insufficient local balance")
                 {
                     return new PayResponse(PayResult.CouldNotFindRoute);
+                }
+                else
+                {
+                    return new PayResponse(PayResult.Error);
                 }
             }
             catch(SwaggerException ex) when

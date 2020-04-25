@@ -7,7 +7,8 @@ namespace BTCPayServer.Lightning
     public enum PayResult
     {
         Ok,
-        CouldNotFindRoute
+        CouldNotFindRoute,
+        Error
     }
     public class PayResponse
     {
