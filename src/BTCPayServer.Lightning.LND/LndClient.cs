@@ -314,7 +314,7 @@ namespace BTCPayServer.Lightning.LND
                     Payment_request = bolt11
                 }, cancellation);
 
-                if(String.IsNullOrEmpty(response.Payment_error) && response.Payment_preimage != null)
+                if (String.IsNullOrEmpty(response.Payment_error) && response.Payment_preimage != null)
                 {
                     return new PayResponse(PayResult.Ok);
                 }
@@ -328,7 +328,7 @@ namespace BTCPayServer.Lightning.LND
                 }
                 else
                 {
-                    return new PayResponse(PayResult.Error);
+                    return new PayResponse(PayResult.Error, response.Payment_error);
                 }
             }
             catch(SwaggerException ex) when

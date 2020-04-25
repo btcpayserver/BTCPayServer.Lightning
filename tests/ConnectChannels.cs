@@ -44,14 +44,17 @@ namespace BTCPayServer.Lightning.Tests
             while(true)
             {
                 var result = await Pay(sender, destInvoice.BOLT11);
+                Logs.Tester.LogInformation($"Pay Result: {result.Result} {result.ErrorDetail}");
                 if(result.Result == PayResult.CouldNotFindRoute)
                 {
+                    Logs.Tester.LogInformation($"Opening channel to {destInfo.NodeInfoList[0]}");
                     var openChannel = await sender.OpenChannel(new OpenChannelRequest()
                     {
                         NodeInfo = destInfo.NodeInfoList[0],
                         ChannelAmount = Money.Satoshis(16777215),
                         FeeRate = new FeeRate(1UL, 1)
                     });
+                    Logs.Tester.LogInformation($"Channel opening result: {openChannel.Result}");
                     if(openChannel.Result == OpenChannelResult.CannotAffordFunding)
                     {
                         var address = await sender.GetDepositAddress();
@@ -84,10 +87,11 @@ namespace BTCPayServer.Lightning.Tests
                     }
                     if(openChannel.Result == OpenChannelResult.Ok)
                     {
-                        // generate one block to confirm channel opening
+                        // generate one block and a bit more time to confirm channel opening
                         await cashCow.GenerateAsync(1);
                         await WaitLNSynched(cashCow, sender);
                         await WaitLNSynched(cashCow, dest);
+                        await Task.Delay(500);
                     }
                 }
                 else if(result.Result == PayResult.Ok)
