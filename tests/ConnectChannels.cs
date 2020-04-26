@@ -47,6 +47,16 @@ namespace BTCPayServer.Lightning.Tests
                 Logs.Tester.LogInformation($"Pay Result: {result.Result} {result.ErrorDetail}");
                 if(result.Result == PayResult.CouldNotFindRoute)
                 {
+                    // check channels that are in process of opening, to prevent double channel open
+                    await Task.Delay(100);
+                    var pendingChannels = await sender.ListChannels();
+                    if (pendingChannels.Any(a => a.RemoteNode == destInfo.NodeInfoList[0].NodeId))
+                    {
+                        Logs.Tester.LogInformation($"Channel to {destInfo.NodeInfoList[0]} is already open(ing)");
+                        await Task.Delay(500);
+                        continue;
+                    }
+
                     Logs.Tester.LogInformation($"Opening channel to {destInfo.NodeInfoList[0]}");
                     var openChannel = await sender.OpenChannel(new OpenChannelRequest()
                     {
