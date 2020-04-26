@@ -324,9 +324,10 @@ namespace BTCPayServer.Lightning.LND
                     return new PayResponse(PayResult.Ok);
                 }
                 else if (response.Payment_error == "insufficient local balance" ||
+                    response.Payment_error == "unable to find a path to destination" ||
                     response.Payment_error == "insufficient_balance") // code in 0.10.0+
                 {
-                    return new PayResponse(PayResult.CouldNotFindRoute);
+                    return new PayResponse(PayResult.CouldNotFindRoute, response.Payment_error);
                 }
                 else
                 {
