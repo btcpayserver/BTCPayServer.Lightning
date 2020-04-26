@@ -43,9 +43,14 @@ namespace BTCPayServer.Lightning.Tests
             var destInvoice = await dest.CreateInvoice(1000, "EnsureConnectedToDestination", TimeSpan.FromSeconds(5000));
             while(true)
             {
+                int payErrors = 0;
                 var result = await Pay(sender, destInvoice.BOLT11);
                 Logs.Tester.LogInformation($"Pay Result: {result.Result} {result.ErrorDetail}");
-                if(result.Result == PayResult.CouldNotFindRoute)
+                if (result.Result == PayResult.Ok)
+                {
+                    break;
+                }
+                else if (result.Result == PayResult.CouldNotFindRoute)
                 {
                     // check channels that are in process of opening, to prevent double channel open
                     await Task.Delay(100);
@@ -104,9 +109,12 @@ namespace BTCPayServer.Lightning.Tests
                         await Task.Delay(500);
                     }
                 }
-                else if(result.Result == PayResult.Ok)
+                else
                 {
-                    break;
+                    if (payErrors++ > 10)
+                        throw new Exception($"Couldn't establish payment channel after {payErrors} repeated tries");
+
+                    await Task.Delay(1000);
                 }
             }
         }
