@@ -12,7 +12,11 @@ namespace BTCPayServer.Lightning
     }
     public class PayResponse
     {
-        public PayResponse(PayResult result, string errorDetail = null)
+        public PayResponse(PayResult result)
+        {
+            Result = result;
+        }
+        public PayResponse(PayResult result, string errorDetail)
         {
             Result = result;
             ErrorDetail = errorDetail;
