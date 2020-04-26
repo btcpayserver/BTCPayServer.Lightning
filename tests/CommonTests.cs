@@ -25,6 +25,7 @@ namespace BTCPayServer.Lightning.Tests
 			Docker = !string.IsNullOrEmpty(Environment.GetEnvironmentVariable("IN_DOCKER_CONTAINER"));
 			Logs.Tester = new XUnitLog(helper) { Name = "Tests" };
 			Logs.LogProvider = new XUnitLogProvider(helper);
+			ConnectChannels.Logs = Logs.LogProvider.CreateLogger("Tests");
 		}
 
 		public static bool Docker { get; set; }

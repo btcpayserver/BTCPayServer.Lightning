@@ -6,6 +6,8 @@ using System.Collections.Generic;
 using System.Text;
 using System.Threading.Tasks;
 using System.Threading;
+using Microsoft.Extensions.Logging;
+using NBitcoin.Logging;
 
 namespace BTCPayServer.Lightning.Tests
 {
@@ -14,6 +16,15 @@ namespace BTCPayServer.Lightning.Tests
     /// </summary>
     public static class ConnectChannels
     {
+        static ConnectChannels()
+        {
+            Logs = NullLogger.Instance;
+        }
+        public static ILogger Logs
+        {
+            get;
+            set;
+        }
         /// <summary>
         /// Create channels from all senders to all receivers while mining on cashCow
         /// </summary>
@@ -45,7 +56,7 @@ namespace BTCPayServer.Lightning.Tests
             {
                 int payErrors = 0;
                 var result = await Pay(sender, destInvoice.BOLT11);
-                Logs.Tester.LogInformation($"Pay Result: {result.Result} {result.ErrorDetail}");
+                Logs.LogInformation($"Pay Result: {result.Result} {result.ErrorDetail}");
                 if (result.Result == PayResult.Ok)
                 {
                     break;
@@ -57,19 +68,19 @@ namespace BTCPayServer.Lightning.Tests
                     var pendingChannels = await sender.ListChannels();
                     if (pendingChannels.Any(a => a.RemoteNode == destInfo.NodeInfoList[0].NodeId))
                     {
-                        Logs.Tester.LogInformation($"Channel to {destInfo.NodeInfoList[0]} is already open(ing)");
+                        Logs.LogInformation($"Channel to {destInfo.NodeInfoList[0]} is already open(ing)");
                         await Task.Delay(500);
                         continue;
                     }
 
-                    Logs.Tester.LogInformation($"Opening channel to {destInfo.NodeInfoList[0]}");
+                    Logs.LogInformation($"Opening channel to {destInfo.NodeInfoList[0]}");
                     var openChannel = await sender.OpenChannel(new OpenChannelRequest()
                     {
                         NodeInfo = destInfo.NodeInfoList[0],
                         ChannelAmount = Money.Satoshis(16777215),
                         FeeRate = new FeeRate(1UL, 1)
                     });
-                    Logs.Tester.LogInformation($"Channel opening result: {openChannel.Result}");
+                    Logs.LogInformation($"Channel opening result: {openChannel.Result}");
                     if(openChannel.Result == OpenChannelResult.CannotAffordFunding)
                     {
                         var address = await sender.GetDepositAddress();
