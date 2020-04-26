@@ -43,15 +43,33 @@ namespace BTCPayServer.Lightning.Tests
             var destInvoice = await dest.CreateInvoice(1000, "EnsureConnectedToDestination", TimeSpan.FromSeconds(5000));
             while(true)
             {
+                int payErrors = 0;
                 var result = await Pay(sender, destInvoice.BOLT11);
-                if(result.Result == PayResult.CouldNotFindRoute)
+                Logs.Tester.LogInformation($"Pay Result: {result.Result} {result.ErrorDetail}");
+                if (result.Result == PayResult.Ok)
                 {
+                    break;
+                }
+                else if (result.Result == PayResult.CouldNotFindRoute)
+                {
+                    // check channels that are in process of opening, to prevent double channel open
+                    await Task.Delay(100);
+                    var pendingChannels = await sender.ListChannels();
+                    if (pendingChannels.Any(a => a.RemoteNode == destInfo.NodeInfoList[0].NodeId))
+                    {
+                        Logs.Tester.LogInformation($"Channel to {destInfo.NodeInfoList[0]} is already open(ing)");
+                        await Task.Delay(500);
+                        continue;
+                    }
+
+                    Logs.Tester.LogInformation($"Opening channel to {destInfo.NodeInfoList[0]}");
                     var openChannel = await sender.OpenChannel(new OpenChannelRequest()
                     {
                         NodeInfo = destInfo.NodeInfoList[0],
                         ChannelAmount = Money.Satoshis(16777215),
                         FeeRate = new FeeRate(1UL, 1)
                     });
+                    Logs.Tester.LogInformation($"Channel opening result: {openChannel.Result}");
                     if(openChannel.Result == OpenChannelResult.CannotAffordFunding)
                     {
                         var address = await sender.GetDepositAddress();
@@ -82,10 +100,21 @@ namespace BTCPayServer.Lightning.Tests
                     {
                         await Task.Delay(1000);
                     }
+                    if(openChannel.Result == OpenChannelResult.Ok)
+                    {
+                        // generate one block and a bit more time to confirm channel opening
+                        await cashCow.GenerateAsync(1);
+                        await WaitLNSynched(cashCow, sender);
+                        await WaitLNSynched(cashCow, dest);
+                        await Task.Delay(500);
+                    }
                 }
-                else if(result.Result == PayResult.Ok)
+                else
                 {
-                    break;
+                    if (payErrors++ > 10)
+                        throw new Exception($"Couldn't establish payment channel after {payErrors} repeated tries");
+
+                    await Task.Delay(1000);
                 }
             }
         }

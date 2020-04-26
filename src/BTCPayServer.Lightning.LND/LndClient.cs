@@ -279,7 +279,7 @@ namespace BTCPayServer.Lightning.LND
                 Status = LightningInvoiceStatus.Unpaid
             };
             invoice.ExpiresAt = DateTimeOffset.FromUnixTimeSeconds(ConvertInv.ToInt64(resp.Creation_date) + ConvertInv.ToInt64(resp.Expiry));
-            if (resp.Settle_date != null)
+            if (resp.Settled == true)
             {
                 invoice.PaidAt = DateTimeOffset.FromUnixTimeSeconds(ConvertInv.ToInt64(resp.Settle_date));
                 
@@ -307,6 +307,7 @@ namespace BTCPayServer.Lightning.LND
         async Task<PayResponse> ILightningClient.Pay(string bolt11, CancellationToken cancellation)
         {
             retry:
+            int retryCount = 0;
             try
             {
                 var response = await this.SwaggerClient.SendPaymentSyncAsync(new LnrpcSendRequest
@@ -314,19 +315,35 @@ namespace BTCPayServer.Lightning.LND
                     Payment_request = bolt11
                 }, cancellation);
 
-                if(response.Payment_error != null)
+                if (String.IsNullOrEmpty(response.Payment_error) && response.Payment_preimage != null)
                 {
-                    return new PayResponse(PayResult.CouldNotFindRoute);
+                    return new PayResponse(PayResult.Ok);
+                }
+                else if(response.Payment_error == "invoice is already paid")
+                {
+                    return new PayResponse(PayResult.Ok);
+                }
+                else if (response.Payment_error == "insufficient local balance" ||
+                    response.Payment_error == "unable to find a path to destination" ||
+                    response.Payment_error == "insufficient_balance") // code in 0.10.0+
+                {
+                    return new PayResponse(PayResult.CouldNotFindRoute, response.Payment_error);
+                }
+                else
+                {
+                    return new PayResponse(PayResult.Error, response.Payment_error);
                 }
             }
             catch(SwaggerException ex) when
                 (ex.AsLNDError() is LndError2 lndError &&
                  lndError.Error.StartsWith("chain backend is still syncing"))
             {
+                if (retryCount++ > 3)
+                    return new PayResponse(PayResult.Error, ex.Response);
+
                 await Task.Delay(1000);
                 goto retry;
             }
-            return new PayResponse(PayResult.Ok);
         }
 
 
@@ -336,6 +353,7 @@ namespace BTCPayServer.Lightning.LND
         {
             OpenChannelRequest.AssertIsSane(openChannelRequest);
             retry:
+            int retryCount = 0;
             cancellation.ThrowIfCancellationRequested();
             try
             {
@@ -379,6 +397,9 @@ namespace BTCPayServer.Lightning.LND
                 (ex.AsLNDError() is LndError2 lndError &&
                  lndError.Error.StartsWith("channels cannot be created before"))
             {
+                if (retryCount++ > 3)
+                    return new OpenChannelResponse(OpenChannelResult.NeedMoreConf);
+
                 await Task.Delay(1000);
                 goto retry;
             }
@@ -386,6 +407,9 @@ namespace BTCPayServer.Lightning.LND
                 (ex.AsLNDError() is LndError2 lndError &&
                  lndError.Error.StartsWith("chain backend is still syncing"))
             {
+                if (retryCount++ > 3)
+                    return new OpenChannelResponse(OpenChannelResult.NeedMoreConf);
+
                 await Task.Delay(1000);
                 goto retry;
             }
