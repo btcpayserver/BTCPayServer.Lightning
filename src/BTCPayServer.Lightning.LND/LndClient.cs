@@ -307,6 +307,7 @@ namespace BTCPayServer.Lightning.LND
         async Task<PayResponse> ILightningClient.Pay(string bolt11, CancellationToken cancellation)
         {
             retry:
+            int retryCount = 0;
             try
             {
                 var response = await this.SwaggerClient.SendPaymentSyncAsync(new LnrpcSendRequest
@@ -322,7 +323,8 @@ namespace BTCPayServer.Lightning.LND
                 {
                     return new PayResponse(PayResult.Ok);
                 }
-                else if (response.Payment_error == "insufficient local balance")
+                else if (response.Payment_error == "insufficient local balance" ||
+                    response.Payment_error == "insufficient_balance") // code in 0.10.0+
                 {
                     return new PayResponse(PayResult.CouldNotFindRoute);
                 }
@@ -335,10 +337,12 @@ namespace BTCPayServer.Lightning.LND
                 (ex.AsLNDError() is LndError2 lndError &&
                  lndError.Error.StartsWith("chain backend is still syncing"))
             {
+                if (retryCount++ > 3)
+                    return new PayResponse(PayResult.Error, ex.Response);
+
                 await Task.Delay(1000);
                 goto retry;
             }
-            return new PayResponse(PayResult.Ok);
         }
 
 
@@ -348,6 +352,7 @@ namespace BTCPayServer.Lightning.LND
         {
             OpenChannelRequest.AssertIsSane(openChannelRequest);
             retry:
+            int retryCount = 0;
             cancellation.ThrowIfCancellationRequested();
             try
             {
@@ -391,6 +396,9 @@ namespace BTCPayServer.Lightning.LND
                 (ex.AsLNDError() is LndError2 lndError &&
                  lndError.Error.StartsWith("channels cannot be created before"))
             {
+                if (retryCount++ > 3)
+                    return new OpenChannelResponse(OpenChannelResult.NeedMoreConf);
+
                 await Task.Delay(1000);
                 goto retry;
             }
@@ -398,6 +406,9 @@ namespace BTCPayServer.Lightning.LND
                 (ex.AsLNDError() is LndError2 lndError &&
                  lndError.Error.StartsWith("chain backend is still syncing"))
             {
+                if (retryCount++ > 3)
+                    return new OpenChannelResponse(OpenChannelResult.NeedMoreConf);
+
                 await Task.Delay(1000);
                 goto retry;
             }

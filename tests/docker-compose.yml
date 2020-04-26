@@ -102,7 +102,7 @@ services:
 
   lnd:
     restart: unless-stopped
-    image: btcpayserver/lnd:v0.9.2-beta-rockstar
+    image: btcpayserver/lnd:v0.10.0-beta.rc5-rockstar
     environment:
       LND_CHAIN: "btc"
       LND_ENVIRONMENT: "regtest"
@@ -131,7 +131,7 @@ services:
 
   lnd_dest:
     restart: unless-stopped
-    image: btcpayserver/lnd:v0.9.2-beta-rockstar
+    image: btcpayserver/lnd:v0.10.0-beta.rc5-rockstar
     environment:
       LND_CHAIN: "btc"
       LND_ENVIRONMENT: "regtest"
