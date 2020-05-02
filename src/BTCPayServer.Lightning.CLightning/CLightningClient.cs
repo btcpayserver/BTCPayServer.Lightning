@@ -37,7 +37,11 @@ namespace BTCPayServer.Lightning.CLightning
 		BROADCAST_FAIL = 303,
 		STILL_SYNCING_BITCOIN = 304,
 
-		/* Errors from `invoice` command */
+		/* `connect` errors */
+		CONNECT_NO_KNOWN_ADDRESS = 400,
+		CONNECT_ALL_ADDRESSES_FAILED = 401,
+
+	/* Errors from `invoice` command */
 		LABEL_ALREADY_EXISTS = 900,
 		PREIMAGE_ALREADY_EXISTS = 901,
 	}
@@ -354,7 +358,9 @@ namespace BTCPayServer.Lightning.CLightning
 			{
 				return new OpenChannelResponse(OpenChannelResult.CannotAffordFunding);
 			}
-			catch (LightningRPCException ex) when (ex.Message == "Peer not connected" ||
+			catch (LightningRPCException ex) when (ex.Code == CLightningErrorCode.CONNECT_ALL_ADDRESSES_FAILED ||
+												   ex.Code == CLightningErrorCode.CONNECT_NO_KNOWN_ADDRESS ||
+												   ex.Message == "Peer not connected" ||
 												   ex.Message == "Unknown peer" ||
 												   ex.Message == "Unable to connect, no address known for peer")
 			{
