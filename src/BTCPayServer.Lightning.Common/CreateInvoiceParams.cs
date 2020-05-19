@@ -10,6 +10,13 @@ namespace BTCPayServer.Lightning
     {
         public CreateInvoiceParams(LightMoney amount, string description, TimeSpan expiry)
         {
+            if (amount == null)
+                throw new ArgumentNullException(nameof(amount));
+            if (description == null)
+                throw new ArgumentNullException(nameof(description));
+            if (expiry == null)
+                throw new ArgumentNullException(nameof(expiry));
+
             Amount = amount;
             Description = description;
             Expiry = expiry;
