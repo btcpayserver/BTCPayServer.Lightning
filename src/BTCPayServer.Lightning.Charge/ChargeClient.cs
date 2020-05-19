@@ -165,6 +165,10 @@ namespace BTCPayServer.Lightning.Charge
             var invoice = await CreateInvoiceAsync(new CreateInvoiceRequest() { Amount = amount, Expiry = expiry, Description = description ?? "" }, cancellation);
             return new LightningInvoice() { Id = invoice.Id, Amount = amount, BOLT11 = invoice.PayReq, Status = LightningInvoiceStatus.Unpaid, ExpiresAt = DateTimeOffset.UtcNow + expiry };
         }
+        Task<LightningInvoice> ILightningClient.CreateInvoice(CreateInvoiceParams req, CancellationToken cancellation)
+        {
+            return (this as ILightningClient).CreateInvoice(req.Amount, req.Description, req.Expiry, cancellation);
+        }
 
         async Task<LightningNodeInformation> ILightningClient.GetInfo(CancellationToken cancellation)
         {

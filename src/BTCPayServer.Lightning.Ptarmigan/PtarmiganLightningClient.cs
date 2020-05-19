@@ -77,6 +77,10 @@ namespace BTCPayServer.Lightning.Ptarmigan
             };
             return invoice;
         }
+        Task<LightningInvoice> ILightningClient.CreateInvoice(CreateInvoiceParams req, CancellationToken cancellation)
+        {
+            return (this as ILightningClient).CreateInvoice(req.Amount, req.Description, req.Expiry, cancellation);
+        }
 
         public async Task<PayResponse> Pay(string bolt11, CancellationToken cancellation = default(CancellationToken))
         {
