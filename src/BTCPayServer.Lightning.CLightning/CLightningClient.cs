@@ -274,6 +274,10 @@ namespace BTCPayServer.Lightning.CLightning
 			invoice.Status = "unpaid";
 			return ToLightningInvoice(invoice);
 		}
+		Task<LightningInvoice> ILightningClient.CreateInvoice(CreateInvoiceParams req, CancellationToken cancellation)
+		{
+			return (this as ILightningClient).CreateInvoice(req.Amount, req.Description, req.Expiry, cancellation);
+		}
 
 		async Task ILightningClient.ConnectTo(NodeInfo nodeInfo)
 		{

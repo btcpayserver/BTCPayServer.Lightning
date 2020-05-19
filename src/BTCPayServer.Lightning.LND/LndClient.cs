@@ -184,26 +184,32 @@ namespace BTCPayServer.Lightning.LND
             get;
         }
 
-        async Task<LightningInvoice> ILightningClient.CreateInvoice(LightMoney amount, string description, TimeSpan expiry,
+        public Task<LightningInvoice> CreateInvoice(LightMoney amount, string description, TimeSpan expiry,
             CancellationToken cancellation)
         {
-            var strAmount = ConvertInv.ToString(amount.ToUnit(LightMoneyUnit.Satoshi));
-            var strExpiry = ConvertInv.ToString(Math.Round(expiry.TotalSeconds, 0));
-            // lnd requires numbers sent as strings. don't ask
-            var resp = await SwaggerClient.AddInvoiceAsync(new LnrpcInvoice
+            return CreateInvoice(new CreateInvoiceParams(amount, description, expiry), cancellation);
+        }
+        public async Task<LightningInvoice> CreateInvoice(CreateInvoiceParams req, CancellationToken cancellation = default(CancellationToken))
+        {
+            var strAmount = ConvertInv.ToString(req.Amount.ToUnit(LightMoneyUnit.Satoshi));
+            var strExpiry = ConvertInv.ToString(Math.Round(req.Expiry.TotalSeconds, 0));
+
+            var lndRequest = new LnrpcInvoice
             {
                 Value = strAmount,
-                Memo = description,
-                Expiry = strExpiry
-            }, cancellation);
+                Memo = req.Description,
+                Expiry = strExpiry,
+                Private = req.PrivateRouteHints
+            };
+            var resp = await SwaggerClient.AddInvoiceAsync(lndRequest, cancellation);
 
             var invoice = new LightningInvoice
             {
                 Id = BitString(resp.R_hash),
-                Amount = amount,
+                Amount = req.Amount,
                 BOLT11 = resp.Payment_request,
                 Status = LightningInvoiceStatus.Unpaid,
-                ExpiresAt = DateTimeOffset.UtcNow + expiry
+                ExpiresAt = DateTimeOffset.UtcNow + req.Expiry
             };
             return invoice;
         }
