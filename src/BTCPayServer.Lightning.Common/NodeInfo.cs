@@ -17,6 +17,13 @@ namespace BTCPayServer.Lightning
             Host = host;
             NodeId = nodeId;
         }
+
+        public static NodeInfo Parse(string str)
+        {
+            if (TryParse(str, out var nodeInfo))
+                return nodeInfo;
+            throw new FormatException("Invalid node uri");
+        }
         public static bool TryParse(string str, out NodeInfo nodeInfo)
         {
             if(str == null)

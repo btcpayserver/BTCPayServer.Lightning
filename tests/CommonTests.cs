@@ -30,6 +30,7 @@ namespace BTCPayServer.Lightning.Tests
 
 		public static bool Docker { get; set; }
 
+
 		[Fact(Timeout = Timeout)]
 		public async Task CanCreateInvoice()
 		{
@@ -146,6 +147,24 @@ namespace BTCPayServer.Lightning.Tests
 					var retrievedInvoice = await test.Merchant.GetInvoice(invoice.Id);
 					Assert.Equal(LightningInvoiceStatus.Paid, retrievedInvoice.Status);
 				}
+			}
+		}
+
+
+		[Fact(Timeout = Timeout)]
+		public async Task CanSendCorrectConnectError()
+		{
+			foreach (var test in Tester.GetTestedPairs())
+			{
+				await EnsureConnectedToDestinations(test);
+				var src = test.Customer;
+				var dest = test.Merchant;
+
+				var info = await dest.GetInfo();
+				var node = info.NodeInfoList.First();
+				// Reconnecting to same node should be no op
+				Assert.Equal(ConnectionResult.Ok, await src.ConnectTo(node));
+				Assert.Equal(ConnectionResult.CouldNotConnect, await src.ConnectTo(new NodeInfo(new Key().PubKey, "127.0.0.2", node.Port)));
 			}
 		}
 

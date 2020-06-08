@@ -35,9 +35,10 @@ namespace BTCPayServer.Lightning.Ptarmigan
             _ptarmiganClient = new PtarmiganClient(address, apiToken, httpClient);
         }
 
-        public async Task ConnectTo(NodeInfo nodeInfo)
+        public async Task<ConnectionResult> ConnectTo(NodeInfo nodeInfo)
         {
             await _ptarmiganClient.Connect(nodeInfo.NodeId, nodeInfo.Host, nodeInfo.Port);
+            return ConnectionResult.Ok;
         }
 
         public async Task<LightningNodeInformation> GetInfo(CancellationToken cancellation = default(CancellationToken))

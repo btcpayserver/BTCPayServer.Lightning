@@ -432,9 +432,9 @@ namespace BTCPayServer.Lightning.LND
             return BitcoinAddress.Create((await SwaggerClient.NewWitnessAddressAsync()).Address, Network);
         }
 
-        async Task ILightningClient.ConnectTo(NodeInfo nodeInfo)
+        async Task<ConnectionResult> ILightningClient.ConnectTo(NodeInfo nodeInfo)
         {
-            await SwaggerClient.ConnectPeerAsync(new LnrpcConnectPeerRequest()
+            return await SwaggerClient.ConnectPeerAsync(new LnrpcConnectPeerRequest()
             {
                 Addr = new LnrpcLightningAddress()
                 {

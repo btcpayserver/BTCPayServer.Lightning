@@ -41,7 +41,7 @@ namespace BTCPayServer.Lightning.CLightning
 		CONNECT_NO_KNOWN_ADDRESS = 400,
 		CONNECT_ALL_ADDRESSES_FAILED = 401,
 
-	/* Errors from `invoice` command */
+		/* Errors from `invoice` command */
 		LABEL_ALREADY_EXISTS = 900,
 		PREIMAGE_ALREADY_EXISTS = 901,
 	}
@@ -279,9 +279,17 @@ namespace BTCPayServer.Lightning.CLightning
 			return (this as ILightningClient).CreateInvoice(req.Amount, req.Description, req.Expiry, cancellation);
 		}
 
-		async Task ILightningClient.ConnectTo(NodeInfo nodeInfo)
+		async Task<ConnectionResult> ILightningClient.ConnectTo(NodeInfo nodeInfo)
 		{
-			await ConnectAsync(nodeInfo);
+			try
+			{
+				await ConnectAsync(nodeInfo);
+			}
+			catch (LightningRPCException ex) when (ex.Code == CLightningErrorCode.CONNECT_ALL_ADDRESSES_FAILED || ex.Code == CLightningErrorCode.CONNECT_NO_KNOWN_ADDRESS)
+			{
+				return ConnectionResult.CouldNotConnect;
+			}
+			return ConnectionResult.Ok;
 		}
 
 		async Task<LightningChannel[]> ILightningClient.ListChannels(CancellationToken cancellation)
@@ -348,7 +356,7 @@ namespace BTCPayServer.Lightning.CLightning
 
 		async Task<OpenChannelResponse> ILightningClient.OpenChannel(OpenChannelRequest openChannelRequest, CancellationToken cancellation)
 		{
-		retry:
+			retry:
 			try
 			{
 				await FundChannelAsync(openChannelRequest, cancellation);

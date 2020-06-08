@@ -191,7 +191,7 @@ namespace BTCPayServer.Lightning.Charge
             throw new NotSupportedException();
         }
 
-        Task ILightningClient.ConnectTo(NodeInfo nodeInfo)
+        Task<ConnectionResult> ILightningClient.ConnectTo(NodeInfo nodeInfo)
         {
             throw new NotSupportedException();
         }

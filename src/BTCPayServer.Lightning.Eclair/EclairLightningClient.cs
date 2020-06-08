@@ -197,9 +197,17 @@ namespace BTCPayServer.Lightning.Eclair
             return _eclairClient.GetNewAddress();
         }
 
-        public async Task ConnectTo(NodeInfo nodeInfo)
+        public async Task<ConnectionResult> ConnectTo(NodeInfo nodeInfo)
         {
-            await _eclairClient.Connect(nodeInfo.NodeId, nodeInfo.Host, nodeInfo.Port);
+            try
+            {
+                await _eclairClient.Connect(nodeInfo.NodeId, nodeInfo.Host, nodeInfo.Port);
+            }
+            catch (Eclair.EclairClient.EclairApiException ex)
+            {
+                return ConnectionResult.CouldNotConnect;
+            }
+            return ConnectionResult.Ok;
         }
 
         public async Task<LightningChannel[]> ListChannels(CancellationToken cancellation = default(CancellationToken))

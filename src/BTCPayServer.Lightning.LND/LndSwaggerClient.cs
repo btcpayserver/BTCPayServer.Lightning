@@ -4,6 +4,7 @@
 // </auto-generated>
 //----------------------
 
+using Newtonsoft.Json.Linq;
 using System.Diagnostics;
 
 namespace BTCPayServer.Lightning.LND
@@ -2169,7 +2170,7 @@ namespace BTCPayServer.Lightning.LND
         /// the networking level, and is used for communication between nodes. This is
         /// distinct from establishing a channel with a peer.</summary>
         /// <exception cref="SwaggerException">A server side error occurred.</exception>
-        public System.Threading.Tasks.Task<object> ConnectPeerAsync(LnrpcConnectPeerRequest body)
+        public System.Threading.Tasks.Task<ConnectionResult> ConnectPeerAsync(LnrpcConnectPeerRequest body)
         {
             return ConnectPeerAsync(body, System.Threading.CancellationToken.None);
         }
@@ -2180,7 +2181,7 @@ namespace BTCPayServer.Lightning.LND
         /// distinct from establishing a channel with a peer.</summary>
         /// <param name="cancellationToken">A cancellation token that can be used by other objects or threads to receive notice of cancellation.</param>
         /// <exception cref="SwaggerException">A server side error occurred.</exception>
-        public async System.Threading.Tasks.Task<object> ConnectPeerAsync(LnrpcConnectPeerRequest body, System.Threading.CancellationToken cancellationToken)
+        public async System.Threading.Tasks.Task<ConnectionResult> ConnectPeerAsync(LnrpcConnectPeerRequest body, System.Threading.CancellationToken cancellationToken)
         {
             var urlBuilder_ = new System.Text.StringBuilder();
             urlBuilder_.Append(BaseUrl).Append("/v1/peers");
@@ -2218,7 +2219,7 @@ namespace BTCPayServer.Lightning.LND
                             try
                             {
                                 result_ = Newtonsoft.Json.JsonConvert.DeserializeObject<object>(responseData_, _settings.Value);
-                                return result_; 
+                                return ConnectionResult.Ok; 
                             } 
                             catch (System.Exception exception) 
                             {
@@ -2228,11 +2229,16 @@ namespace BTCPayServer.Lightning.LND
                         else
                         if (status_ != "200" && status_ != "204")
                         {
-                            var responseData_ = await response_.Content.ReadAsStringAsync().ConfigureAwait(false); 
+                            var responseData_ = await response_.Content.ReadAsStringAsync().ConfigureAwait(false);
+                            var err = JObject.Parse(responseData_);
+                            if (err["error"].Value<string>() == "EOF")
+                                return ConnectionResult.CouldNotConnect;
+                            else
+                                return ConnectionResult.Ok;
                             throw new SwaggerException("The HTTP status code of the response was not expected (" + (int)response_.StatusCode + ").", status_, responseData_, headers_, null);
                         }
             
-                        return default(object);
+                        return ConnectionResult.Ok;
                     }
                     finally
                     {
