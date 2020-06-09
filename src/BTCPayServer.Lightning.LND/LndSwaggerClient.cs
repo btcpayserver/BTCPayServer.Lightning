@@ -2170,9 +2170,22 @@ namespace BTCPayServer.Lightning.LND
         /// the networking level, and is used for communication between nodes. This is
         /// distinct from establishing a channel with a peer.</summary>
         /// <exception cref="SwaggerException">A server side error occurred.</exception>
-        public System.Threading.Tasks.Task<ConnectionResult> ConnectPeerAsync(LnrpcConnectPeerRequest body)
+        public async System.Threading.Tasks.Task<ConnectionResult> ConnectPeerAsync(LnrpcConnectPeerRequest body)
         {
-            return ConnectPeerAsync(body, System.Threading.CancellationToken.None);
+            try
+            {
+                await ConnectPeerAsync(body, System.Threading.CancellationToken.None);
+                return ConnectionResult.Ok;
+            } 
+            catch(SwaggerException ex) when (ex.AsLNDError() is LndError2 err && err.Error == "EOF")
+            {
+                return ConnectionResult.CouldNotConnect;
+            }
+            catch (SwaggerException ex) when (ex.AsLNDError() is LndError2 err)
+            {
+                // Already connected error
+                return ConnectionResult.Ok;
+            }
         }
     
         /// <summary>* lncli: `connect`
@@ -2181,7 +2194,7 @@ namespace BTCPayServer.Lightning.LND
         /// distinct from establishing a channel with a peer.</summary>
         /// <param name="cancellationToken">A cancellation token that can be used by other objects or threads to receive notice of cancellation.</param>
         /// <exception cref="SwaggerException">A server side error occurred.</exception>
-        public async System.Threading.Tasks.Task<ConnectionResult> ConnectPeerAsync(LnrpcConnectPeerRequest body, System.Threading.CancellationToken cancellationToken)
+        public async System.Threading.Tasks.Task ConnectPeerAsync(LnrpcConnectPeerRequest body, System.Threading.CancellationToken cancellationToken)
         {
             var urlBuilder_ = new System.Text.StringBuilder();
             urlBuilder_.Append(BaseUrl).Append("/v1/peers");
@@ -2219,7 +2232,7 @@ namespace BTCPayServer.Lightning.LND
                             try
                             {
                                 result_ = Newtonsoft.Json.JsonConvert.DeserializeObject<object>(responseData_, _settings.Value);
-                                return ConnectionResult.Ok; 
+                                return;
                             } 
                             catch (System.Exception exception) 
                             {
@@ -2230,15 +2243,10 @@ namespace BTCPayServer.Lightning.LND
                         if (status_ != "200" && status_ != "204")
                         {
                             var responseData_ = await response_.Content.ReadAsStringAsync().ConfigureAwait(false);
-                            var err = JObject.Parse(responseData_);
-                            if (err["error"].Value<string>() == "EOF")
-                                return ConnectionResult.CouldNotConnect;
-                            else
-                                return ConnectionResult.Ok;
                             throw new SwaggerException("The HTTP status code of the response was not expected (" + (int)response_.StatusCode + ").", status_, responseData_, headers_, null);
                         }
             
-                        return ConnectionResult.Ok;
+                        return;
                     }
                     finally
                     {
