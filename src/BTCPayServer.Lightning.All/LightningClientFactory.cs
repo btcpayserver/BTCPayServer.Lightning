@@ -51,11 +51,11 @@ namespace BTCPayServer.Lightning
                 if (connectionString.CookieFilePath != null)
                 {
                     return new ChargeClient(connectionString.BaseUri, connectionString.CookieFilePath, Network,
-                        HttpClient);
+                        HttpClient, connectionString.AllowInsecure);
                 }
                 else
                 {
-                    return new ChargeClient(connectionString.ToUri(true), Network, HttpClient);
+                    return new ChargeClient(connectionString.ToUri(true), Network, HttpClient, connectionString.AllowInsecure);
                 }
             }
             else if (connectionString.ConnectionType == LightningConnectionType.CLightning)

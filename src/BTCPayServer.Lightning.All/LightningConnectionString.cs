@@ -118,10 +118,30 @@ namespace BTCPayServer.Lightning
                             return false;
                         }
 
-                        if (!Uri.TryCreate(server, UriKind.Absolute, out var uri)
-                            || (uri.Scheme != "http" && uri.Scheme != "https"))
+                        var allowinsecureStr = Take(keyValues, "allowinsecure");
+                        
+                        if (allowinsecureStr != null)
+                        {
+                            var allowedValues = new[] { "true", "false" };
+                            if (!allowedValues.Any(v => v.Equals(allowinsecureStr, StringComparison.OrdinalIgnoreCase)))
+                            {
+                                error = $"The key 'allowinsecure' should be true or false";
+                                return false;
+                            }
+
+                            bool allowInsecure = allowinsecureStr.Equals("true", StringComparison.OrdinalIgnoreCase);
+                            result.AllowInsecure = allowInsecure;
+                        }
+                        
+                        if (!Uri.TryCreate(server, UriKind.Absolute, out var uri))
                         {
                             error = $"The key 'server' should be an URI starting by http:// or https://";
+                            return false;
+                        }
+
+                        if (!result.AllowInsecure && uri.Scheme == "http")
+                        {
+                            error = $"The key 'allowinsecure' is false, but server's Uri is not using https";
                             return false;
                         }
 

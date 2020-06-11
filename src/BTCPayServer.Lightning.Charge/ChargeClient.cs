@@ -18,27 +18,17 @@ namespace BTCPayServer.Lightning.Charge
     public class ChargeClient : ILightningClient
     {
         private Uri _Uri;
-        public Uri Uri
-        {
-            get
-            {
-                return _Uri;
-            }
-        }
+        public Uri Uri => _Uri;
         private Network _Network;
-        static HttpClient _SharedClient = new HttpClient();
-        HttpClient _Client;
-        public ChargeClient(Uri uri, Network network): this(uri, network, null)
-        {
+        private HttpClient _Client;
 
-        }
-        public ChargeClient(Uri uri, Network network, HttpClient httpClient)
+        public ChargeClient(Uri uri, Network network, HttpClient httpClient = null, bool allowInsecure = false)
         {
             if (uri == null)
                 throw new ArgumentNullException(nameof(uri));
             if (network == null)
                 throw new ArgumentNullException(nameof(network));
-            httpClient = httpClient ?? _SharedClient;
+            httpClient = CreateHttpClient(uri, allowInsecure, httpClient);
             _Client = httpClient;
             this._Uri = uri;
             this._Network = network;
@@ -49,11 +39,8 @@ namespace BTCPayServer.Lightning.Charge
                 throw new ArgumentException(paramName: nameof(uri), message: "User information not present in uri");
             ChargeAuthentication = new ChargeAuthentication.UserPasswordAuthentication(new NetworkCredential(userInfo[0], userInfo[1]));
         }
-        public ChargeClient(Uri uri, string cookieFilePath, Network network): this(uri, cookieFilePath, network, null)
-        {
 
-        }
-        public ChargeClient(Uri uri, string cookieFilePath, Network network, HttpClient httpClient)
+        public ChargeClient(Uri uri, string cookieFilePath, Network network, HttpClient httpClient = null, bool allowInsecure = false)
         {
             if (uri == null)
                 throw new ArgumentNullException(nameof(uri));
@@ -61,11 +48,44 @@ namespace BTCPayServer.Lightning.Charge
                 throw new ArgumentNullException(nameof(network));
             if (cookieFilePath == null)
                 throw new ArgumentNullException(nameof(cookieFilePath));
-            httpClient = httpClient ?? _SharedClient;
+            httpClient = CreateHttpClient(uri, allowInsecure, httpClient);
             _Client = httpClient;
             this._Uri = uri;
             this._Network = network;
             ChargeAuthentication = new ChargeAuthentication.CookieFileAuthentication(cookieFilePath);
+        }
+        
+        internal static HttpClient CreateHttpClient(Uri uri, bool allowInsecure, HttpClient defaultHttpClient)
+        {
+            // If certificate pinning or https disabled, we need to create a special HttpClientHandler
+            // But if that's not the case, we can just use the default httpclient
+            if (defaultHttpClient != null)
+            {
+                // If we allow insecure and want http, we don't need specific http handlers
+                if (allowInsecure)
+                {
+                    if (uri.Scheme == "http")
+                        return defaultHttpClient;
+                }
+                // If we do not allow insecure and want https and do not pin certificates, we don't need specific http handlers
+                else if (uri.Scheme == "https")
+                {
+                    return defaultHttpClient;
+                }
+            }
+
+            var handler = new HttpClientHandler();
+            
+
+            if (allowInsecure) {
+                handler.ServerCertificateCustomValidationCallback = (request, cert, chain, errors) => true;
+            }
+            else
+            {
+                if (uri.Scheme == "http")
+                    throw new InvalidOperationException("AllowInsecure is set to false, but the URI is not using https");
+            }
+            return new HttpClient(handler);
         }
 
         public async Task<CreateInvoiceResponse> CreateInvoiceAsync(CreateInvoiceRequest request, CancellationToken cancellation = default(CancellationToken))
