@@ -1,12 +1,9 @@
 ﻿using System;
 using System.Collections.Generic;
 using System.Globalization;
-using System.Linq;
 using System.Net;
 using System.Net.Http;
 using System.Net.Http.Headers;
-using System.Net.WebSockets;
-using System.Text;
 using System.Threading;
 using System.Threading.Tasks;
 using BTCPayServer.Lightning.CLightning;
@@ -21,6 +18,7 @@ namespace BTCPayServer.Lightning.Charge
         public Uri Uri => _Uri;
         private Network _Network;
         private HttpClient _Client;
+        private static readonly HttpClient SharedClient = new HttpClient();
 
         public ChargeClient(Uri uri, Network network, HttpClient httpClient = null, bool allowInsecure = false)
         {
@@ -28,7 +26,7 @@ namespace BTCPayServer.Lightning.Charge
                 throw new ArgumentNullException(nameof(uri));
             if (network == null)
                 throw new ArgumentNullException(nameof(network));
-            httpClient = CreateHttpClient(uri, allowInsecure, httpClient);
+            httpClient = CreateHttpClient(uri, allowInsecure, httpClient ?? SharedClient);
             _Client = httpClient;
             this._Uri = uri;
             this._Network = network;
@@ -48,13 +46,13 @@ namespace BTCPayServer.Lightning.Charge
                 throw new ArgumentNullException(nameof(network));
             if (cookieFilePath == null)
                 throw new ArgumentNullException(nameof(cookieFilePath));
-            httpClient = CreateHttpClient(uri, allowInsecure, httpClient);
+            httpClient = CreateHttpClient(uri, allowInsecure, httpClient ?? SharedClient);
             _Client = httpClient;
             this._Uri = uri;
             this._Network = network;
             ChargeAuthentication = new ChargeAuthentication.CookieFileAuthentication(cookieFilePath);
         }
-        
+
         internal static HttpClient CreateHttpClient(Uri uri, bool allowInsecure, HttpClient defaultHttpClient)
         {
             // If certificate pinning or https disabled, we need to create a special HttpClientHandler
