@@ -462,7 +462,7 @@ namespace BTCPayServer.Lightning.Tests
 			{
 				if (i == 1)
 					Assert.True(LightningConnectionString.TryParse(conn.ToString(), false, out conn));
-				Assert.Equal("type=charge;server=http://aaa:bbb@test/a", conn.ToString());
+				Assert.Equal("type=charge;server=http://aaa:bbb@test/a;allowinsecure=true", conn.ToString());
 				Assert.Equal("http://aaa:bbb@test/a", conn.ToUri(true).AbsoluteUri);
 				Assert.Equal("http://test/a", conn.ToUri(false).AbsoluteUri);
 				Assert.Equal(LightningConnectionType.Charge, conn.ConnectionType);
@@ -475,7 +475,7 @@ namespace BTCPayServer.Lightning.Tests
 			{
 				if (i == 1)
 					Assert.True(LightningConnectionString.TryParse(conn.ToString(), false, out conn));
-				Assert.Equal("type=charge;server=http://test/a;api-token=bbb", conn.ToString());
+				Assert.Equal("type=charge;server=http://test/a;api-token=bbb;allowinsecure=true", conn.ToString());
 			}
 
 			Assert.False(LightningConnectionString.TryParse("lol://aaa:bbb@test/a", true, out conn));
@@ -525,13 +525,16 @@ namespace BTCPayServer.Lightning.Tests
 			Assert.True(LightningConnectionString.TryParse($"type=lnd-rest;server=http://127.0.0.1:53280/;macaroon={macaroon};allowinsecure=true", false, out conn2));
 
 
-			Assert.True(LightningConnectionString.TryParse("type=charge;server=http://test/a;cookiefilepath=path", false, out conn));
+			Assert.True(LightningConnectionString.TryParse("type=charge;server=http://test/a;cookiefilepath=path;allowinsecure=true", false, out conn));
 			Assert.Equal("path", conn.CookieFilePath);
-			Assert.Equal("type=charge;server=http://test/a;cookiefilepath=path", conn.ToString());
+			Assert.Equal("type=charge;server=http://test/a;cookiefilepath=path;allowinsecure=true", conn.ToString());
 			// Should not have cookiefilepath and api-token at once
 			Assert.False(LightningConnectionString.TryParse("type=charge;server=http://test/a;cookiefilepath=path;api-token=abc", false, out conn));
 			// Should not have cookiefilepath and api-token at once
 			Assert.False(LightningConnectionString.TryParse("type=charge;server=http://api-token:blah@test/a;cookiefilepath=path", false, out conn));
+
+			Assert.True(LightningConnectionString.TryParse("type=charge;server=http://api-token:foiewnccewuify@127.0.0.1:54938/;allowinsecure=true", out conn));
+			Assert.Equal("type=charge;server=http://127.0.0.1:54938/;api-token=foiewnccewuify;allowinsecure=true", conn.ToString());
 		}
 	}
 }

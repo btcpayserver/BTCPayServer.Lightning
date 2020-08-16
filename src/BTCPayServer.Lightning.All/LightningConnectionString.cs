@@ -133,7 +133,7 @@ namespace BTCPayServer.Lightning
                             result.AllowInsecure = allowInsecure;
                         }
                         
-                        if (!Uri.TryCreate(server, UriKind.Absolute, out var uri))
+                        if (!Uri.TryCreate(server, UriKind.Absolute, out var uri) || (uri.Scheme != "http" && uri.Scheme != "https"))
                         {
                             error = $"The key 'server' should be an URI starting by http:// or https://";
                             return false;
@@ -452,6 +452,8 @@ namespace BTCPayServer.Lightning
                 result.Username = parts[0];
                 result.Password = parts[1];
                 result.ConnectionType = LightningConnectionType.Charge;
+                if (uri.Scheme == "http")
+                    result.AllowInsecure = true;
             }
             else if (!string.IsNullOrEmpty(uri.UserInfo))
             {
@@ -526,6 +528,10 @@ namespace BTCPayServer.Lightning
                     else
                     {
                         builder.Append($";server={ToUri(true)}");
+                    }
+                    if (AllowInsecure)
+                    {
+                        builder.Append($";allowinsecure=true");
                     }
                     break;
                 case LightningConnectionType.CLightning:
