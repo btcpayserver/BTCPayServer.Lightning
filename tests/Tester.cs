@@ -28,7 +28,7 @@ namespace BTCPayServer.Lightning.Tests
 
 		public static ChargeClient CreateChargeClient()
 		{
-			return new ChargeClient(new Uri($"http://api-token:foiewnccewuify@{(CommonTests.Docker ? "charge:9112" : "127.0.0.1:37462")}"), Network);
+			return new ChargeClient(new Uri($"http://api-token:foiewnccewuify@{(CommonTests.Docker ? "charge:9112" : "127.0.0.1:37462")}"), Network, allowInsecure: true);
 		}
 
 		public static LndClient CreateLndClient()
@@ -89,9 +89,9 @@ namespace BTCPayServer.Lightning.Tests
 
 		public static IEnumerable<(string Name, ILightningClient Customer, ILightningClient Merchant)> GetTestedPairs()
 		{
-			//yield return ("C-Lightning", CreateCLightningClient(), CreateCLightningClientDest());
+			yield return ("C-Lightning", CreateCLightningClient(), CreateCLightningClientDest());
 			yield return ("LND", CreateLndClient(), CreateLndClientDest());
-			//yield return ("Eclair", CreateEclairClient(), CreateEclairClientDest());
+			yield return ("Eclair", CreateEclairClient(), CreateEclairClientDest());
 		}
 	}
 }

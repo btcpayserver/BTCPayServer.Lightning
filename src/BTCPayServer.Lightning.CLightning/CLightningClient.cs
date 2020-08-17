@@ -258,7 +258,7 @@ namespace BTCPayServer.Lightning.CLightning
 				await SendAsync(bolt11, cancellation);
 				return new PayResponse(PayResult.Ok);
 			}
-			catch (LightningRPCException ex) when (ex.Code == CLightningErrorCode.ROUTE_NOT_FOUND)
+			catch (LightningRPCException ex) when (ex.Code == CLightningErrorCode.ROUTE_NOT_FOUND || ex.Code == CLightningErrorCode.STOPPED_RETRYING)
 			{
 				return new PayResponse(PayResult.CouldNotFindRoute);
 			}
