@@ -107,6 +107,7 @@ namespace BTCPayServer.Lightning
         {
             MilliSatoshi = msatoshis;
         }
+	
         public LightMoney(Money money)
         {
             MilliSatoshi = checked(money.Satoshi * 1000);
@@ -137,7 +138,6 @@ namespace BTCPayServer.Lightning
                 MilliSatoshi = (long)satoshi;
             }
         }
-
 
         /// <summary>
         /// Split the Money in parts without loss
@@ -212,12 +212,12 @@ namespace BTCPayServer.Lightning
 
         public static LightMoney Satoshis(ulong sats)
         {
-            return new LightMoney(sats);
+            return new LightMoney(sats, LightMoneyUnit.Satoshi);
         }
 
         public static LightMoney Satoshis(long sats)
         {
-            return new LightMoney(sats);
+            return new LightMoney(sats, LightMoneyUnit.Satoshi);
         }
 
         public static LightMoney MilliSatoshis(long msats)
