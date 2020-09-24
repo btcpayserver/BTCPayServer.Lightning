@@ -18,6 +18,7 @@ services:
         zmqpubrawtx=tcp://0.0.0.0:28333
         txindex=1
         deprecatedrpc=signrawtransaction
+        fallbackfee=0.0002
     ports: 
       - "37393:43782"
       - "23823:28332"
