@@ -427,6 +427,21 @@ namespace BTCPayServer.Lightning.LND
             }
         }
 
+        public async Task<CloseChannelResponse> CloseChannel(CloseChannelRequest closeChannelRequest, CancellationToken cancellation)
+        {
+            CloseChannelRequest.AssertIsSane(closeChannelRequest);
+            cancellation.ThrowIfCancellationRequested();
+            try
+            {
+                var result = await this.SwaggerClient.CloseChannelAsync(closeChannelRequest.ChannelPointFundingTxIdStr, closeChannelRequest.ChannelPointOutputIndex, cancellation);
+                return new CloseChannelResponse(CloseChannelResult.Ok);
+            }
+            catch (Exception)
+            {
+                return new CloseChannelResponse(CloseChannelResult.Failed);
+            }
+        }
+
         async Task<BitcoinAddress> ILightningClient.GetDepositAddress()
         {
             return BitcoinAddress.Create((await SwaggerClient.NewWitnessAddressAsync()).Address, Network);
