@@ -44,11 +44,11 @@ namespace BTCPayServer.Lightning.Tests
             {
                 foreach(var dest in receivers)
                 {
-                    await CreateChannel(cashCow, sender, dest);
+                    await OpenChannel(cashCow, sender, dest);
                 }
             }
         }
-        public static async Task CreateChannel(RPCClient cashCow, ILightningClient sender, ILightningClient dest)
+        public static async Task OpenChannel(RPCClient cashCow, ILightningClient sender, ILightningClient dest)
         {
             var destInfo = await dest.GetInfo();
             var destInvoice = await dest.CreateInvoice(1000, "EnsureConnectedToDestination", TimeSpan.FromSeconds(5000));
