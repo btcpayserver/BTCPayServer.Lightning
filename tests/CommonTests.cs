@@ -25,7 +25,7 @@ namespace BTCPayServer.Lightning.Tests
 			Docker = !string.IsNullOrEmpty(Environment.GetEnvironmentVariable("IN_DOCKER_CONTAINER"));
 			Logs.Tester = new XUnitLog(helper) { Name = "Tests" };
 			Logs.LogProvider = new XUnitLogProvider(helper);
-			ConnectChannels.Logs = Logs.LogProvider.CreateLogger("Tests");
+			ChannelSetup.Logs = Logs.LogProvider.CreateLogger("Tests");
 		}
 
 		public static bool Docker { get; set; }
@@ -271,7 +271,7 @@ namespace BTCPayServer.Lightning.Tests
 		{
 			await Task.WhenAll(WaitServersAreUp($"{test.Name} (Customer)", test.Customer), WaitServersAreUp($"{test.Name} (Merchant)", test.Merchant));
 			Tests.Logs.Tester.LogInformation($"{test.Name}: Connecting channels...");
-			await ConnectChannels.ConnectAll(Tester.CreateRPC(), new[] { test.Customer }, new[] { test.Merchant });
+			await ChannelSetup.OpenAll(Tester.CreateRPC(), new[] { test.Customer }, new[] { test.Merchant });
 			Tests.Logs.Tester.LogInformation($"{test.Name}: Channels connected");
 		}
 

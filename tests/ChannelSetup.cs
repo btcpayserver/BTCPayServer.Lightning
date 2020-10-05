@@ -14,9 +14,9 @@ namespace BTCPayServer.Lightning.Tests
     /// <summary>
     /// Utilities to connect channels on regtest 
     /// </summary>
-    public static class ConnectChannels
+    public static class ChannelSetup
     {
-        static ConnectChannels()
+        static ChannelSetup()
         {
             Logs = NullLogger.Instance;
         }
@@ -26,13 +26,13 @@ namespace BTCPayServer.Lightning.Tests
             set;
         }
         /// <summary>
-        /// Create channels from all senders to all receivers while mining on cashCow
+        /// Open channels from all senders to all receivers while mining on cashCow
         /// </summary>
         /// <param name="cashCow">The miner and liquidity source</param>
         /// <param name="senders">Senders of payment on Lightning Network</param>
         /// <param name="receivers">Receivers of payment on Lightning Network</param>
         /// <returns></returns>
-        public static async Task ConnectAll(RPCClient cashCow, IEnumerable<ILightningClient> senders, IEnumerable<ILightningClient> receivers)
+        public static async Task OpenAll(RPCClient cashCow, IEnumerable<ILightningClient> senders, IEnumerable<ILightningClient> receivers)
         {
             if(await cashCow.GetBlockCountAsync() <= cashCow.Network.Consensus.CoinbaseMaturity)
             {
