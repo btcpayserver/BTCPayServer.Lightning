@@ -536,5 +536,30 @@ namespace BTCPayServer.Lightning.Tests
 			Assert.True(LightningConnectionString.TryParse("type=charge;server=http://api-token:foiewnccewuify@127.0.0.1:54938/;allowinsecure=true", out conn));
 			Assert.Equal("type=charge;server=http://127.0.0.1:54938/;api-token=foiewnccewuify;allowinsecure=true", conn.ToString());
 		}
+
+		[Fact(Timeout = Timeout)]
+		public async Task CanCloseLndChannel()
+		{
+			// TODO: test in all LN implementations, not just LND
+			//foreach (var test in Tester.GetTestedPairs())
+			//{
+				var test = Tester.GetTestedLndPair();
+				await EnsureConnectedToDestinations(test);
+				var customer = (ILightningClient)test.Customer;
+				var senderChannel = (await customer.ListChannels()).First();
+
+				var senderInfo = await customer.GetInfo();
+				var fundingTxIdForChannel = ChannelSetup.GetFundingTxIdForChannel(customer, test.Merchant);
+				if (String.IsNullOrEmpty(fundingTxIdForChannel))
+					throw new InvalidOperationException("Could not find funding Tx ID of channel");
+				var closeChannelRequest = new CloseChannelRequest()
+				{
+					NodeInfo = senderInfo.NodeInfoList.First(),
+					ChannelPointOutputIndex = senderChannel.ChannelPoint.N,
+					ChannelPointFundingTxIdStr = fundingTxIdForChannel
+				};
+				await test.Merchant.CloseChannel(closeChannelRequest, CancellationToken.None);
+			//}
+		}
 	}
 }
