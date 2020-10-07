@@ -440,7 +440,8 @@ namespace BTCPayServer.Lightning.LND
             }
             catch (Exception)
             {
-                return new CloseChannelResponse(CloseChannelResult.Failed);
+                throw;
+                //return new CloseChannelResponse(CloseChannelResult.Failed);
             }
         }
 
