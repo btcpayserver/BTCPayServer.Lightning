@@ -16,7 +16,8 @@ namespace BTCPayServer.Lightning
         LndREST,
         LndGRPC,
         Eclair,
-        Ptarmigan
+        Ptarmigan,
+        LNbank
     }
     public class LightningConnectionString
     {
@@ -31,6 +32,7 @@ namespace BTCPayServer.Lightning
             typeMapping.Add("lnd-grpc", LightningConnectionType.LndGRPC);
             typeMapping.Add("eclair", LightningConnectionType.Eclair);
             typeMapping.Add("ptarmigan", LightningConnectionType.Ptarmigan);
+            typeMapping.Add("lnbank", LightningConnectionType.LNbank);
             typeMappingReverse = new Dictionary<LightningConnectionType, string>();
             foreach (var kv in typeMapping)
             {
@@ -318,8 +320,6 @@ namespace BTCPayServer.Lightning
                     }
                     break;
                 case LightningConnectionType.Eclair:
-                    
-                    
                     var eclairserver = Take(keyValues, "server");
                     
                     if (eclairserver == null)
@@ -352,7 +352,6 @@ namespace BTCPayServer.Lightning
 
                     break;
                 case LightningConnectionType.Ptarmigan:
-
                     var ptarmiganserver = Take(keyValues, "server");
 
                     if (ptarmiganserver == null)
@@ -376,6 +375,32 @@ namespace BTCPayServer.Lightning
 
                     result.BaseUri = ptarmiganuri;
                     result.ApiToken = ptarmiganApiToken;
+
+                    break;
+                case LightningConnectionType.LNbank:
+                    var lnbankServer = Take(keyValues, "server");
+
+                    if (lnbankServer == null)
+                    {
+                        error = $"The key 'server' is mandatory for LNbank connection strings";
+                        return false;
+                    }
+                    if (!Uri.TryCreate(lnbankServer, UriKind.Absolute, out var lnbankUri)
+                        || (lnbankUri.Scheme != "http" && lnbankUri.Scheme != "https"))
+                    {
+                        error = $"The key 'server' should be an URI starting by http:// or https://";
+                        return false;
+                    }
+
+                    var lnbankApiToken = Take(keyValues, "api-token");
+                    if (lnbankApiToken == null)
+                    {
+                        error = $"The key 'api-token' is not found";
+                        return false;
+                    }
+
+                    result.BaseUri = lnbankUri;
+                    result.ApiToken = lnbankApiToken;
 
                     break;
                 default:

@@ -6,6 +6,7 @@ using System.Threading.Tasks;
 using BTCPayServer.Lightning.Charge;
 using BTCPayServer.Lightning.CLightning;
 using BTCPayServer.Lightning.Eclair;
+using BTCPayServer.Lightning.LNbank;
 using BTCPayServer.Lightning.LND;
 using BTCPayServer.Lightning.Ptarmigan;
 using NBitcoin;
@@ -87,6 +88,10 @@ namespace BTCPayServer.Lightning
                         }
                         : null;
                 return new PtarmiganLightningClient(connectionString.BaseUri, connectionString.ApiToken, Network, rpcClient, HttpClient);
+            }
+            else if (connectionString.ConnectionType == LightningConnectionType.LNbank)
+            {
+                return new LNbankLightningClient(connectionString.BaseUri, connectionString.ApiToken, Network, HttpClient);
             }
             else
                 throw new NotSupportedException(
