@@ -105,19 +105,23 @@ services:
 
   lnd:
     restart: unless-stopped
-    image: btcpayserver/lnd:v0.11.0-beta
+    image: btcpayserver/lnd:v0.11.x-beta-notls
+    hostname: btcpay_lightning_tests_lnd
     environment:
       LND_CHAIN: "btc"
       LND_ENVIRONMENT: "regtest"
+      LND_REST_LISTEN_HOST: https://btcpay_lightning_tests_lnd:8080
       LND_EXTRA_ARGS: |
-        restlisten=0.0.0.0:8080
+        restlisten=btcpay_lightning_tests_lnd:8080
         rpclisten=127.0.0.1:10008
-        rpclisten=0.0.0.0:10009
+        rpclisten=btcpay_lightning_tests_lnd:10009
         bitcoin.node=bitcoind
         bitcoind.rpchost=bitcoind:43782
+        bitcoind.rpcuser=ceiwHEbqWI83
+        bitcoind.rpcpass=DwubwWsoo3
         bitcoind.zmqpubrawblock=tcp://bitcoind:28332
         bitcoind.zmqpubrawtx=tcp://bitcoind:28333
-        externalip=lnd:9735
+        externalip=btcpay_lightning_tests_lnd:9735
         bitcoin.defaultchanconfs=1
         no-macaroons=1
         debuglevel=debug
@@ -134,19 +138,23 @@ services:
 
   lnd_dest:
     restart: unless-stopped
-    image: btcpayserver/lnd:v0.11.0-beta
+    image: btcpayserver/lnd:v0.11.x-beta-notls
+    hostname: btcpay_lightning_tests_lnd_dest
     environment:
       LND_CHAIN: "btc"
       LND_ENVIRONMENT: "regtest"
+      LND_REST_LISTEN_HOST: https://btcpay_lightning_tests_lnd_dest:8080
       LND_EXTRA_ARGS: |
-        restlisten=0.0.0.0:8080
+        restlisten=btcpay_lightning_tests_lnd_dest:8080
         rpclisten=127.0.0.1:10008
-        rpclisten=0.0.0.0:10009
+        rpclisten=btcpay_lightning_tests_lnd_dest:10009
         bitcoin.node=bitcoind
         bitcoind.rpchost=bitcoind:43782
+        bitcoind.rpcuser=ceiwHEbqWI83
+        bitcoind.rpcpass=DwubwWsoo3
         bitcoind.zmqpubrawblock=tcp://bitcoind:28332
         bitcoind.zmqpubrawtx=tcp://bitcoind:28333
-        externalip=lnd_dest:9735
+        externalip=btcpay_lightning_tests_lnd_dest:9735
         bitcoin.defaultchanconfs=1
         no-macaroons=1
         debuglevel=debug
