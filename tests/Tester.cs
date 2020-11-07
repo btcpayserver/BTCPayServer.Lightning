@@ -36,7 +36,7 @@ namespace BTCPayServer.Lightning.Tests
 			return new LndClient(new LndRestSettings()
 			{
 				AllowInsecure = true,
-				Uri = new Uri(CommonTests.Docker ? "https://lnd:8080" : "https://127.0.0.1:32736")
+				Uri = new Uri(CommonTests.Docker ? "http://lnd:8080" : "http://127.0.0.1:32736")
 			}, Network.RegTest);
 		}
 
@@ -75,7 +75,7 @@ namespace BTCPayServer.Lightning.Tests
 			return new LndClient(new LndRestSettings()
 			{
 				AllowInsecure = true,
-				Uri = new Uri(CommonTests.Docker ? "https://lnd_dest:8080" : "https://127.0.0.1:42802"),
+				Uri = new Uri(CommonTests.Docker ? "http://lnd_dest:8080" : "http://127.0.0.1:42802"),
 			}, Network.RegTest);
 		}
 
