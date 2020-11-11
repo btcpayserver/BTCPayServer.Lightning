@@ -1,4 +1,5 @@
 ﻿using System;
+using System.Linq;
 using System.Net.Http;
 using System.Threading;
 using System.Threading.Tasks;
@@ -8,63 +9,122 @@ namespace BTCPayServer.Lightning.LNbank
 {
     public class LNbankLightningClient : ILightningClient
     {
-        private readonly Uri _address;
-        private readonly string _apiToken;
-        private readonly Network _network;
-        private readonly LNbankClient _lnbankClient;
+        private readonly LNbankClient _client;
 
-        public LNbankLightningClient(Uri address, string apiToken, Network network, HttpClient httpClient = null)
+        public LNbankLightningClient(Uri baseUri, string apiToken, string walletId, Network network, HttpClient httpClient = null)
         {
-            if (address == null)
-                throw new ArgumentNullException(nameof(address));
-            if (network == null)
-                throw new ArgumentNullException(nameof(network));
-            _address = address;
-            _network = network;
-            _apiToken = apiToken;
-            _lnbankClient = new LNbankClient(address, apiToken, network, httpClient);
+            _client = new LNbankClient(baseUri, apiToken, walletId, network, httpClient);
         }
 
-        public Task<LightningInvoice> GetInvoice(string invoiceId, CancellationToken cancellation = default(CancellationToken))
+        public async Task<LightningNodeInformation> GetInfo(CancellationToken cancellation = default)
         {
-            throw new NotImplementedException();
+            var data = await _client.GetInfo(cancellation);
+
+            var nodeInfo = new LightningNodeInformation
+            {
+                BlockHeight = data.BlockHeight
+            };
+            foreach (var nodeUri in data.NodeURIs)
+            {
+                if (NodeInfo.TryParse(nodeUri, out var info))
+                    nodeInfo.NodeInfoList.Add(info);
+            }
+
+            return nodeInfo;
         }
 
-        public Task<LightningInvoice> CreateInvoice(LightMoney amount, string description, TimeSpan expiry,
-            CancellationToken cancellation = default(CancellationToken))
+        public async Task<LightningInvoice> GetInvoice(string invoiceId, CancellationToken cancellation = default)
         {
-            throw new NotImplementedException();
+            var invoice = await _client.GetInvoice(invoiceId, cancellation);
+
+            return new LightningInvoice
+            {
+                Id = invoice.Id,
+                Amount = invoice.Amount,
+                PaidAt = invoice.PaidAt,
+                ExpiresAt = invoice.ExpiresAt,
+                BOLT11 = invoice.BOLT11,
+                Status = invoice.Status,
+                AmountReceived = invoice.AmountReceived
+            };
         }
 
-        public Task<LightningInvoice> CreateInvoice(CreateInvoiceParams createInvoiceRequest,
-            CancellationToken cancellation = default(CancellationToken))
+        public async Task<BitcoinAddress> GetDepositAddress()
         {
-            throw new NotImplementedException();
+            return await _client.GetDepositAddress();
         }
 
-        public Task<ILightningInvoiceListener> Listen(CancellationToken cancellation = default(CancellationToken))
+        public async Task<LightningChannel[]> ListChannels(CancellationToken cancellation = default)
         {
-            throw new NotImplementedException();
+            var channels = await _client.ListChannels(cancellation);
+
+            return channels.Select(channel => new LightningChannel
+            {
+                IsPublic = channel.IsPublic,
+                IsActive = channel.IsActive,
+                RemoteNode = new PubKey(channel.RemoteNode),
+                LocalBalance = channel.LocalBalance,
+                Capacity = channel.Capacity,
+                ChannelPoint = OutPoint.Parse(channel.ChannelPoint),
+            }).ToArray();
         }
 
-        public Task<LightningNodeInformation> GetInfo(CancellationToken cancellation = default(CancellationToken))
+        public async Task<LightningInvoice> CreateInvoice(LightMoney amount, string description, TimeSpan expiry, CancellationToken cancellation = default)
         {
-            throw new NotImplementedException();
+            var invoice = await _client.CreateInvoice(amount, description, expiry, cancellation);
+
+            return new LightningInvoice
+            {
+                Id = invoice.Id,
+                Amount = invoice.Amount,
+                PaidAt = invoice.PaidAt,
+                ExpiresAt = invoice.ExpiresAt,
+                BOLT11 = invoice.BOLT11,
+                Status = invoice.Status,
+                AmountReceived = invoice.AmountReceived
+            };
         }
 
-        public Task<PayResponse> Pay(string bolt11, CancellationToken cancellation = default(CancellationToken))
+        public async Task<LightningInvoice> CreateInvoice(CreateInvoiceParams req, CancellationToken cancellation = default)
         {
-            throw new NotImplementedException();
+            return await (this as ILightningClient).CreateInvoice(req.Amount, req.Description, req.Expiry, cancellation);
         }
 
-        public Task<OpenChannelResponse> OpenChannel(OpenChannelRequest openChannelRequest, CancellationToken cancellation = default(CancellationToken))
+        public async Task<PayResponse> Pay(string bolt11, CancellationToken cancellation = default)
         {
-            throw new NotImplementedException();
+            return await _client.Pay(bolt11, cancellation);
         }
 
-        public Task<BitcoinAddress> GetDepositAddress()
+        public async Task<OpenChannelResponse> OpenChannel(OpenChannelRequest req, CancellationToken cancellation = default)
         {
-            throw new NotImplementedException();
+            OpenChannelResult result;
+            try
+            {
+                await _client.OpenChannel(req.NodeInfo, req.ChannelAmount, req.FeeRate, cancellation);
+                result = OpenChannelResult.Ok;
+            }
+            catch (LNbankClient.LNbankApiException ex)
+            {
+                switch (ex.ErrorCode)
+                {
+                    case "channel-already-exists":
+                        result = OpenChannelResult.AlreadyExists;
+                        break;
+                    case "cannot-afford-funding":
+                        result = OpenChannelResult.CannotAffordFunding;
+                        break;
+                    case "need-more-confirmations":
+                        result = OpenChannelResult.NeedMoreConf;
+                        break;
+                    case "peer-not-connected":
+                        result = OpenChannelResult.PeerNotConnected;
+                        break;
+                    default:
+                        throw new NotSupportedException("Unknown OpenChannelResult");
+                }
+            }
+
+            return new OpenChannelResponse(result);
         }
 
         public Task<ConnectionResult> ConnectTo(NodeInfo nodeInfo)
@@ -72,7 +132,7 @@ namespace BTCPayServer.Lightning.LNbank
             throw new NotImplementedException();
         }
 
-        public Task<LightningChannel[]> ListChannels(CancellationToken cancellation = default(CancellationToken))
+        public async Task<ILightningInvoiceListener> Listen(CancellationToken cancellation = default)
         {
             throw new NotImplementedException();
         }
