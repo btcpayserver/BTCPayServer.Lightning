@@ -6,17 +6,16 @@ namespace BTCPayServer.Lightning.LNbank
 {
     public class LNbankClient
     {
-        private readonly Uri _address;
-        private readonly string _apiToken;
-        private readonly Network _network;
+        private readonly string _walletId;
         private readonly HttpClient _httpClient;
+        private readonly JsonSerializer _serializer;
+        private readonly Network _network;
 
-        public LNbankClient(Uri address, string apiToken, Network network, HttpClient httpClient = null)
+        public LNbankClient(Uri baseUri, string apiToken, string walletId, Network network, HttpClient httpClient)
         {
-            _address = address;
-            _apiToken = apiToken;
-            _network = network;
+            _walletId = walletId;
             _httpClient = httpClient;
+            _network = network;
         }
     }
 }

@@ -91,7 +91,7 @@ namespace BTCPayServer.Lightning
             }
             else if (connectionString.ConnectionType == LightningConnectionType.LNbank)
             {
-                return new LNbankLightningClient(connectionString.BaseUri, connectionString.ApiToken, Network, HttpClient);
+                return new LNbankLightningClient(connectionString.BaseUri, connectionString.ApiToken, connectionString.WalletId, Network, HttpClient);
             }
             else
                 throw new NotSupportedException(
