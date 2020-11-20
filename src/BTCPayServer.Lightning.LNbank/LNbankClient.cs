@@ -1,8 +1,4 @@
 using System;
-using System.Collections.Generic;
-using System.Linq;
-using System.Linq.Expressions;
-using System.Net;
 using System.Net.Http;
 using System.Threading;
 using System.Threading.Tasks;
@@ -12,7 +8,6 @@ using BTCPayServer.Lightning.LNbank.Models;
 using Newtonsoft.Json;
 using NBitcoin;
 using NBitcoin.JsonConverters;
-using Newtonsoft.Json.Linq;
 
 namespace BTCPayServer.Lightning.LNbank
 {
@@ -94,6 +89,15 @@ namespace BTCPayServer.Lightning.LNbank
                 FeeRate = feeRate
             };
             return await Post<CreateChannelRequest, OpenChannelResponse>("channels", payload, cancellation);
+        }
+
+        public async Task ConnectTo(NodeInfo nodeInfo, CancellationToken cancellation = default)
+        {
+            var payload = new ConnectNodeRequest
+            {
+                NodeURI = nodeInfo.ToString()
+            };
+            await Post<ConnectNodeRequest, string>("connect", payload, cancellation);
         }
 
         private async Task<TResponse> Get<TResponse>(string path, CancellationToken cancellation)

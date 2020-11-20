@@ -127,9 +127,23 @@ namespace BTCPayServer.Lightning.LNbank
             return new OpenChannelResponse(result);
         }
 
-        public Task<ConnectionResult> ConnectTo(NodeInfo nodeInfo)
+        public async Task<ConnectionResult> ConnectTo(NodeInfo nodeInfo)
         {
-            throw new NotImplementedException();
+            try
+            {
+                await _client.ConnectTo(nodeInfo);
+                return ConnectionResult.Ok;
+            }
+            catch (LNbankClient.LNbankApiException ex)
+            {
+                switch (ex.ErrorCode)
+                {
+                    case "could-not-connect":
+                        return ConnectionResult.CouldNotConnect;
+                    default:
+                        throw new NotSupportedException("Unknown ConnectionResult");
+                }
+            }
         }
 
         public async Task<ILightningInvoiceListener> Listen(CancellationToken cancellation = default)
