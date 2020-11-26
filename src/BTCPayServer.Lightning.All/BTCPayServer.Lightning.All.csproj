@@ -22,6 +22,6 @@
 		<ProjectReference Include="..\BTCPayServer.Lightning.Ptarmigan\BTCPayServer.Lightning.Ptarmigan.csproj" />
 	</ItemGroup>
   <ItemGroup>
-    <PackageReference Include="Microsoft.Extensions.Logging.Abstractions" Version="1.0.0"></PackageReference>
+    <PackageReference Include="Microsoft.Extensions.Logging.Abstractions" Version="3.1.10"></PackageReference>
   </ItemGroup>
 </Project>

@@ -1,18 +1,24 @@
 ﻿using System;
 using System.Linq;
 using System.Net.Http;
+using System.Net.WebSockets;
 using System.Threading;
 using System.Threading.Tasks;
 using NBitcoin;
+using Microsoft.AspNetCore.SignalR.Client;
 
 namespace BTCPayServer.Lightning.LNbank
 {
     public class LNbankLightningClient : ILightningClient
     {
         private readonly LNbankClient _client;
+        private readonly Uri _baseUri;
+        private readonly string _apiToken;
 
         public LNbankLightningClient(Uri baseUri, string apiToken, string walletId, Network network, HttpClient httpClient = null)
         {
+            _baseUri = baseUri;
+            _apiToken = apiToken;
             _client = new LNbankClient(baseUri, apiToken, walletId, network, httpClient);
         }
 
@@ -148,7 +154,11 @@ namespace BTCPayServer.Lightning.LNbank
 
         public async Task<ILightningInvoiceListener> Listen(CancellationToken cancellation = default)
         {
-            throw new NotImplementedException();
+            var listener = new LNbankHubClient(_baseUri, _apiToken, this, cancellation);
+
+            await listener.SetupAsync(cancellation);
+
+            return listener;
         }
     }
 }
