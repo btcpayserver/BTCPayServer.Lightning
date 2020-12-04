@@ -1,10 +1,8 @@
 using System;
-using System.Net.WebSockets;
 using System.Threading;
 using System.Threading.Tasks;
 using BTCPayServer.Lightning.LNbank.Models;
 using Microsoft.AspNetCore.SignalR.Client;
-using Newtonsoft.Json.Linq;
 
 namespace BTCPayServer.Lightning.LNbank
 {
@@ -14,7 +12,6 @@ namespace BTCPayServer.Lightning.LNbank
         private readonly HubConnection _connection;
         private readonly CancellationToken _cancellationToken;
         private readonly CancellationTokenSource _cts = new CancellationTokenSource();
-        private LightningInvoice _invoice;
 
         public LNbankHubClient(Uri baseUri, string apiToken, LNbankLightningClient lightningClient, CancellationToken cancellation)
         {
@@ -28,22 +25,27 @@ namespace BTCPayServer.Lightning.LNbank
                 .Build();
         }
 
-        public async Task SetupAsync(CancellationToken cancellation)
+        public async Task Start(CancellationToken cancellation)
         {
-            _connection.On<TransactionUpdateEvent>("transaction-update", async data =>
-            {
-                _invoice = await _lightningClient.GetInvoice(data.InvoiceId, cancellation);
-            });
-
-            await _connection.StartAsync(_cancellationToken);
+            await _connection.StartAsync(cancellation);
         }
 
         public async Task<LightningInvoice> WaitInvoice(CancellationToken cancellation)
         {
             try
             {
-                while (_invoice == null && !cancellation.IsCancellationRequested) {}
-                return _invoice;
+                LightningInvoice invoice;
+
+                var tcs = new TaskCompletionSource<LightningInvoice>(cancellation);
+
+                _connection.On<TransactionUpdateEvent>("transaction-update", async data =>
+                {
+                    invoice = await _lightningClient.GetInvoice(data.InvoiceId, cancellation);
+
+                    if (invoice != null) tcs.SetResult(invoice);
+                });
+
+                return await tcs.Task;
             }
             catch (Exception) when (_cts.IsCancellationRequested)
             {

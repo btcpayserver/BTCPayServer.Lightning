@@ -28,7 +28,7 @@ namespace BTCPayServer.Lightning.LNbank
             _httpClient.BaseAddress = new Uri($"{baseUri}api/lightning/");
             _httpClient.DefaultRequestHeaders.Add("User-Agent", "BTCPayServer.Lightning.LNbankLightningClient");
             _httpClient.DefaultRequestHeaders.Accept.Add(new MediaTypeWithQualityHeaderValue("application/json"));
-            _httpClient.DefaultRequestHeaders.Authorization = new AuthenticationHeaderValue("token", apiToken);
+            _httpClient.DefaultRequestHeaders.Authorization = new AuthenticationHeaderValue("Bearer", apiToken);
 
             // JSON
             var serializerSettings = new JsonSerializerSettings();

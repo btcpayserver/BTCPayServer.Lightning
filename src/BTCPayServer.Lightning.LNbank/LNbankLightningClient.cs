@@ -156,7 +156,7 @@ namespace BTCPayServer.Lightning.LNbank
         {
             var listener = new LNbankHubClient(_baseUri, _apiToken, this, cancellation);
 
-            await listener.SetupAsync(cancellation);
+            await listener.Start(cancellation);
 
             return listener;
         }
