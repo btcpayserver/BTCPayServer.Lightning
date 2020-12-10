@@ -378,38 +378,58 @@ namespace BTCPayServer.Lightning
 
                     break;
                 case LightningConnectionType.LNbank:
-                    var lnbankServer = Take(keyValues, "server");
-
-                    if (lnbankServer == null)
                     {
-                        error = $"The key 'server' is mandatory for LNbank connection strings";
-                        return false;
-                    }
-                    if (!Uri.TryCreate(lnbankServer, UriKind.Absolute, out var lnbankUri)
-                        || (lnbankUri.Scheme != "http" && lnbankUri.Scheme != "https"))
-                    {
-                        error = $"The key 'server' should be an URI starting by http:// or https://";
-                        return false;
-                    }
+                        var server = Take(keyValues, "server");
 
-                    var lnbankApiToken = Take(keyValues, "api-token");
-                    if (lnbankApiToken == null)
-                    {
-                        error = $"The key 'api-token' is not found";
-                        return false;
+                        if (server == null)
+                        {
+                            error = "The key 'server' is mandatory for LNbank connection strings";
+                            return false;
+                        }
+                        if (!Uri.TryCreate(server, UriKind.Absolute, out var uri)
+                            || uri.Scheme != "http" && uri.Scheme != "https")
+                        {
+                            error = "The key 'server' should be an URI starting by http:// or https://";
+                            return false;
+                        }
+
+                        var allowinsecureStr = Take(keyValues, "allowinsecure");
+                        if (allowinsecureStr != null)
+                        {
+                            var allowedValues = new[] { "true", "false" };
+                            if (!allowedValues.Any(v => v.Equals(allowinsecureStr, StringComparison.OrdinalIgnoreCase)))
+                            {
+                                error = "The key 'allowinsecure' should be true or false";
+                                return false;
+                            }
+
+                            result.AllowInsecure = allowinsecureStr.Equals("true", StringComparison.OrdinalIgnoreCase);
+                        }
+
+                        if (!result.AllowInsecure && uri.Scheme == "http")
+                        {
+                            error = "The key 'allowinsecure' is false, but server's Uri is not using https";
+                            return false;
+                        }
+
+                        var apiToken = Take(keyValues, "api-token");
+                        if (apiToken == null)
+                        {
+                            error = "The key 'api-token' is not found";
+                            return false;
+                        }
+
+                        var walletId = Take(keyValues, "wallet-id");
+                        if (walletId == null)
+                        {
+                            error = "The key 'wallet-id' is not found";
+                            return false;
+                        }
+
+                        result.BaseUri = uri;
+                        result.ApiToken = apiToken;
+                        result.WalletId = walletId;
                     }
-
-                    var lnbankWalletId = Take(keyValues, "wallet-id");
-                    if (lnbankWalletId == null)
-                    {
-                        error = $"The key 'wallet-id' is not found";
-                        return false;
-                    }
-
-                    result.BaseUri = lnbankUri;
-                    result.ApiToken = lnbankApiToken;
-                    result.WalletId = lnbankWalletId;
-
                     break;
                 default:
                     throw new NotSupportedException(connectionType.ToString());
@@ -624,6 +644,10 @@ namespace BTCPayServer.Lightning
                     break;
                 case LightningConnectionType.LNbank:
                     builder.Append($";server={BaseUri};api-token={ApiToken};wallet-id={WalletId}");
+                    if (AllowInsecure)
+                    {
+                        builder.Append(";allowinsecure=true");
+                    }
                     break;
                 default:
                     throw new NotSupportedException(type);

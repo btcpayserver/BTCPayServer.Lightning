@@ -65,7 +65,7 @@ The `connectionString` encapsulates the necessary information BTCPay needs to co
 * `type=charge;server=https://charge:8080/;api-token=myapitoken...`
 * `type=charge;server=https://charge:8080/;cookiefilepath=/path/to/cookie...`
 * `type=eclair;server=http://127.0.0.1:4570;password=eclairpass`
-* `type=lnbank;server=http://lnbank:5000;api-token=myapitoken;wallet-id=MY-LNBANK-WALLET-ID`
+* `type=lnbank;server=http://lnbank:5000;api-token=myapitoken;wallet-id=MY-LNBANK-WALLET-ID;allowinsecure=true`
 * `type=lnbank;server=https://mybtcpay.com/lnbank;api-token=myapitoken;wallet-id=MY-LNBANK-WALLET-ID`
 
 Note that `bitcoin-host` and `bitcoin-auth` are optional, only useful if you want to call `ILightningClient.GetDepositAddress` on Eclair.
