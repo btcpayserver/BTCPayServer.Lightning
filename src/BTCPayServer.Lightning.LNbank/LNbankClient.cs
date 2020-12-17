@@ -14,21 +14,20 @@ namespace BTCPayServer.Lightning.LNbank
     public class LNbankClient
     {
         private readonly string _walletId;
+        private readonly string _apiToken;
+        private readonly Uri _baseUri;
         private readonly HttpClient _httpClient;
         private readonly JsonSerializer _serializer;
         private readonly Network _network;
+        private static readonly HttpClient SharedClient = new HttpClient();
 
         public LNbankClient(Uri baseUri, string apiToken, string walletId, Network network, HttpClient httpClient)
         {
+            _baseUri = baseUri;
+            _apiToken = apiToken;
             _walletId = walletId;
-            _httpClient = httpClient;
             _network = network;
-
-            // HTTP
-            _httpClient.BaseAddress = new Uri($"{baseUri}api/lightning/");
-            _httpClient.DefaultRequestHeaders.Add("User-Agent", "BTCPayServer.Lightning.LNbankLightningClient");
-            _httpClient.DefaultRequestHeaders.Accept.Add(new MediaTypeWithQualityHeaderValue("application/json"));
-            _httpClient.DefaultRequestHeaders.Authorization = new AuthenticationHeaderValue("Bearer", apiToken);
+            _httpClient = httpClient ?? SharedClient;
 
             // JSON
             var serializerSettings = new JsonSerializerSettings();
@@ -118,12 +117,18 @@ namespace BTCPayServer.Lightning.LNbank
                 var payloadJson = JsonConvert.SerializeObject(payload);
                 content = new StringContent(payloadJson, Encoding.UTF8, "application/json");
             }
+
             var req = new HttpRequestMessage
             {
-                RequestUri = new Uri(_httpClient.BaseAddress + path),
+                RequestUri = new Uri($"{_baseUri}api/lightning/{path}"),
                 Method = method,
                 Content = content
             };
+            req.Headers.Accept.Clear();
+            req.Headers.Accept.Add(new MediaTypeWithQualityHeaderValue("application/json"));
+            req.Headers.Authorization = new AuthenticationHeaderValue("Bearer", _apiToken);
+            req.Headers.Add("User-Agent", "BTCPayServer.Lightning.LNbankLightningClient");
+
             var res = await _httpClient.SendAsync(req, cancellation);
             var str = await res.Content.ReadAsStringAsync();
 
