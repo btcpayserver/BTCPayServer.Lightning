@@ -188,6 +188,13 @@ namespace BTCPayServer.Lightning
                         {
                         }
                         break;
+                    case 16:
+                        if (size != 52 * 5)
+                            break;
+                        if (PaymentSecret != null)
+                            throw new FormatException("Invalid BOLT11: Duplicate 's'");
+                        PaymentSecret = new uint256(reader.ReadBytes(32), false);
+                        break;
                     case 19:
                         if (size != 53 * 5)
                             break;
@@ -313,6 +320,7 @@ namespace BTCPayServer.Lightning
         public string ShortDescription { get; }
         public uint256 DescriptionHash { get; set; }
         public uint256 PaymentHash { get; }
+        public uint256 PaymentSecret { get; }
         public DateTimeOffset ExpiryDate { get; }
 
         public static bool TryParse(string str, out BOLT11PaymentRequest result, Network network)
