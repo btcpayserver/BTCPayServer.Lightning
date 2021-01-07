@@ -23,5 +23,9 @@ namespace BTCPayServer.Lightning
         {
             get; set;
         }
+        public string FundingTxIdIfAvailable
+        {
+            get; set;
+        }
     }
 }

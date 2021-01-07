@@ -373,7 +373,9 @@ namespace BTCPayServer.Lightning.LND
                     req.Sat_per_byte = ((int)openChannelRequest.FeeRate.SatoshiPerByte).ToString();
                 }
                 var result = await this.SwaggerClient.OpenChannelSyncAsync(req, cancellation);
-                return new OpenChannelResponse(OpenChannelResult.Ok);
+                var res = new OpenChannelResponse(OpenChannelResult.Ok);
+                res.FundingTxIdIfAvailable = result.Funding_txid_str;
+                return res;
             }
             catch(SwaggerException ex) when
                 (ex.AsLNDError() is LndError2 lndError &&
@@ -424,6 +426,22 @@ namespace BTCPayServer.Lightning.LND
                  lndError.Error.StartsWith("Number of pending channels exceed"))
             {
                 return new OpenChannelResponse(OpenChannelResult.NeedMoreConf);
+            }
+        }
+
+        public async Task<CloseChannelResponse> CloseChannel(CloseChannelRequest closeChannelRequest, CancellationToken cancellation)
+        {
+            CloseChannelRequest.AssertIsSane(closeChannelRequest);
+            cancellation.ThrowIfCancellationRequested();
+            try
+            {
+                var result = await this.SwaggerClient.CloseChannelAsync(closeChannelRequest.ChannelPointFundingTxIdStr, closeChannelRequest.ChannelPointOutputIndex, cancellation);
+                return new CloseChannelResponse(CloseChannelResult.Ok);
+            }
+            catch (Exception)
+            {
+                throw;
+                //return new CloseChannelResponse(CloseChannelResult.Failed);
             }
         }
 

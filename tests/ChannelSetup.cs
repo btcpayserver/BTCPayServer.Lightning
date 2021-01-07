@@ -14,9 +14,9 @@ namespace BTCPayServer.Lightning.Tests
     /// <summary>
     /// Utilities to connect channels on regtest 
     /// </summary>
-    public static class ConnectChannels
+    public static class ChannelSetup
     {
-        static ConnectChannels()
+        static ChannelSetup()
         {
             Logs = NullLogger.Instance;
         }
@@ -26,13 +26,13 @@ namespace BTCPayServer.Lightning.Tests
             set;
         }
         /// <summary>
-        /// Create channels from all senders to all receivers while mining on cashCow
+        /// Open channels from all senders to all receivers while mining on cashCow
         /// </summary>
         /// <param name="cashCow">The miner and liquidity source</param>
         /// <param name="senders">Senders of payment on Lightning Network</param>
         /// <param name="receivers">Receivers of payment on Lightning Network</param>
         /// <returns></returns>
-        public static async Task ConnectAll(RPCClient cashCow, IEnumerable<ILightningClient> senders, IEnumerable<ILightningClient> receivers)
+        public static async Task OpenAll(RPCClient cashCow, IEnumerable<ILightningClient> senders, IEnumerable<ILightningClient> receivers)
         {
             if(await cashCow.GetBlockCountAsync() <= cashCow.Network.Consensus.CoinbaseMaturity)
             {
@@ -44,11 +44,20 @@ namespace BTCPayServer.Lightning.Tests
             {
                 foreach(var dest in receivers)
                 {
-                    await CreateChannel(cashCow, sender, dest);
+                    await OpenChannel(cashCow, sender, dest);
                 }
             }
         }
-        public static async Task CreateChannel(RPCClient cashCow, ILightningClient sender, ILightningClient dest)
+
+        private static Dictionary<(ILightningClient, ILightningClient), string> availableFundingTxIds
+            = new Dictionary<(ILightningClient, ILightningClient), string>();
+
+        internal static string GetFundingTxIdForChannel(ILightningClient sender, ILightningClient dest)
+        {
+            return availableFundingTxIds.GetValueOrDefault((sender, dest));
+        }
+
+        public static async Task OpenChannel(RPCClient cashCow, ILightningClient sender, ILightningClient dest)
         {
             var destInfo = await dest.GetInfo();
             var destInvoice = await dest.CreateInvoice(1000, "EnsureConnectedToDestination", TimeSpan.FromSeconds(5000));
@@ -115,6 +124,8 @@ namespace BTCPayServer.Lightning.Tests
                     }
                     if(openChannel.Result == OpenChannelResult.Ok)
                     {
+                        if (!String.IsNullOrEmpty(openChannel.FundingTxIdIfAvailable))
+                            availableFundingTxIds[(sender, dest)] = openChannel.FundingTxIdIfAvailable;
                         // generate one block and a bit more time to confirm channel opening
                         await cashCow.GenerateAsync(1);
                         await WaitLNSynched(cashCow, sender);

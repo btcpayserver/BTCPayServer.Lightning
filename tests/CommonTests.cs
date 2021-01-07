@@ -15,6 +15,76 @@ namespace BTCPayServer.Lightning.Tests
 {
 	public class CommonTests
 	{
+		uint CountJsonObjects(string jsonString)
+		{
+			uint countJsonInner(char? head, string tail, uint braceNestingLevel, bool insideSubString, uint acc)
+			{
+				if (!head.HasValue)
+				{
+					if (braceNestingLevel != 0)
+						throw new ArgumentException("jsonString seems to be invalid");
+					return acc;
+				}
+
+				char? newHead = null;
+				if (!String.IsNullOrEmpty(tail))
+					newHead = tail.First();
+				var newTail = newHead == null ? null : tail.Substring(1);
+
+				if (!insideSubString && head == '"') {
+					return countJsonInner(newHead, newTail, braceNestingLevel, true, acc);
+				}
+				if (insideSubString)
+				{
+					if (head == '"')
+						return countJsonInner(newHead, newTail, braceNestingLevel, false, acc);
+					return countJsonInner(newHead, newTail, braceNestingLevel, insideSubString, acc);
+				}
+
+				if (head == '{')
+					return countJsonInner(newHead, newTail, braceNestingLevel + 1, insideSubString, acc);
+				else if (head == '}')
+				{
+					if (braceNestingLevel == 0)
+						throw new ArgumentException("jsonString seems to be invalid");
+					var newNestingLevel = braceNestingLevel - 1;
+					var newAcc = (newNestingLevel == 0) ? acc + 1 : acc;
+					return countJsonInner(newHead, newTail, newNestingLevel, insideSubString, newAcc);
+				}
+				else
+					return countJsonInner(newHead, newTail, braceNestingLevel, insideSubString, acc);
+			}
+
+			if (jsonString == string.Empty)
+				return 0;
+			if (!jsonString.StartsWith("{"))
+				throw new ArgumentException("jsonString should start with {");
+			if (!jsonString.EndsWith("}"))
+				throw new ArgumentException("jsonString should end with }");
+
+			return countJsonInner(jsonString.First(), jsonString.Substring(1), 0, false, 0);
+		}
+
+		[Fact()]
+		public void JsonCounter()
+		{
+			Assert.Equal(0u, CountJsonObjects(String.Empty));
+
+			Assert.Throws<ArgumentException>(() => CountJsonObjects("x")); // not startswith {
+			Assert.Throws<ArgumentException>(() => CountJsonObjects("{x")); // not endswith }
+
+			Assert.Equal(1u, CountJsonObjects("{ \"foo\": 1 }"));
+			Assert.Equal(2u, CountJsonObjects("{ \"foo\": 1 }{ \"bar\": 2 }"));
+			Assert.Equal(3u, CountJsonObjects("{ \"foo\": 1 }{ \"bar\": 2 }{ \"baz\": 3 }"));
+
+			// ends with bad nesting level
+			Assert.Throws<ArgumentException>(() => CountJsonObjects("{{x}"));
+			Assert.Throws<ArgumentException>(() => CountJsonObjects("{x}}"));
+
+			// edge case
+			Assert.Equal(1u, CountJsonObjects("{ \"foo\": \"{\" }"));
+		}
+
 #if DEBUG
 		public const int Timeout = 20 * 60 * 1000;
 #else
@@ -25,7 +95,7 @@ namespace BTCPayServer.Lightning.Tests
 			Docker = !string.IsNullOrEmpty(Environment.GetEnvironmentVariable("IN_DOCKER_CONTAINER"));
 			Logs.Tester = new XUnitLog(helper) { Name = "Tests" };
 			Logs.LogProvider = new XUnitLogProvider(helper);
-			ConnectChannels.Logs = Logs.LogProvider.CreateLogger("Tests");
+			ChannelSetup.Logs = Logs.LogProvider.CreateLogger("Tests");
 		}
 
 		public static bool Docker { get; set; }
@@ -271,7 +341,7 @@ namespace BTCPayServer.Lightning.Tests
 		{
 			await Task.WhenAll(WaitServersAreUp($"{test.Name} (Customer)", test.Customer), WaitServersAreUp($"{test.Name} (Merchant)", test.Merchant));
 			Tests.Logs.Tester.LogInformation($"{test.Name}: Connecting channels...");
-			await ConnectChannels.ConnectAll(Tester.CreateRPC(), new[] { test.Customer }, new[] { test.Merchant });
+			await ChannelSetup.OpenAll(Tester.CreateRPC(), new[] { test.Customer }, new[] { test.Merchant });
 			Tests.Logs.Tester.LogInformation($"{test.Name}: Channels connected");
 		}
 
@@ -535,6 +605,31 @@ namespace BTCPayServer.Lightning.Tests
 
 			Assert.True(LightningConnectionString.TryParse("type=charge;server=http://api-token:foiewnccewuify@127.0.0.1:54938/;allowinsecure=true", out conn));
 			Assert.Equal("type=charge;server=http://127.0.0.1:54938/;api-token=foiewnccewuify;allowinsecure=true", conn.ToString());
+		}
+
+		[Fact(Timeout = Timeout)]
+		public async Task CanCloseLndChannel()
+		{
+			// TODO: test in all LN implementations, not just LND
+			//foreach (var test in Tester.GetTestedPairs())
+			//{
+				var test = Tester.GetTestedLndPair();
+				await EnsureConnectedToDestinations(test);
+				var customer = (ILightningClient)test.Customer;
+				var senderChannel = (await customer.ListChannels()).First();
+
+				var senderInfo = await customer.GetInfo();
+				var fundingTxIdForChannel = ChannelSetup.GetFundingTxIdForChannel(customer, test.Merchant);
+				if (String.IsNullOrEmpty(fundingTxIdForChannel))
+					throw new InvalidOperationException("Could not find funding Tx ID of channel");
+				var closeChannelRequest = new CloseChannelRequest()
+				{
+					NodeInfo = senderInfo.NodeInfoList.First(),
+					ChannelPointOutputIndex = senderChannel.ChannelPoint.N,
+					ChannelPointFundingTxIdStr = fundingTxIdForChannel
+				};
+				await test.Merchant.CloseChannel(closeChannelRequest, CancellationToken.None);
+			//}
 		}
 	}
 }
