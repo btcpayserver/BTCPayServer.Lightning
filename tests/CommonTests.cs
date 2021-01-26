@@ -104,7 +104,9 @@ namespace BTCPayServer.Lightning.Tests
 
 		private async Task WaitServersAreUp(string name, ILightningClient client)
 		{
-			await Tester.CreateRPC().GenerateAsync(1);
+			var rpc = Tester.CreateRPC();
+			await rpc.ScanRPCCapabilitiesAsync();
+			await rpc.GenerateAsync(1);
 			Exception realException = null;
 			using (var cts = new CancellationTokenSource(TimeSpan.FromSeconds(Timeout - 5)))
 			{
@@ -271,7 +273,9 @@ namespace BTCPayServer.Lightning.Tests
 		{
 			await Task.WhenAll(WaitServersAreUp($"{test.Name} (Customer)", test.Customer), WaitServersAreUp($"{test.Name} (Merchant)", test.Merchant));
 			Tests.Logs.Tester.LogInformation($"{test.Name}: Connecting channels...");
-			await ConnectChannels.ConnectAll(Tester.CreateRPC(), new[] { test.Customer }, new[] { test.Merchant });
+			var cashcow = Tester.CreateRPC();
+			await cashcow.ScanRPCCapabilitiesAsync();
+			await ConnectChannels.ConnectAll(cashcow, new[] { test.Customer }, new[] { test.Merchant });
 			Tests.Logs.Tester.LogInformation($"{test.Name}: Channels connected");
 		}
 

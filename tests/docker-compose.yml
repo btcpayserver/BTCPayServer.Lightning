@@ -4,14 +4,16 @@ services:
 
   bitcoind:
     restart: unless-stopped
-    image: btcpayserver/bitcoin:0.20.1
+    image: btcpayserver/bitcoin:0.21.0
     environment:
       BITCOIN_NETWORK: regtest
+      BITCOIN_WALLETDIR: "/data/wallets"
       BITCOIN_EXTRA_ARGS: |
         rpcuser=ceiwHEbqWI83
         rpcpassword=DwubwWsoo3
         rpcport=43782
         rpcbind=0.0.0.0:43782
+        rpcallowip=0.0.0.0/0
         port=39388
         whitelist=0.0.0.0/0
         zmqpubrawblock=tcp://0.0.0.0:28332
@@ -31,7 +33,7 @@ services:
   lightningd:
     restart: unless-stopped
     stop_signal: SIGKILL
-    image: btcpayserver/lightning:v0.9.0-1-dev
+    image: btcpayserver/lightning:v0.9.3-dev
     environment:
       EXPOSE_TCP: "true"
       LIGHTNINGD_NETWORK: regtest
@@ -58,7 +60,7 @@ services:
   lightningd_dest:
     restart: unless-stopped
     stop_signal: SIGKILL
-    image: btcpayserver/lightning:v0.9.0-1-dev
+    image: btcpayserver/lightning:v0.9.3-dev
     environment:
       EXPOSE_TCP: "true"
       LIGHTNINGD_NETWORK: regtest
