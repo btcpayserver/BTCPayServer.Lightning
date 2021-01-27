@@ -203,7 +203,7 @@ namespace BTCPayServer.Lightning.Eclair
             {
                 await _eclairClient.Connect(nodeInfo.NodeId, nodeInfo.Host, nodeInfo.Port);
             }
-            catch (Eclair.EclairClient.EclairApiException ex)
+            catch (Eclair.EclairClient.EclairApiException)
             {
                 return ConnectionResult.CouldNotConnect;
             }

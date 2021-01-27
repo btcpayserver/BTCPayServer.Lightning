@@ -138,7 +138,8 @@ namespace BTCPayServer.Lightning.Tests
 			{
 				await EnsureConnectedToDestinations(test);
 				Logs.Tester.LogInformation($"{test.Name}: {nameof(CanPayInvoiceAndReceive)}");
-				var invoice = await test.Merchant.CreateInvoice(10000, "CanPayInvoiceAndReceive", TimeSpan.FromSeconds(5000));
+				var amount = LightMoney.Satoshis(1000);
+				var invoice = await test.Merchant.CreateInvoice(amount, "CanPayInvoiceAndReceive", TimeSpan.FromSeconds(5000));
 				using (var listener = await test.Merchant.Listen())
 				{
 					var waiting = listener.WaitInvoice(default);
@@ -148,6 +149,8 @@ namespace BTCPayServer.Lightning.Tests
 					Assert.Equal(LightningInvoiceStatus.Paid, paidInvoice.Status);
 					var retrievedInvoice = await test.Merchant.GetInvoice(invoice.Id);
 					Assert.Equal(LightningInvoiceStatus.Paid, retrievedInvoice.Status);
+					Assert.Equal(amount, paidInvoice.Amount);
+					Assert.Equal(amount, paidInvoice.AmountReceived);
 				}
 			}
 		}

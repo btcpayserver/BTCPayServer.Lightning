@@ -44,13 +44,13 @@ namespace BTCPayServer.Lightning
     }
     public class BOLT11PaymentRequest
     {
-        static Dictionary<(string CrytpoCode, NetworkType), string> _Prefixes;
+        static Dictionary<(string CrytpoCode, ChainName), string> _Prefixes;
         static BOLT11PaymentRequest()
         {
-            _Prefixes = new Dictionary<(string CrytpoCode, NetworkType), string>();
-            _Prefixes.Add(("BTC", NetworkType.Mainnet), "lnbc");
-            _Prefixes.Add(("BTC", NetworkType.Testnet), "lntb");
-            _Prefixes.Add(("BTC", NetworkType.Regtest), "lnbcrt");
+            _Prefixes = new Dictionary<(string CrytpoCode, ChainName), string>();
+            _Prefixes.Add(("BTC", ChainName.Mainnet), "lnbc");
+            _Prefixes.Add(("BTC", ChainName.Testnet), "lntb");
+            _Prefixes.Add(("BTC", ChainName.Regtest), "lnbcrt");
         }
         readonly static char[] digits = new[] { '0', '1', '2', '3', '4', '5', '6', '7', '8', '9' };
 
@@ -118,7 +118,7 @@ namespace BTCPayServer.Lightning
                     throw new FormatException("Invalid BOLT11: No prefix");
             }
 
-            if (_Prefixes.TryGetValue((network.NetworkSet.CryptoCode, network.NetworkType), out var expectedPrefix) &&
+            if (_Prefixes.TryGetValue((network.NetworkSet.CryptoCode, network.ChainName), out var expectedPrefix) &&
                 expectedPrefix != Prefix)
                 throw new FormatException("Invalid BOLT11: Invalid prefix");
 
