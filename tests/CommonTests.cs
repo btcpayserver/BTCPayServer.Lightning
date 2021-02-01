@@ -56,14 +56,14 @@ namespace BTCPayServer.Lightning.Tests
 				? new[]
 				{
 					"type=charge;server=http://api-token:foiewnccewuify@charge:9112;allowinsecure=true",
-					"type=lnd-rest;server=https://lnd_dest:8080;allowinsecure=true",
+					"type=lnd-rest;server=http://lnd_dest:8080;allowinsecure=true",
 					"type=clightning;server=tcp://lightningd:9835",
 					"type=eclair;server=http://eclair:8080;password=bukkake"
 				}
 				: new[]
 				{
 					"type=charge;server=http://api-token:foiewnccewuify@127.0.0.1:37462;allowinsecure=true",
-					"type=lnd-rest;server=https://127.0.0.1:42802;allowinsecure=true",
+					"type=lnd-rest;server=http://127.0.0.1:42802;allowinsecure=true",
 					"type=clightning;server=tcp://127.0.0.1:48532",
 					"type=eclair;server=http://127.0.0.1:4570;password=bukkake"
 				};

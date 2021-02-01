@@ -105,16 +105,19 @@ services:
 
   lnd:
     restart: unless-stopped
-    image: btcpayserver/lnd:v0.11.0-beta
+    image: btcpayserver/lnd:v0.12.0-beta
     environment:
       LND_CHAIN: "btc"
       LND_ENVIRONMENT: "regtest"
+      LND_REST_LISTEN_HOST: http://lnd:8080
       LND_EXTRA_ARGS: |
-        restlisten=0.0.0.0:8080
+        restlisten=lnd:8080
         rpclisten=127.0.0.1:10008
-        rpclisten=0.0.0.0:10009
+        rpclisten=lnd:10009
         bitcoin.node=bitcoind
         bitcoind.rpchost=bitcoind:43782
+        bitcoind.rpcuser=ceiwHEbqWI83
+        bitcoind.rpcpass=DwubwWsoo3
         bitcoind.zmqpubrawblock=tcp://bitcoind:28332
         bitcoind.zmqpubrawtx=tcp://bitcoind:28333
         externalip=lnd:9735
@@ -122,6 +125,7 @@ services:
         no-macaroons=1
         debuglevel=debug
         trickledelay=1000
+        no-rest-tls=1
     ports:
       - "32736:8080"
     expose:
@@ -134,16 +138,19 @@ services:
 
   lnd_dest:
     restart: unless-stopped
-    image: btcpayserver/lnd:v0.11.0-beta
+    image: btcpayserver/lnd:v0.12.0-beta
     environment:
       LND_CHAIN: "btc"
       LND_ENVIRONMENT: "regtest"
+      LND_REST_LISTEN_HOST: http://lnd_dest:8080
       LND_EXTRA_ARGS: |
-        restlisten=0.0.0.0:8080
+        restlisten=lnd_dest:8080
         rpclisten=127.0.0.1:10008
-        rpclisten=0.0.0.0:10009
+        rpclisten=lnd_dest:10009
         bitcoin.node=bitcoind
         bitcoind.rpchost=bitcoind:43782
+        bitcoind.rpcuser=ceiwHEbqWI83
+        bitcoind.rpcpass=DwubwWsoo3
         bitcoind.zmqpubrawblock=tcp://bitcoind:28332
         bitcoind.zmqpubrawtx=tcp://bitcoind:28333
         externalip=lnd_dest:9735
@@ -151,6 +158,7 @@ services:
         no-macaroons=1
         debuglevel=debug
         trickledelay=1000
+        no-rest-tls=1
     ports:
       - "42802:8080"
     expose:
