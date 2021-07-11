@@ -20,4 +20,20 @@
 		<ProjectReference Include="..\BTCPayServer.Lightning.Common\BTCPayServer.Lightning.Common.csproj" />
 	</ItemGroup>
 
+	<Target Name="GenerateNSwagClient">
+		<PropertyGroup>
+			<LndVersion>v0.12.0-beta</LndVersion>
+			<InputSwagger>lnd.rpc.swagger.$(LndVersion).json</InputSwagger>
+			<ClientName>LndSwaggerClient</ClientName>
+			<GeneratedSwaggerClientFile Condition="'$(GeneratedSwaggerClientFile)' ==''">LndSwaggerClient.cs</GeneratedSwaggerClientFile>
+		</PropertyGroup>
+		<Exec Command="dotnet nswag run nswag.json /variables:LndVersion=$(LndVersion),InputSwagger=$(InputSwagger),ClientName=$(ClientName),ClientNamespace=$(RootNamespace),GeneratedSwaggerClientFile=$(GeneratedSwaggerClientFile)" />
+	</Target>
+	
+	<Target Name="IncludeNSwagClient" BeforeTargets="CoreCompile" DependsOnTargets="GenerateNSwagClient">
+		<ItemGroup Condition="Exists('$(GeneratedSwaggerClientFile)')">
+		<Compile Include="$(GeneratedSwaggerClientFile)" />
+		<FileWrites Include="$(GeneratedSwaggerClientFile)" />
+		</ItemGroup>
+	</Target>
 </Project>
