@@ -1,4 +1,4 @@
-﻿using System;
+using System;
 using System.Threading.Tasks;
 using Xunit;
 using System.Linq;
@@ -294,6 +294,8 @@ namespace BTCPayServer.Lightning.Tests
 			Assert.Equal(1496314658UL + 60 * 60, Utils.DateTimeToUnixTime(p.ExpiryDate));
 			Assert.Equal("0001020304050607080900010203040506070809000102030405060708090102", p.PaymentHash.ToString());
 			Assert.Equal("Please consider supporting this project", p.ShortDescription);
+			Assert.Null(p.PaymentSecret);
+            Assert.True(p.FeatureBits.HasFlag(FeatureBits.None));
 
 			var preimage = Encoders.Hex.DecodeData("6c6e62630b25fe64410d00004080c1014181c20240004080c1014181c20240004080c1014181c202404081a1fa83632b0b9b29031b7b739b4b232b91039bab83837b93a34b733903a3434b990383937b532b1ba0");
 			var hash = new uint256(Encoders.Hex.DecodeData("c3d4e83f646fa79a393d75277b1d858db1d1f7ab7137dcb7835db2ecd518e1c9"));
@@ -303,6 +305,20 @@ namespace BTCPayServer.Lightning.Tests
 			Assert.True(p.GetPayeePubKey().Verify(hash, p.ECDSASignature));
 			Assert.True(p.VerifySignature());
 			Assert.Equal(key.PubKey, p.GetPayeePubKey());
+
+            p = BOLT11PaymentRequest.Parse("lnbcrt20u1psd66dppp5m4ughz9keyptj80qcn35cx9w52p7gc8eyx4m6y5456jlhm04wfvsdqqcqzpgxqyz5vqsp5pdsxhsnrs69n940373fnec2zxw5yzlksnev40ejcq39lnju5lt3s9qyyssqpq760qvf46y3cch948wau8e5ym0zungnqfvdx5wruy6f0hru2pp9txtc9up2lfc439a2xuz6nvgjw40vsddhywjpc5qmm0q3dj4m3dcqxzjjeg", Network.RegTest);
+            Assert.Equal("lnbcrt", p.Prefix);
+            Assert.Equal(40, p.MinFinalCLTVExpiry);
+            Assert.Equal(LightMoney.FromUnit(2000m, LightMoneyUnit.Satoshi), p.MinimumAmount);
+            Assert.Equal(LightMoney.FromUnit(2000m * 0.00000001m, LightMoneyUnit.BTC), p.MinimumAmount);
+            Assert.Equal(1625123233UL, Utils.DateTimeToUnixTime(p.Timestamp));
+            Assert.Equal(1625123233UL + 24*60*60, Utils.DateTimeToUnixTime(p.ExpiryDate));
+            Assert.Equal("dd788b88b6c902b91de0c4e34c18aea283e460f921abbd1295a6a5fbedf57259", p.PaymentHash.ToString());
+            Assert.Equal("", p.ShortDescription);
+            Assert.Equal("0b606bc263868b32d5f1f4533ce14233a8417ed09e5957e658044bf9cb94fae3", p.PaymentSecret.ToString());
+            Assert.True((p.FeatureBits | (FeatureBits.MPPOptional | FeatureBits.PaymentAddrRequired | FeatureBits.TLVOnionPayloadOptional)) ==
+                (FeatureBits.MPPOptional | FeatureBits.PaymentAddrRequired | FeatureBits.TLVOnionPayloadOptional));
+			Assert.True(p.VerifySignature());
 
 			p = BOLT11PaymentRequest.Parse("lnbc2500u1pvjluezpp5qqqsyqcyq5rqwzqfqqqsyqcyq5rqwzqfqqqsyqcyq5rqwzqfqypqdq5xysxxatsyp3k7enxv4jsxqzpuaztrnwngzn3kdzw5hydlzf03qdgm2hdq27cqv3agm2awhz5se903vruatfhq77w3ls4evs3ch9zw97j25emudupq63nyw24cg27h2rspfj9srp", Network.Main);
 			Assert.Equal("lnbc", p.Prefix);

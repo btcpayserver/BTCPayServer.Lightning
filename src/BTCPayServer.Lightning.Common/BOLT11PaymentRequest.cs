@@ -1,4 +1,4 @@
-﻿using System;
+using System;
 using System.Linq;
 using System.Collections.Generic;
 using System.Text;
@@ -42,6 +42,7 @@ namespace BTCPayServer.Lightning
         public decimal FeeProportional { get; set; }
         public ushort CLTVExpiryDelay { get; }
     }
+
     public class BOLT11PaymentRequest
     {
         static Dictionary<(string CrytpoCode, ChainName), string> _Prefixes;
@@ -158,26 +159,29 @@ namespace BTCPayServer.Lightning
             MinFinalCLTVExpiry = 9;
             var fallbackAddresses = new List<BitcoinAddress>();
             var routes = new List<RouteInformation>();
+            var features = FeatureBits.None;
             while (reader.Position != reader.Count - 520 - 30)
             {
                 AssertSize(5 + 10);
-                var tag = reader.ReadULongBE(5);
+                var tag = (Bolt11FieldType)reader.ReadULongBE(5);
                 var size = (int)(reader.ReadULongBE(10) * 5);
                 AssertSize(size);
                 var afterReadPosition = reader.Position + size;
                 switch (tag)
                 {
-                    case 1:
+                    case Bolt11FieldType.P:
                         if (size != 52 * 5)
                             break;
                         if (PaymentHash != null)
                             throw new FormatException("Invalid BOLT11: Duplicate 'p'");
                         PaymentHash = new uint256(reader.ReadBytes(32), false);
                         break;
-                    case 6:
+
+                    case Bolt11FieldType.X:
                         ExpiryDate = Timestamp + TimeSpan.FromSeconds(reader.ReadULongBE(size));
                         break;
-                    case 13:
+
+                    case Bolt11FieldType.D:
                         var bytesCount = size / 8;
                         var bytes = reader.ReadBytes(bytesCount);
                         try
@@ -188,25 +192,29 @@ namespace BTCPayServer.Lightning
                         {
                         }
                         break;
-                    case 16:
+
+                    case Bolt11FieldType.S:
                         if (size != 52 * 5)
                             break;
                         if (PaymentSecret != null)
                             throw new FormatException("Invalid BOLT11: Duplicate 's'");
                         PaymentSecret = new uint256(reader.ReadBytes(32), false);
                         break;
-                    case 19:
+
+                    case Bolt11FieldType.N:
                         if (size != 53 * 5)
                             break;
                         ExplicitPayeePubKey = new PubKey(reader.ReadBytes(33));
                         break;
-                    case 24:
+
+                    case Bolt11FieldType.C:
                         var value = reader.ReadULongBE(size);
                         if (value > int.MaxValue)
                             break;
                         MinFinalCLTVExpiry = (int)value;
                         break;
-                    case 9:
+
+                    case Bolt11FieldType.F:
                         if (size < 5)
                             break;
                         var version = reader.ReadULongBE(5);
@@ -236,12 +244,14 @@ namespace BTCPayServer.Lightning
                                 break;
                         }
                         break;
-                    case 23:
+
+                    case Bolt11FieldType.H:
                         if (size != 52 * 5)
                             break;
                         DescriptionHash = new uint256(reader.ReadBytes(32), true);
                         break;
-                    case 3:
+
+                    case Bolt11FieldType.R:
                         if (size < 264 + 64 + 32 + 32 + 16)
                             break;
                         var positionBefore = reader.Position;
@@ -250,6 +260,22 @@ namespace BTCPayServer.Lightning
                         if (size - readen >= 5)
                             break;
                         routes.Add(routeInformation);
+                        break;
+
+                    case Bolt11FieldType.Nine:
+                        if (size < 5)
+                        {
+                            break;
+                        }
+
+                        // Read which feature bits are set from right-to-left.
+                        for (var i = size - 1; i >= 0; i--)
+                        {
+                            if (reader.Read())
+                            {
+                                features |= (FeatureBits)(1 << i);
+                            }
+                        }
                         break;
                 }
                 var skip = afterReadPosition - reader.Position;
@@ -266,6 +292,7 @@ namespace BTCPayServer.Lightning
             Hash = new uint256(Hashes.SHA256(hashedData));
             Routes = routes;
             FallbackAddresses = fallbackAddresses;
+            FeatureBits = features;
         }
 
         public bool VerifySignature()
@@ -273,6 +300,53 @@ namespace BTCPayServer.Lightning
             if (ExplicitPayeePubKey == null)
                 return true; // it is useless to verify a signature with the recovered pubkey, it will always succeed
             return ExplicitPayeePubKey.Verify(Hash, ECDSASignature);
+        }
+
+        // Bolt11FieldType defines the byte values that correspond to the supported
+        // field types of a Bolt11 invoice.
+        // The field name is the character representing that 5-bit value in the
+        // bech32 string.
+        private enum Bolt11FieldType : ulong
+        {
+            // 256-bit SHA256 payment_hash.
+            P = 1,
+
+            // Expiry time in seconds.
+            X = 6,
+
+            // Short description of purpose of payment (UTF-8).
+            D = 13,
+
+            // This 256-bit secret prevents forwarding nodes from probing the
+            // payment recipient.
+            S = 16,
+
+            // 33-byte public key of the payee node.
+            N = 19,
+
+            // min_final_cltv_expiry to use for the last HTLC in the route.
+            C = 24,
+
+            // Fallback on-chain address: for Bitcoin, this starts with
+            // a 5-bit version and contains a witness program or P2PKH
+            // or P2SH address.
+            F = 9,
+
+            // 256-bit description of purpose of payment (SHA256).
+            H = 23,
+
+            // One or more entries containing extra routing information
+            // for a private route; there may be more than one r field
+            //  * pubkey (264 bits)
+            //  * short_channel_id (64 bits)
+            //  * fee_base_msat (32 bits, big-endian)
+            //  * fee_proportional_millionths (32 bits, big-endian)
+            //  * cltv_expiry_delta (16 bits, big-endian)
+            R = 3,
+
+            // One or more 5-bit values containing features supported or
+            // required for receiving this payment.
+            Nine = 5
         }
 
         public int MinFinalCLTVExpiry { get; }
@@ -322,6 +396,7 @@ namespace BTCPayServer.Lightning
         public uint256 PaymentHash { get; }
         public uint256 PaymentSecret { get; }
         public DateTimeOffset ExpiryDate { get; }
+        public FeatureBits FeatureBits { get; }
 
         public static bool TryParse(string str, out BOLT11PaymentRequest result, Network network)
         {
