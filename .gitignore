@@ -293,3 +293,7 @@ BTCPayServer/wwwroot/bundles/*
 !BTCPayServer/wwwroot/bundles/.gitignore
 
 .vscode
+
+src/BTCPayServer.Lightning.LND/LndSwaggerClient.cs
+src/BTCPayServer.Lightning.LND/lnd.rpc.swagger.*.json
+

@@ -216,7 +216,7 @@ namespace BTCPayServer.Lightning.LND
 
         async Task<LightningChannel[]> ILightningClient.ListChannels(CancellationToken token)
         {
-            var resp = await this.SwaggerClient.ListChannelsAsync(false, false, false, false, token);
+            var resp = await this.SwaggerClient.ListChannelsAsync(false, false, false, false, new byte[0], token);
             if (resp.Channels == null)
                 return new LightningChannel[] {};
             return (from c in resp.Channels
@@ -280,7 +280,7 @@ namespace BTCPayServer.Lightning.LND
                 // TODO: Verify id corresponds to R_hash
                 Id = BitString(resp.R_hash),
                 Amount = new LightMoney(ConvertInv.ToInt64(resp.Value), LightMoneyUnit.Satoshi),
-                AmountReceived = string.IsNullOrWhiteSpace(resp.AmountPaid) ? null : new LightMoney(ConvertInv.ToInt64(resp.AmountPaid), LightMoneyUnit.MilliSatoshi),
+                AmountReceived = string.IsNullOrWhiteSpace(resp.Amt_paid_msat) ? null : new LightMoney(ConvertInv.ToInt64(resp.Amt_paid_msat), LightMoneyUnit.MilliSatoshi),
                 BOLT11 = resp.Payment_request,
                 Status = LightningInvoiceStatus.Unpaid
             };
@@ -429,19 +429,32 @@ namespace BTCPayServer.Lightning.LND
 
         async Task<BitcoinAddress> ILightningClient.GetDepositAddress()
         {
-            return BitcoinAddress.Create((await SwaggerClient.NewWitnessAddressAsync()).Address, Network);
+            return BitcoinAddress.Create((await SwaggerClient.NewAddressAsync(Type.WITNESS_PUBKEY_HASH)).Address, Network);
         }
 
         async Task<ConnectionResult> ILightningClient.ConnectTo(NodeInfo nodeInfo)
         {
-            return await SwaggerClient.ConnectPeerAsync(new LnrpcConnectPeerRequest()
+            try
             {
-                Addr = new LnrpcLightningAddress()
+                await SwaggerClient.ConnectPeerAsync(new LnrpcConnectPeerRequest()
                 {
-                    Host = $"{nodeInfo.Host}:{nodeInfo.Port}",
-                    Pubkey = nodeInfo.NodeId.ToString()
-                }
-            });
+                    Addr = new LnrpcLightningAddress()
+                    {
+                        Host = $"{nodeInfo.Host}:{nodeInfo.Port}",
+                        Pubkey = nodeInfo.NodeId.ToString()
+                    }
+                });
+            }
+            catch (SwaggerException ex) when (
+                ex.AsLNDError() is LndError2 lndError &&
+                 lndError.Error.StartsWith("already connected to peer"))
+            {
+                return ConnectionResult.Ok;
+            }
+            catch (SwaggerException) {
+                return ConnectionResult.CouldNotConnect;
+            }
+            return ConnectionResult.Ok;
         }
 
         // Invariant culture conversion
