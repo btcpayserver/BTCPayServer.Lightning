@@ -88,12 +88,12 @@ namespace BTCPayServer.Lightning.Tests
                         var address = await sender.GetDepositAddress();
 						try
 						{
-							await cashCow.SendToAddressAsync(address, Money.Coins(1.0m), null, null, true);
+							await cashCow.SendToAddressAsync(address, Money.Coins(1.0m), new SendToAddressParameters() {  Replaceable = true });
 						}
 						catch (RPCException ex) when (ex.RPCCode == RPCErrorCode.RPC_WALLET_INSUFFICIENT_FUNDS || ex.RPCCode == RPCErrorCode.RPC_WALLET_ERROR)
 						{
 							await cashCow.GenerateAsync(1);
-							await cashCow.SendToAddressAsync(address, Money.Coins(1.0m), null, null, true);
+							await cashCow.SendToAddressAsync(address, Money.Coins(1.0m), new SendToAddressParameters() { Replaceable = true });
 						}
                         await cashCow.GenerateAsync(10);
                         await WaitLNSynched(cashCow, sender);
