@@ -230,7 +230,8 @@ namespace BTCPayServer.Lightning.CLightning
 		public async Task<BitcoinAddress> NewAddressAsync()
 		{
 			var obj = await SendCommandAsync<JObject>("newaddr");
-			return BitcoinAddress.Create(obj.Property("address").Value.Value<string>(), Network);
+			var addr = obj.ContainsKey("address") ? "address": "bech32";
+			return BitcoinAddress.Create(obj.Property(addr).Value.Value<string>(), Network);
 		}
 
 		public async Task<CLightningChannel[]> ListChannelsAsync(ShortChannelId ShortChannelId = null, CancellationToken cancellation = default(CancellationToken))
