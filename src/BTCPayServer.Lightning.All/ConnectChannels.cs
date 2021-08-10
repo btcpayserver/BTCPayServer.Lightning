@@ -69,6 +69,9 @@ namespace BTCPayServer.Lightning.Tests
                     if (pendingChannels.Any(a => a.RemoteNode == destInfo.NodeInfoList[0].NodeId))
                     {
                         Logs.LogInformation($"Channel to {destInfo.NodeInfoList[0]} is already open(ing)");
+                        
+                        Logs.LogInformation($"Attempting to reconnect Result: {await sender.ConnectTo(destInfo.NodeInfoList.First())}");
+                        
                         await cashCow.GenerateAsync(1);
                         await WaitLNSynched(cashCow, sender);
                         await WaitLNSynched(cashCow, dest);
