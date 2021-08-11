@@ -80,6 +80,10 @@ namespace BTCPayServer.Lightning.Ptarmigan
         }
         Task<LightningInvoice> ILightningClient.CreateInvoice(CreateInvoiceParams req, CancellationToken cancellation)
         {
+            if (req.DescriptionHash != null)
+            {
+                throw new NotSupportedException();
+            }
             return (this as ILightningClient).CreateInvoice(req.Amount, req.Description, req.Expiry, cancellation);
         }
 

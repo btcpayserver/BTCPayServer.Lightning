@@ -266,6 +266,17 @@ namespace BTCPayServer.Lightning.CLightning
 		}
 
 		static NBitcoin.DataEncoders.DataEncoder InvoiceIdEncoder = NBitcoin.DataEncoders.Encoders.Base58;
+		
+		async Task<LightningInvoice> CreateInvoice(LightMoney amount, uint256 descriptionHash, TimeSpan expiry, CancellationToken cancellation)
+		{
+			var id = InvoiceIdEncoder.EncodeData(RandomUtils.GetBytes(20));
+			var invoice = await SendCommandAsync<CLightningInvoice>("invoicewithdescriptionhash", new object[] { amount.MilliSatoshi, id, descriptionHash.ToString(), Math.Max(0, (int)expiry.TotalSeconds) }, cancellation: cancellation);
+			invoice.Label = id;
+			invoice.MilliSatoshi = amount;
+			invoice.Status = "unpaid";
+			return ToLightningInvoice(invoice);
+		}
+		
 		async Task<LightningInvoice> ILightningClient.CreateInvoice(LightMoney amount, string description, TimeSpan expiry, CancellationToken cancellation)
 		{
 			var id = InvoiceIdEncoder.EncodeData(RandomUtils.GetBytes(20));
@@ -277,7 +288,7 @@ namespace BTCPayServer.Lightning.CLightning
 		}
 		Task<LightningInvoice> ILightningClient.CreateInvoice(CreateInvoiceParams req, CancellationToken cancellation)
 		{
-			return (this as ILightningClient).CreateInvoice(req.Amount, req.Description, req.Expiry, cancellation);
+			return req.DescriptionHash != null ? CreateInvoice(req.Amount, req.DescriptionHash, req.Expiry, cancellation) : (this as ILightningClient).CreateInvoice(req.Amount, req.Description, req.Expiry, cancellation);
 		}
 
 		async Task<ConnectionResult> ILightningClient.ConnectTo(NodeInfo nodeInfo)
