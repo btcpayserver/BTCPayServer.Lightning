@@ -15,6 +15,7 @@ using BTCPayServer.Lightning.Eclair;
 using BTCPayServer.Lightning.LND;
 using BTCPayServer.Lightning.Ptarmigan;
 using NBitcoin.Crypto;
+using Newtonsoft.Json.Linq;
 using Xunit.Abstractions;
 
 namespace BTCPayServer.Lightning.Tests
@@ -75,12 +76,16 @@ namespace BTCPayServer.Lightning.Tests
 						Logs.Tester.LogInformation($"{client.Name}: {nameof(CanCreateInvoiceWithDescriptionHash)}");
 						var createdInvoice = await CreateWithHash(client.Client);
 						var retrievedInvoice = await client.Client.GetInvoice(createdInvoice.Id);
+						Logs.Tester.LogInformation(JObject.FromObject(createdInvoice).ToString());
+						Logs.Tester.LogInformation(JObject.FromObject(retrievedInvoice).ToString());
 						AssertUnpaid(createdInvoice);
-						Assert.True(createdInvoice.ExpiresAt > DateTimeOffset.UtcNow);
 						AssertUnpaid(retrievedInvoice);
-						Assert.True(retrievedInvoice.ExpiresAt > DateTimeOffset.UtcNow);
-						Assert.Equal(hashToUse, BOLT11PaymentRequest.Parse(createdInvoice.BOLT11, Network.RegTest).DescriptionHash);
-						Assert.Equal(hashToUse, BOLT11PaymentRequest.Parse(retrievedInvoice.BOLT11, Network.RegTest).DescriptionHash);
+						var createdInvoiceBOLT = BOLT11PaymentRequest.Parse(createdInvoice.BOLT11, Network.RegTest);
+						var retrievedInvoiceeBOLT = BOLT11PaymentRequest.Parse(retrievedInvoice.BOLT11, Network.RegTest);
+						Assert.Equal(createdInvoiceBOLT.PaymentHash, retrievedInvoiceeBOLT.PaymentHash);
+						Assert.Equal(createdInvoiceBOLT.DescriptionHash, hashToUse);
+						
+						
 						break;
 					default:
 						await Assert.ThrowsAsync<NotSupportedException>(async () =>
