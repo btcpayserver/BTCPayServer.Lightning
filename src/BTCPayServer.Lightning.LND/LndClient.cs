@@ -198,6 +198,7 @@ namespace BTCPayServer.Lightning.LND
             {
                 Value = strAmount,
                 Memo = req.Description,
+                Description_hash = req.DescriptionHash?.ToBytes(),
                 Expiry = strExpiry,
                 Private = req.PrivateRouteHints
             };

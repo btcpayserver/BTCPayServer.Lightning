@@ -7,8 +7,15 @@ using NBitcoin.RPC;
 using NBitcoin.DataEncoders;
 using System.Security.Cryptography.X509Certificates;
 using System.Security.Cryptography;
+using System.Text;
 using System.Threading;
+using BTCPayServer.Lightning.Charge;
+using BTCPayServer.Lightning.CLightning;
+using BTCPayServer.Lightning.Eclair;
+using BTCPayServer.Lightning.LND;
+using BTCPayServer.Lightning.Ptarmigan;
 using NBitcoin.Crypto;
+using Newtonsoft.Json.Linq;
 using Xunit.Abstractions;
 
 namespace BTCPayServer.Lightning.Tests
@@ -44,6 +51,50 @@ namespace BTCPayServer.Lightning.Tests
 				Assert.True(createdInvoice.ExpiresAt > DateTimeOffset.UtcNow);
 				AssertUnpaid(retrievedInvoice);
 				Assert.True(retrievedInvoice.ExpiresAt > DateTimeOffset.UtcNow);
+			}
+		}
+		
+		[Fact(Timeout = Timeout)]
+		public async Task CanCreateInvoiceWithDescriptionHash()
+		{
+			var hashToUse = 
+				new uint256(
+						new SHA256Managed().ComputeHash(Encoding.UTF8.GetBytes("CanCreateInvoiceWithDescriptionHash")));
+			
+			async Task<LightningInvoice> CreateWithHash(ILightningClient lightningClient)
+			{
+				return await lightningClient.CreateInvoice(new CreateInvoiceParams(10000, hashToUse,
+					TimeSpan.FromMinutes(5)));
+			}
+			await WaitServersAreUp();
+			foreach (var client in Tester.GetLightningClients())
+			{
+				switch (client.Client)
+				{
+					case CLightningClient cLightningClient:
+					case LndClient lndClient:
+						Logs.Tester.LogInformation($"{client.Name}: {nameof(CanCreateInvoiceWithDescriptionHash)}");
+						var createdInvoice = await CreateWithHash(client.Client);
+						var retrievedInvoice = await client.Client.GetInvoice(createdInvoice.Id);
+						Logs.Tester.LogInformation(JObject.FromObject(createdInvoice).ToString());
+						Logs.Tester.LogInformation(JObject.FromObject(retrievedInvoice).ToString());
+						AssertUnpaid(createdInvoice);
+						AssertUnpaid(retrievedInvoice);
+						var createdInvoiceBOLT = BOLT11PaymentRequest.Parse(createdInvoice.BOLT11, Network.RegTest);
+						var retrievedInvoiceeBOLT = BOLT11PaymentRequest.Parse(retrievedInvoice.BOLT11, Network.RegTest);
+						Assert.Equal(createdInvoiceBOLT.PaymentHash, retrievedInvoiceeBOLT.PaymentHash);
+						Assert.Equal(createdInvoiceBOLT.DescriptionHash, hashToUse);
+						
+						
+						break;
+					default:
+						await Assert.ThrowsAsync<NotSupportedException>(async () =>
+						{
+							await CreateWithHash(client.Client);
+						});
+						break;
+				}
+				
 			}
 		}
 
