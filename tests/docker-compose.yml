@@ -86,11 +86,13 @@ services:
 
   charge:
     restart: unless-stopped
-    image: shesek/lightning-charge:0.4.6-standalone
+    image: shesek/lightning-charge:0.4.23-1-standalone
     environment:
       NETWORK: regtest
       API_TOKEN: foiewnccewuify
       BITCOIND_RPCCONNECT: bitcoind
+      LN_PATH: /etc/lightning
+      LN_NET_PATH: /etc/lightning
     volumes:
       - "bitcoind_dir:/etc/bitcoin"
       - "lightning_charge_dir:/data"
