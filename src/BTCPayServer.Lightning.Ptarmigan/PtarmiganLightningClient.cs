@@ -41,6 +41,11 @@ namespace BTCPayServer.Lightning.Ptarmigan
             return ConnectionResult.Ok;
         }
 
+        public Task CancelInvoice(string invoiceId)
+        {
+            throw new NotSupportedException();
+        }
+
         public async Task<LightningNodeInformation> GetInfo(CancellationToken cancellation = default(CancellationToken))
         {
 			var info = await _ptarmiganClient.GetInfo(cancellation);

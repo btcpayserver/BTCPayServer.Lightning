@@ -5575,6 +5575,8 @@ namespace BTCPayServer.Lightning.LND
         private System.Collections.ObjectModel.ObservableCollection<LnrpcRouteHint> _route_hints;
         private bool? _private;
         private string _amountPaid;
+        [Newtonsoft.Json.JsonProperty("state")]
+        public string State { get; set; }
 
         /// <summary>*
         /// An optional memo to attach along with the invoice. Used for record keeping

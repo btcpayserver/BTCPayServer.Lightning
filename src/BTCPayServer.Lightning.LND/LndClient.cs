@@ -215,6 +215,15 @@ namespace BTCPayServer.Lightning.LND
             return invoice;
         }
 
+        public async Task CancelInvoice(string invoiceId)
+        {
+            var resp = await SwaggerClient.LookupInvoiceAsync(invoiceId, null, CancellationToken.None);
+            await this.SwaggerClient.CancelInvoiceAsync(new InvoicesrpcCancelInvoiceMsg()
+            {
+                Payment_hash = resp.R_hash
+            }, CancellationToken.None);
+        }
+
         async Task<LightningChannel[]> ILightningClient.ListChannels(CancellationToken token)
         {
             var resp = await this.SwaggerClient.ListChannelsAsync(false, false, false, false, token);
@@ -264,7 +273,7 @@ namespace BTCPayServer.Lightning.LND
         async Task<LightningInvoice> ILightningClient.GetInvoice(string invoiceId, CancellationToken cancellation)
         {
             var resp = await SwaggerClient.LookupInvoiceAsync(invoiceId, null, cancellation);
-            return ConvertLndInvoice(resp);
+            return resp.State?.Equals("CANCELED", StringComparison.InvariantCultureIgnoreCase) is true ? null : ConvertLndInvoice(resp);
         }
 
         async Task<ILightningInvoiceListener> ILightningClient.Listen(CancellationToken cancellation)
