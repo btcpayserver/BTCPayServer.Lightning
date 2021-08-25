@@ -97,6 +97,43 @@ namespace BTCPayServer.Lightning.Tests
 				
 			}
 		}
+		
+		
+		[Fact(Timeout = Timeout)]
+		public async Task CanCancelInvoices()
+		{
+			async Task CreateAndCancel(ILightningClient lightningClient)
+			{
+				var i = await lightningClient.CreateInvoice(new LightMoney(10000), "hi there", TimeSpan.FromMinutes(10),
+					CancellationToken.None);
+
+				await lightningClient.CancelInvoice(i.Id);
+				i = await lightningClient.GetInvoice(i.Id);
+				Assert.Null(i);
+				
+
+			}
+			await WaitServersAreUp();
+			foreach (var client in Tester.GetLightningClients())
+			{
+				switch (client.Client)
+				{
+					case ChargeClient  chargeClient:
+					case CLightningClient cLightningClient:
+					case LndClient lndClient:
+						Logs.Tester.LogInformation($"{client.Name}: {nameof(CanCancelInvoices)}");
+						await CreateAndCancel(client.Client);
+						break;
+					default:
+						await Assert.ThrowsAsync<NotSupportedException>(async () =>
+						{
+							await CreateAndCancel(client.Client);
+						});
+						break;
+				}
+				
+			}
+		}
 
 		[Fact]
 		public async Task CanCreateInvoiceUsingConnectionString()

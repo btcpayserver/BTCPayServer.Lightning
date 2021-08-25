@@ -45,6 +45,11 @@ namespace BTCPayServer.Lightning.CLightning
 		/* Errors from `invoice` command */
 		LABEL_ALREADY_EXISTS = 900,
 		PREIMAGE_ALREADY_EXISTS = 901,
+		
+		/*delinvoice errors */
+		DATABASE_ERROR = -1,
+		LABEL_DOES_NOT_EXIST = 905,
+		STATUS_NOT_MATCHED = 906
 	}
 	public class LightningRPCException : Exception
 	{
@@ -303,6 +308,11 @@ namespace BTCPayServer.Lightning.CLightning
 				return ConnectionResult.CouldNotConnect;
 			}
 			return ConnectionResult.Ok;
+		}
+
+		public async Task CancelInvoice(string invoiceId)
+		{
+			await SendCommandAsync<CLightningInvoice>("delinvoice", new object[] { invoiceId, "unpaid" }, cancellation: CancellationToken.None);
 		}
 
 		async Task<LightningChannel[]> ILightningClient.ListChannels(CancellationToken cancellation)

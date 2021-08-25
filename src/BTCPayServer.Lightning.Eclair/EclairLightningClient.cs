@@ -214,6 +214,11 @@ namespace BTCPayServer.Lightning.Eclair
             return ConnectionResult.Ok;
         }
 
+        public Task CancelInvoice(string invoiceId)
+        {
+            throw new NotSupportedException();
+        }
+
         public async Task<LightningChannel[]> ListChannels(CancellationToken cancellation = default(CancellationToken))
         {
             var channels = await _eclairClient.Channels(null, cancellation);

@@ -218,6 +218,16 @@ namespace BTCPayServer.Lightning.Charge
             throw new NotSupportedException();
         }
 
+        public async Task CancelInvoice(string invoiceId)
+        {
+            var message = CreateMessage(HttpMethod.Delete, $"invoice/{invoiceId}");
+            Dictionary<string, string> parameters = new Dictionary<string, string>();
+            parameters.Add("status", "unpaid");
+            message.Content = new FormUrlEncodedContent(parameters);
+            var result = await _Client.SendAsync(message);
+            result.EnsureSuccessStatusCode();
+        }
+
         Task<LightningChannel[]> ILightningClient.ListChannels(CancellationToken cancellation)
         {
             throw new NotSupportedException();
