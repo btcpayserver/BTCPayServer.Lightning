@@ -107,7 +107,7 @@ services:
 
   lnd:
     restart: unless-stopped
-    image: btcpayserver/lnd:v0.13.1-beta-withloop
+    image: btcpayserver/lnd:v0.13.3-beta
     environment:
       LND_CHAIN: "btc"
       LND_ENVIRONMENT: "regtest"
@@ -140,7 +140,7 @@ services:
 
   lnd_dest:
     restart: unless-stopped
-    image: btcpayserver/lnd:v0.13.1-beta-withloop
+    image: btcpayserver/lnd:v0.13.3-beta
     environment:
       LND_CHAIN: "btc"
       LND_ENVIRONMENT: "regtest"
