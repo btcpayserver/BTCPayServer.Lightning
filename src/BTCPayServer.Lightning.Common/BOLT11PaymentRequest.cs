@@ -1,3 +1,4 @@
+#nullable enable
 using System;
 using System.Linq;
 using System.Collections.Generic;
@@ -6,6 +7,7 @@ using NBitcoin;
 using NBitcoin.Crypto;
 using System.Collections;
 using NBitcoin.DataEncoders;
+using System.Diagnostics.CodeAnalysis;
 
 namespace BTCPayServer.Lightning
 {
@@ -54,13 +56,14 @@ namespace BTCPayServer.Lightning
             _Prefixes.Add(("BTC", ChainName.Regtest), "lnbcrt");
         }
         readonly static char[] digits = new[] { '0', '1', '2', '3', '4', '5', '6', '7', '8', '9' };
-
+        string _str;
         private BOLT11PaymentRequest(string str, Network network)
         {
             if (str == null)
                 throw new ArgumentNullException(nameof(str));
             if (network == null)
                 throw new ArgumentNullException(nameof(network));
+            _str = str.ToLowerInvariant().Trim();
             if (str.StartsWith("lightning:", StringComparison.OrdinalIgnoreCase))
                 str = str.Substring("lightning:".Length);
             var decoded = InternalBech32Encoder.Instance.DecodeData(str);
@@ -358,7 +361,7 @@ namespace BTCPayServer.Lightning
         /// The payee pubkey exposed by the 'n' field. 
         /// In most case, you want to use GetPayeePubKey instead, as this will also try to recover the public key from the signature
         /// </summary>
-        public PubKey ExplicitPayeePubKey { get; }
+        public PubKey? ExplicitPayeePubKey { get; }
 
         /// <summary>
         /// Try to get the signature first from ExplicitPayeePubKey then from the signature
@@ -391,16 +394,20 @@ namespace BTCPayServer.Lightning
         public LightMoney MinimumAmount { get; }
 
         public DateTimeOffset Timestamp { get; }
-        public string ShortDescription { get; }
-        public uint256 DescriptionHash { get; set; }
-        public uint256 PaymentHash { get; }
-        public uint256 PaymentSecret { get; }
+        public string? ShortDescription { get; }
+        public uint256? DescriptionHash { get; set; }
+        public uint256? PaymentHash { get; }
+        public uint256? PaymentSecret { get; }
         public DateTimeOffset ExpiryDate { get; }
         public FeatureBits FeatureBits { get; }
 
-        public static bool TryParse(string str, out BOLT11PaymentRequest result, Network network)
+        public static bool TryParse(string str, [MaybeNullWhen(false)] out BOLT11PaymentRequest result, Network network)
         {
-            result = null;
+			if (str is null)
+				throw new ArgumentNullException(nameof(str));
+			if (network is null)
+				throw new ArgumentNullException(nameof(network));
+			result = null;
             try
             {
                 result = Parse(str, network);
@@ -430,5 +437,10 @@ namespace BTCPayServer.Lightning
             var bytes = UTF8NoBOM.GetBytes(text);
             return new uint256(Hashes.SHA256(bytes)) == DescriptionHash;
         }
-    }
+
+		public override string ToString()
+		{
+            return _str;
+		}
+	}
 }

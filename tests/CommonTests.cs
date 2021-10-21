@@ -471,6 +471,7 @@ namespace BTCPayServer.Lightning.Tests
 			Assert.Equal("3EktnHQD7RiAE6uzMj2ZifT9YgRrkSgzQX", p.FallbackAddresses[0].ToString());
 
 			p = BOLT11PaymentRequest.Parse("lnbc20m1pvjluezhp58yjmdan79s6qqdhdzgynm4zwqd5d7xmw5fk98klysy043l2ahrqspp5qqqsyqcyq5rqwzqfqqqsyqcyq5rqwzqfqqqsyqcyq5rqwzqfqypqfppqw508d6qejxtdg4y5r3zarvary0c5xw7kepvrhrm9s57hejg0p662ur5j5cr03890fa7k2pypgttmh4897d3raaq85a293e9jpuqwl0rnfuwzam7yr8e690nd2ypcq9hlkdwdvycqa0qza8", Network.Main);
+			Assert.Equal("lnbc20m1pvjluezhp58yjmdan79s6qqdhdzgynm4zwqd5d7xmw5fk98klysy043l2ahrqspp5qqqsyqcyq5rqwzqfqqqsyqcyq5rqwzqfqqqsyqcyq5rqwzqfqypqfppqw508d6qejxtdg4y5r3zarvary0c5xw7kepvrhrm9s57hejg0p662ur5j5cr03890fa7k2pypgttmh4897d3raaq85a293e9jpuqwl0rnfuwzam7yr8e690nd2ypcq9hlkdwdvycqa0qza8", p.ToString());
 			hash = new uint256(Encoders.Hex.DecodeData("b3df27aaa01d891cc9de272e7609557bdf4bd6fd836775e4470502f71307b627"));
 			Assert.True(key.PubKey.Verify(hash, p.ECDSASignature));
 			Assert.True(p.VerifySignature());
