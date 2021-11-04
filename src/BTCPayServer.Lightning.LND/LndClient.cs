@@ -191,12 +191,12 @@ namespace BTCPayServer.Lightning.LND
         }
         public async Task<LightningInvoice> CreateInvoice(CreateInvoiceParams req, CancellationToken cancellation = default(CancellationToken))
         {
-            var strAmount = ConvertInv.ToString(req.Amount.ToUnit(LightMoneyUnit.Satoshi));
+            var strAmount = ConvertInv.ToString(req.Amount.ToUnit(LightMoneyUnit.MilliSatoshi));
             var strExpiry = ConvertInv.ToString(Math.Round(req.Expiry.TotalSeconds, 0));
 
             var lndRequest = new LnrpcInvoice
             {
-                Value = strAmount,
+                ValueMSat = strAmount,
                 Memo = req.Description,
                 Description_hash = req.DescriptionHash?.ToBytes(),
                 Expiry = strExpiry,
@@ -289,7 +289,7 @@ namespace BTCPayServer.Lightning.LND
             {
                 // TODO: Verify id corresponds to R_hash
                 Id = BitString(resp.R_hash),
-                Amount = new LightMoney(ConvertInv.ToInt64(resp.Value), LightMoneyUnit.Satoshi),
+                Amount = new LightMoney(ConvertInv.ToInt64(resp.ValueMSat), LightMoneyUnit.MilliSatoshi),
                 AmountReceived = string.IsNullOrWhiteSpace(resp.AmountPaid) ? null : new LightMoney(ConvertInv.ToInt64(resp.AmountPaid), LightMoneyUnit.MilliSatoshi),
                 BOLT11 = resp.Payment_request,
                 Status = LightningInvoiceStatus.Unpaid

@@ -5564,6 +5564,7 @@ namespace BTCPayServer.Lightning.LND
         private byte[] _r_preimage;
         private byte[] _r_hash;
         private string _value;
+        private string _valueMSat;
         private bool? _settled;
         private string _creation_date;
         private string _settle_date;
@@ -5648,6 +5649,19 @@ namespace BTCPayServer.Lightning.LND
                 if (_value != value)
                 {
                     _value = value; 
+                    RaisePropertyChanged();
+                }
+            }
+        }
+        [Newtonsoft.Json.JsonProperty("value_msat", Required = Newtonsoft.Json.Required.Default, NullValueHandling = Newtonsoft.Json.NullValueHandling.Ignore)]
+        public string ValueMSat
+        {
+            get { return _valueMSat; }
+            set
+            {
+                if (_valueMSat != value)
+                {
+                    _valueMSat = value;
                     RaisePropertyChanged();
                 }
             }

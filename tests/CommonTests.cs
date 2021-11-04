@@ -45,11 +45,11 @@ namespace BTCPayServer.Lightning.Tests
 			foreach (var client in Tester.GetLightningClients())
 			{
 				Logs.Tester.LogInformation($"{client.Name}: {nameof(CanCreateInvoice)}");
-				var createdInvoice = await client.Client.CreateInvoice(10000, "CanCreateInvoice", TimeSpan.FromMinutes(5));
+				var createdInvoice = await client.Client.CreateInvoice(10001, "CanCreateInvoice", TimeSpan.FromMinutes(5));
 				var retrievedInvoice = await client.Client.GetInvoice(createdInvoice.Id);
-				AssertUnpaid(createdInvoice);
+				AssertUnpaid(createdInvoice, LightMoney.MilliSatoshis(10001));
 				Assert.True(createdInvoice.ExpiresAt > DateTimeOffset.UtcNow);
-				AssertUnpaid(retrievedInvoice);
+				AssertUnpaid(retrievedInvoice, LightMoney.MilliSatoshis(10001));
 				Assert.True(retrievedInvoice.ExpiresAt > DateTimeOffset.UtcNow);
 			}
 		}
@@ -352,10 +352,11 @@ namespace BTCPayServer.Lightning.Tests
 		}
 
 
-		private static void AssertUnpaid(LightningInvoice invoice)
+		private static void AssertUnpaid(LightningInvoice invoice, LightMoney expectedAmount = null)
 		{
+			expectedAmount ??= LightMoney.MilliSatoshis(10000);
 			Assert.NotNull(invoice.BOLT11);
-			Assert.Equal(LightMoney.MilliSatoshis(10000), invoice.Amount);
+			Assert.Equal(expectedAmount, invoice.Amount);
 			Assert.Null(invoice.PaidAt);
 			Assert.Equal(LightningInvoiceStatus.Unpaid, invoice.Status);
 		}
