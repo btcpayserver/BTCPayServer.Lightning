@@ -121,7 +121,7 @@ namespace BTCPayServer.Lightning.LNbank
 
             var req = new HttpRequestMessage
             {
-                RequestUri = new Uri($"{_baseUri}api/lightning/{path}"),
+                RequestUri = new Uri($"{_baseUri}/plugins/lnbank/api/lightning/{path}"),
                 Method = method,
                 Content = content
             };
