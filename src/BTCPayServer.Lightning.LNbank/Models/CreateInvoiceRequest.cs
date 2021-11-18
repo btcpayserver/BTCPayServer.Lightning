@@ -6,8 +6,6 @@ namespace BTCPayServer.Lightning.LNbank.Models
 {
     public class CreateInvoiceRequest
     {
-        public string WalletId { get; set; }
-
         public string Description { get; set; }
 
         [JsonConverter(typeof(LightMoneyJsonConverter))]

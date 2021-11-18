@@ -419,16 +419,8 @@ namespace BTCPayServer.Lightning
                             return false;
                         }
 
-                        var walletId = Take(keyValues, "wallet-id");
-                        if (walletId == null)
-                        {
-                            error = "The key 'wallet-id' is not found";
-                            return false;
-                        }
-
                         result.BaseUri = uri;
                         result.ApiToken = apiToken;
-                        result.WalletId = walletId;
                     }
                     break;
                 default:
@@ -545,8 +537,6 @@ namespace BTCPayServer.Lightning
         public string BitcoinAuth { get; set; }
 
         public string ApiToken { get; set; }
-
-        public string WalletId { get; set; }
         
         public Uri ToUri(bool withCredentials)
         {
@@ -643,7 +633,7 @@ namespace BTCPayServer.Lightning
                     builder.Append($";server={BaseUri}");
                     break;
                 case LightningConnectionType.LNbank:
-                    builder.Append($";server={BaseUri};api-token={ApiToken};wallet-id={WalletId}");
+                    builder.Append($";server={BaseUri};api-token={ApiToken}");
                     if (AllowInsecure)
                     {
                         builder.Append(";allowinsecure=true");

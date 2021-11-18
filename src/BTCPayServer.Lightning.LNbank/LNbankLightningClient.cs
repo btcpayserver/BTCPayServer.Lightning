@@ -15,11 +15,11 @@ namespace BTCPayServer.Lightning.LNbank
         private readonly Uri _baseUri;
         private readonly string _apiToken;
 
-        public LNbankLightningClient(Uri baseUri, string apiToken, string walletId, Network network, HttpClient httpClient = null)
+        public LNbankLightningClient(Uri baseUri, string apiToken, Network network, HttpClient httpClient = null)
         {
             _baseUri = baseUri;
             _apiToken = apiToken;
-            _client = new LNbankClient(baseUri, apiToken, walletId, network, httpClient);
+            _client = new LNbankClient(baseUri, apiToken, network, httpClient);
         }
 
         public async Task<LightningNodeInformation> GetInfo(CancellationToken cancellation = default)
@@ -58,6 +58,11 @@ namespace BTCPayServer.Lightning.LNbank
         public async Task<BitcoinAddress> GetDepositAddress()
         {
             return await _client.GetDepositAddress();
+        }
+
+        public async Task CancelInvoice(string invoiceId)
+        {
+            await _client.CancelInvoice(invoiceId, CancellationToken.None);
         }
 
         public async Task<LightningChannel[]> ListChannels(CancellationToken cancellation = default)

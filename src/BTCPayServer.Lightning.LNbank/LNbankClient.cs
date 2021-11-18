@@ -13,7 +13,6 @@ namespace BTCPayServer.Lightning.LNbank
 {
     public class LNbankClient
     {
-        private readonly string _walletId;
         private readonly string _apiToken;
         private readonly Uri _baseUri;
         private readonly HttpClient _httpClient;
@@ -21,11 +20,10 @@ namespace BTCPayServer.Lightning.LNbank
         private readonly Network _network;
         private static readonly HttpClient SharedClient = new HttpClient();
 
-        public LNbankClient(Uri baseUri, string apiToken, string walletId, Network network, HttpClient httpClient)
+        public LNbankClient(Uri baseUri, string apiToken, Network network, HttpClient httpClient)
         {
             _baseUri = baseUri;
             _apiToken = apiToken;
-            _walletId = walletId;
             _network = network;
             _httpClient = httpClient ?? SharedClient;
 
@@ -44,6 +42,11 @@ namespace BTCPayServer.Lightning.LNbank
         {
             return await Get<InvoiceData>($"invoice/{invoiceId}", cancellation);
         }
+        
+        public async Task CancelInvoice(string invoiceId,CancellationToken cancellation)
+        {
+            _ = await Send<EmptyRequestModel, EmptyRequestModel>(HttpMethod.Delete, $"invoice/{invoiceId}", new EmptyRequestModel(), cancellation);
+        }
 
         public async Task<BitcoinAddress> GetDepositAddress(CancellationToken cancellation = default)
         {
@@ -61,7 +64,6 @@ namespace BTCPayServer.Lightning.LNbank
         {
             var payload = new CreateInvoiceRequest
             {
-                WalletId = _walletId,
                 Amount = amount,
                 Description = description,
                 Expiry = expiry
@@ -73,7 +75,6 @@ namespace BTCPayServer.Lightning.LNbank
         {
             var payload = new PayInvoiceRequest
             {
-                WalletId = _walletId,
                 PaymentRequest = bolt11
             };
             return await Post<PayInvoiceRequest, PayResponse>("pay", payload, cancellation);
@@ -137,6 +138,10 @@ namespace BTCPayServer.Lightning.LNbank
                 throw new LNbankApiException(str);
             }
 
+            if (typeof(TResponse) == typeof(EmptyRequestModel))
+            {
+                return (TResponse)(object )new EmptyRequestModel();
+            }
             var data = JsonConvert.DeserializeObject<TResponse>(str);
 
             return data;
