@@ -1519,6 +1519,10 @@ namespace BTCPayServer.Lightning.LND
                                 throw new SwaggerException("Could not deserialize the response body.", status_, responseData_, headers_, exception);
                             }
                         }
+                        else if (status_ == "404")
+						{
+                            return null;
+						}
                         else
                         if (status_ != "200" && status_ != "204")
                         {

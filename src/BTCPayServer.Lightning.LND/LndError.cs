@@ -10,7 +10,8 @@ namespace BTCPayServer.Lightning.LND
         {
             get; set;
         }
-        public int Code
+		public string Message { get; set; }
+		public int Code
         {
             get; set;
         }

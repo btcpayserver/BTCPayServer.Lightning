@@ -273,6 +273,8 @@ namespace BTCPayServer.Lightning.LND
         async Task<LightningInvoice> ILightningClient.GetInvoice(string invoiceId, CancellationToken cancellation)
         {
             var resp = await SwaggerClient.LookupInvoiceAsync(invoiceId, null, cancellation);
+            if (resp is null)
+                return null;
             return resp.State?.Equals("CANCELED", StringComparison.InvariantCultureIgnoreCase) is true ? null : ConvertLndInvoice(resp);
         }
 
