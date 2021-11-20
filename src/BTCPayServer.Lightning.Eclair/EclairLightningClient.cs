@@ -36,7 +36,16 @@ namespace BTCPayServer.Lightning.Eclair
         public async Task<LightningInvoice> GetInvoice(string invoiceId,
             CancellationToken cancellation = default(CancellationToken))
         {
-            var result = await _eclairClient.GetInvoice(invoiceId, cancellation);
+            InvoiceResponse result = null;
+            try
+			{
+                result = await _eclairClient.GetInvoice(invoiceId, cancellation);
+            }
+            catch (EclairClient.EclairApiException ex) when (ex.Error.Error == "Not found" || ex.Error.Error.Contains("Invalid hexadecimal", StringComparison.OrdinalIgnoreCase))
+            {
+                return null;
+            }
+            
             GetReceivedInfoResponse info = null;
             try
             {

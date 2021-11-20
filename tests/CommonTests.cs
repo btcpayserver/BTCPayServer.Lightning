@@ -53,6 +53,8 @@ namespace BTCPayServer.Lightning.Tests
 				Assert.True(retrievedInvoice.ExpiresAt > DateTimeOffset.UtcNow);
 				retrievedInvoice = await client.Client.GetInvoice("c4180c13ae6b43e261c4c6f43c1b6760cfc80ba5a06643f383ece30d7316e4a6");
 				Assert.Null(retrievedInvoice);
+				retrievedInvoice = await client.Client.GetInvoice("lol");
+				Assert.Null(retrievedInvoice);
 			}
 		}
 		
