@@ -1,10 +1,8 @@
-﻿using System;
+using System;
 using System.Collections.Generic;
-using System.IO;
+using System.ComponentModel.DataAnnotations;
 using System.Linq;
-using System.Security.Cryptography.X509Certificates;
 using System.Text;
-using System.Threading.Tasks;
 using NBitcoin.DataEncoders;
 
 namespace BTCPayServer.Lightning
@@ -12,8 +10,11 @@ namespace BTCPayServer.Lightning
     public enum LightningConnectionType
     {
         Charge,
+        [Display(Name = "c-lightning")]
         CLightning,
+        [Display(Name = "LND (REST)")]
         LndREST,
+        [Display(Name = "LND (gRPC)")]
         LndGRPC,
         Eclair,
         Ptarmigan,
