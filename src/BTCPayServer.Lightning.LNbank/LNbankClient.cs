@@ -42,7 +42,7 @@ namespace BTCPayServer.Lightning.LNbank
         {
             return await Get<InvoiceData>($"invoice/{invoiceId}", cancellation);
         }
-        
+
         public async Task CancelInvoice(string invoiceId,CancellationToken cancellation)
         {
             _ = await Send<EmptyRequestModel, EmptyRequestModel>(HttpMethod.Delete, $"invoice/{invoiceId}", new EmptyRequestModel(), cancellation);
@@ -121,7 +121,7 @@ namespace BTCPayServer.Lightning.LNbank
 
             var req = new HttpRequestMessage
             {
-                RequestUri = new Uri($"{_baseUri}/plugins/lnbank/api/lightning/{path}"),
+                RequestUri = new Uri($"{_baseUri}plugins/lnbank/api/lightning/{path}"),
                 Method = method,
                 Content = content
             };
@@ -140,7 +140,7 @@ namespace BTCPayServer.Lightning.LNbank
 
             if (typeof(TResponse) == typeof(EmptyRequestModel))
             {
-                return (TResponse)(object )new EmptyRequestModel();
+                return (TResponse)(object)new EmptyRequestModel();
             }
             var data = JsonConvert.DeserializeObject<TResponse>(str);
 
@@ -153,7 +153,7 @@ namespace BTCPayServer.Lightning.LNbank
 
         internal class LNbankApiException : Exception
         {
-            public ErrorData Error { get; set; }
+            private ErrorData Error { get; set; }
 
             public override string Message => Error?.Detail;
             public string ErrorCode => Error?.Code;
