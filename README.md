@@ -57,14 +57,16 @@ The `connectionString` encapsulates the necessary information BTCPay needs to co
 
 #### Examples
 
-* `type`=clightning;`server`=unix://root/.lightning/lightning-rpc
-* `type`=clightning;`server`=tcp://1.1.1.1:27743/
-* `type`=lnd-rest;`server`=<span>http://mylnd:8080/</span>;`macaroonfilepath`=/root/.lnd/admin.macaroon;allowinsecure=true
-* `type`=lnd-rest;`server`=<span>https://mylnd:8080/</span>;`macaroon`=abef263adfe...
-* `type`=lnd-rest;`server`=<span>https://mylnd:8080/</span>;`macaroon`=abef263adfe...;`certthumbprint`=abef263adfe...
-* `type`=charge;`server`=<span>https://charge:8080/</span>;`api-token`=myapitoken...
-* `type`=charge;`server`=<span>https://charge:8080/</span>;`cookiefilepath`=/path/to/cookie...
-* `type`=eclair;`server`=<span>http://127.0.0.1:4570</span>;`password`=eclairpass
+* `type=clightning;server=unix://root/.lightning/lightning-rpc`
+* `type=clightning;server=tcp://1.1.1.1:27743/`
+* `type=lnd-rest;server=http://mylnd:8080/;macaroonfilepath=/root/.lnd/admin.macaroon;allowinsecure=true`
+* `type=lnd-rest;server=https://mylnd:8080/;macaroon=abef263adfe...`
+* `type=lnd-rest;server=https://mylnd:8080/;macaroon=abef263adfe...;certthumbprint=abef263adfe...`
+* `type=charge;server=https://charge:8080/;api-token=myapitoken...`
+* `type=charge;server=https://charge:8080/;cookiefilepath=/path/to/cookie...`
+* `type=eclair;server=http://127.0.0.1:4570;password=eclairpass`
+* `type=lnbank;server=http://lnbank:5000;api-token=myapitoken;wallet-id=MY-LNBANK-WALLET-ID;allowinsecure=true`
+* `type=lnbank;server=https://mybtcpay.com/lnbank;api-token=myapitoken;wallet-id=MY-LNBANK-WALLET-ID`
 
 Note that `bitcoin-host` and `bitcoin-auth` are optional, only useful if you want to call `ILightningClient.GetDepositAddress` on Eclair.
 We expect this won't be needed in the future.
@@ -72,7 +74,7 @@ We expect this won't be needed in the future.
 Note that the `certthumbprint` to connect to your LND node can be obtained through this command line:
 
 ```bash
-openssl x509 -noout -fingerprint -sha256 -inform pem -in /root/.lnd/tls.cert
+openssl x509 -noout -fingerprint -sha256 -in /root/.lnd/tls.cert | sed -e 's/.*=//;s/://g'
 ```
 
 You can omit `certthumprint` if you the certificate is trusted by your machine
@@ -95,6 +97,7 @@ docker-compose up
 Then you can run and debug the tests with visual studio or visual studio code.
 
 If you want to use command line:
+
 ```bash
 cd tests
 dotnet test

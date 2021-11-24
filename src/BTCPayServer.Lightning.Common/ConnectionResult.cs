@@ -1,8 +1,4 @@
-﻿using System;
-using System.Collections.Generic;
-using System.Text;
-
-namespace BTCPayServer.Lightning
+﻿namespace BTCPayServer.Lightning
 {
 	public enum ConnectionResult
 	{

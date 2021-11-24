@@ -1,10 +1,8 @@
-﻿using System;
+using System;
 using System.Collections.Generic;
-using System.IO;
+using System.ComponentModel.DataAnnotations;
 using System.Linq;
-using System.Security.Cryptography.X509Certificates;
 using System.Text;
-using System.Threading.Tasks;
 using NBitcoin.DataEncoders;
 
 namespace BTCPayServer.Lightning
@@ -12,11 +10,15 @@ namespace BTCPayServer.Lightning
     public enum LightningConnectionType
     {
         Charge,
+        [Display(Name = "c-lightning")]
         CLightning,
+        [Display(Name = "LND (REST)")]
         LndREST,
+        [Display(Name = "LND (gRPC)")]
         LndGRPC,
         Eclair,
-        Ptarmigan
+        Ptarmigan,
+        LNbank
     }
     public class LightningConnectionString
     {
@@ -31,6 +33,7 @@ namespace BTCPayServer.Lightning
             typeMapping.Add("lnd-grpc", LightningConnectionType.LndGRPC);
             typeMapping.Add("eclair", LightningConnectionType.Eclair);
             typeMapping.Add("ptarmigan", LightningConnectionType.Ptarmigan);
+            typeMapping.Add("lnbank", LightningConnectionType.LNbank);
             typeMappingReverse = new Dictionary<LightningConnectionType, string>();
             foreach (var kv in typeMapping)
             {
@@ -318,8 +321,6 @@ namespace BTCPayServer.Lightning
                     }
                     break;
                 case LightningConnectionType.Eclair:
-                    
-                    
                     var eclairserver = Take(keyValues, "server");
                     
                     if (eclairserver == null)
@@ -352,7 +353,6 @@ namespace BTCPayServer.Lightning
 
                     break;
                 case LightningConnectionType.Ptarmigan:
-
                     var ptarmiganserver = Take(keyValues, "server");
 
                     if (ptarmiganserver == null)
@@ -377,6 +377,52 @@ namespace BTCPayServer.Lightning
                     result.BaseUri = ptarmiganuri;
                     result.ApiToken = ptarmiganApiToken;
 
+                    break;
+                case LightningConnectionType.LNbank:
+                    {
+                        var server = Take(keyValues, "server");
+
+                        if (server == null)
+                        {
+                            error = "The key 'server' is mandatory for LNbank connection strings";
+                            return false;
+                        }
+                        if (!Uri.TryCreate(server, UriKind.Absolute, out var uri)
+                            || uri.Scheme != "http" && uri.Scheme != "https")
+                        {
+                            error = "The key 'server' should be an URI starting by http:// or https://";
+                            return false;
+                        }
+
+                        var allowinsecureStr = Take(keyValues, "allowinsecure");
+                        if (allowinsecureStr != null)
+                        {
+                            var allowedValues = new[] { "true", "false" };
+                            if (!allowedValues.Any(v => v.Equals(allowinsecureStr, StringComparison.OrdinalIgnoreCase)))
+                            {
+                                error = "The key 'allowinsecure' should be true or false";
+                                return false;
+                            }
+
+                            result.AllowInsecure = allowinsecureStr.Equals("true", StringComparison.OrdinalIgnoreCase);
+                        }
+
+                        if (!result.AllowInsecure && uri.Scheme == "http")
+                        {
+                            error = "The key 'allowinsecure' is false, but server's Uri is not using https";
+                            return false;
+                        }
+
+                        var apiToken = Take(keyValues, "api-token");
+                        if (apiToken == null)
+                        {
+                            error = "The key 'api-token' is not found";
+                            return false;
+                        }
+
+                        result.BaseUri = uri;
+                        result.ApiToken = apiToken;
+                    }
                     break;
                 default:
                     throw new NotSupportedException(connectionType.ToString());
@@ -492,7 +538,7 @@ namespace BTCPayServer.Lightning
         public string BitcoinAuth { get; set; }
 
         public string ApiToken { get; set; }
-
+        
         public Uri ToUri(bool withCredentials)
         {
             if (withCredentials)
@@ -586,6 +632,13 @@ namespace BTCPayServer.Lightning
                     break;
                 case LightningConnectionType.Ptarmigan:
                     builder.Append($";server={BaseUri}");
+                    break;
+                case LightningConnectionType.LNbank:
+                    builder.Append($";server={BaseUri};api-token={ApiToken}");
+                    if (AllowInsecure)
+                    {
+                        builder.Append(";allowinsecure=true");
+                    }
                     break;
                 default:
                     throw new NotSupportedException(type);

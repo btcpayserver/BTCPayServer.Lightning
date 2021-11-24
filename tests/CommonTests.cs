@@ -652,6 +652,8 @@ namespace BTCPayServer.Lightning.Tests
 
 			Assert.True(LightningConnectionString.TryParse("type=charge;server=http://api-token:foiewnccewuify@127.0.0.1:54938/;allowinsecure=true", out conn));
 			Assert.Equal("type=charge;server=http://127.0.0.1:54938/;api-token=foiewnccewuify;allowinsecure=true", conn.ToString());
+
+			Assert.True(LightningConnectionString.TryParse("type=lnbank;server=https://mybtcpay.com/;api-token=myapitoken", false, out conn));
 		}
 	}
 }
