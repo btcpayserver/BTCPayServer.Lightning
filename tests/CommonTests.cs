@@ -522,6 +522,20 @@ namespace BTCPayServer.Lightning.Tests
 			light = LightMoney.MilliSatoshis(200000);
 			Assert.Equal(200m, light.ToDecimal(LightMoneyUnit.Satoshi));
 			Assert.Equal(0.00000001m * 200m, light.ToDecimal(LightMoneyUnit.BTC));
+
+			light = LightMoney.MilliSatoshis(200000) * 2;
+			Assert.Equal(LightMoney.MilliSatoshis(400000), light);
+			light = 2 * LightMoney.MilliSatoshis(200000);
+			Assert.Equal(LightMoney.MilliSatoshis(400000), light);
+			light = LightMoney.MilliSatoshis(200000) * 2L;
+			Assert.Equal(LightMoney.MilliSatoshis(400000), light);
+			light = 2L * LightMoney.MilliSatoshis(200000);
+			Assert.Equal(LightMoney.MilliSatoshis(400000), light);
+
+			var splitted = LightMoney.MilliSatoshis(12329183).Split(3).ToArray();
+			Assert.Equal(LightMoney.MilliSatoshis(4109728),splitted[0]);
+			Assert.Equal(LightMoney.MilliSatoshis(4109728), splitted[1]);
+			Assert.Equal(LightMoney.MilliSatoshis(4109727), splitted[2]);
 		}
 
 

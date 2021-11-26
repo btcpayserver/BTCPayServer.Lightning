@@ -153,7 +153,7 @@ namespace BTCPayServer.Lightning
 
             for (int i = 0; i < parts; i++)
             {
-                yield return LightMoney.Satoshis(result + (remain > 0 ? 1 : 0));
+                yield return LightMoney.MilliSatoshis(result + (remain > 0 ? 1 : 0));
                 remain--;
             }
         }
@@ -292,26 +292,26 @@ namespace BTCPayServer.Lightning
         {
             if (right == null)
                 throw new ArgumentNullException("right");
-            return LightMoney.Satoshis(checked(left * right._MilliSatoshis));
+            return LightMoney.MilliSatoshis(checked(left * right._MilliSatoshis));
         }
 
         public static LightMoney operator *(LightMoney right, int left)
         {
             if (right == null)
                 throw new ArgumentNullException("right");
-            return LightMoney.Satoshis(checked(right._MilliSatoshis * left));
+            return LightMoney.MilliSatoshis(checked(right._MilliSatoshis * left));
         }
         public static LightMoney operator *(long left, LightMoney right)
         {
             if (right == null)
                 throw new ArgumentNullException("right");
-            return LightMoney.Satoshis(checked(left * right._MilliSatoshis));
+            return LightMoney.MilliSatoshis(checked(left * right._MilliSatoshis));
         }
         public static LightMoney operator *(LightMoney right, long left)
         {
             if (right == null)
                 throw new ArgumentNullException("right");
-            return LightMoney.Satoshis(checked(left * right._MilliSatoshis));
+            return LightMoney.MilliSatoshis(checked(left * right._MilliSatoshis));
         }
 
         public static LightMoney operator /(LightMoney left, long right)
@@ -519,7 +519,7 @@ namespace BTCPayServer.Lightning
                 throw new ArgumentNullException("amount");
             if (margin < 0.0m || margin > 1.0m)
                 throw new ArgumentOutOfRangeException("margin", "margin should be between 0 and 1");
-            var dust = LightMoney.Satoshis((decimal)this.MilliSatoshi * margin);
+            var dust = LightMoney.MilliSatoshis((long)(this.MilliSatoshi * margin));
             return Almost(amount, dust);
         }
 
