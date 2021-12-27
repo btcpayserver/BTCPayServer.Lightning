@@ -2176,15 +2176,15 @@ namespace BTCPayServer.Lightning.LND
             {
                 await ConnectPeerAsync(body, System.Threading.CancellationToken.None);
                 return ConnectionResult.Ok;
-            } 
-            catch(SwaggerException ex) when (ex.AsLNDError() is LndError2 err && err.Error == "EOF")
-            {
-                return ConnectionResult.CouldNotConnect;
             }
+            catch (SwaggerException ex) when (ex.AsLNDError() is LndError2 err && err.Error.Contains("already connected"))
+			{
+                return ConnectionResult.Ok;
+			}
             catch (SwaggerException ex) when (ex.AsLNDError() is LndError2 err)
             {
                 // Already connected error
-                return ConnectionResult.Ok;
+                return ConnectionResult.CouldNotConnect;
             }
         }
     

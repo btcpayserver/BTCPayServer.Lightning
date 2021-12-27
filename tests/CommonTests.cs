@@ -327,11 +327,26 @@ namespace BTCPayServer.Lightning.Tests
 		}
 
 		[Fact(Timeout = Timeout)]
+		public async Task DoNotReportOkIfChannelCantConnect()
+		{
+			foreach (var client in Tester.GetTestedPairs())
+			{
+				Logs.Tester.LogInformation(client.Customer.GetType().Name);
+				var result = await client.Customer.ConnectTo(new NodeInfo(new Key().PubKey, "127.0.0.1", 99_999));
+				Assert.Equal(ConnectionResult.CouldNotConnect, result);
+
+				var ni = (await client.Merchant.GetInfo()).NodeInfoList.FirstOrDefault();
+				Assert.Equal(ConnectionResult.Ok, await client.Customer.ConnectTo(ni));
+			}
+		}
+
+		[Fact(Timeout = Timeout)]
 		public async Task CanListChannels()
 		{
 			foreach (var test in Tester.GetTestedPairs())
 			{
 				await EnsureConnectedToDestinations(test);
+
 				var senderChannels = await test.Customer.ListChannels();
 				var senderInfo = await test.Customer.GetInfo();
 				Assert.NotEmpty(senderChannels);
