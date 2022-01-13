@@ -262,6 +262,7 @@ namespace BTCPayServer.Lightning.Tests
 				// Reconnecting to same node should be no op
 				Assert.Equal(ConnectionResult.Ok, await src.ConnectTo(node));
 				Assert.Equal(ConnectionResult.CouldNotConnect, await src.ConnectTo(new NodeInfo(new Key().PubKey, "127.0.0.2", node.Port)));
+				Assert.Equal(ConnectionResult.CouldNotConnect, await src.ConnectTo(new NodeInfo(new Key().PubKey, node.Host, node.Port)));
 			}
 		}
 

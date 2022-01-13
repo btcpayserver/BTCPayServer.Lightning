@@ -214,13 +214,16 @@ namespace BTCPayServer.Lightning.Eclair
         {
             try
             {
-                await _eclairClient.Connect(nodeInfo.NodeId, nodeInfo.Host, nodeInfo.Port);
+                var result = await _eclairClient.Connect(nodeInfo.NodeId, nodeInfo.Host, nodeInfo.Port);
+                if (result.StartsWith("already connected", StringComparison.OrdinalIgnoreCase) ||
+                    result.StartsWith("connected", StringComparison.OrdinalIgnoreCase))
+                    return ConnectionResult.Ok;
+                return ConnectionResult.CouldNotConnect;
             }
             catch (Eclair.EclairClient.EclairApiException)
             {
                 return ConnectionResult.CouldNotConnect;
             }
-            return ConnectionResult.Ok;
         }
 
         public Task CancelInvoice(string invoiceId)
