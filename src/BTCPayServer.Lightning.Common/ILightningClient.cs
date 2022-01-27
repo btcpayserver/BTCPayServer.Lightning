@@ -1,6 +1,4 @@
 ﻿using System;
-using System.Collections.Generic;
-using System.Text;
 using System.Threading;
 using System.Threading.Tasks;
 using NBitcoin;
@@ -14,12 +12,15 @@ namespace BTCPayServer.Lightning
         Task<LightningInvoice> CreateInvoice(CreateInvoiceParams createInvoiceRequest, CancellationToken cancellation = default(CancellationToken));
         Task<ILightningInvoiceListener> Listen(CancellationToken cancellation = default(CancellationToken));
         Task<LightningNodeInformation> GetInfo(CancellationToken cancellation = default(CancellationToken));
-        Task<PayResponse> Pay(string bolt11, CancellationToken cancellation = default(CancellationToken));
+        Task<PayResponse> Pay(string bolt11, LightMoney explicitAmount = null, CancellationToken cancellation = default(CancellationToken));
         Task<OpenChannelResponse> OpenChannel(OpenChannelRequest openChannelRequest, CancellationToken cancellation = default(CancellationToken));
         Task<BitcoinAddress> GetDepositAddress();
         Task<ConnectionResult> ConnectTo(NodeInfo nodeInfo);
         Task CancelInvoice(string invoiceId);
         Task<LightningChannel[]> ListChannels(CancellationToken cancellation = default(CancellationToken));
+
+        Task<bool> VerifyMessage(string message, string signature);
+        Task<bool> SignMessage(string message, KeyPath signature);
     }
 
     public interface ILightningInvoiceListener : IDisposable

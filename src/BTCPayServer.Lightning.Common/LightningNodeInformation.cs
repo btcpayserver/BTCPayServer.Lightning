@@ -16,5 +16,7 @@ namespace BTCPayServer.Lightning
         {
             get; set;
         }
+
+        public string NodeId { get; set; }
     }
 }

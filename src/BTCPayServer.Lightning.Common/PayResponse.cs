@@ -24,5 +24,8 @@ namespace BTCPayServer.Lightning
 
         public PayResult Result { get; set; }
         public string ErrorDetail { get; set; }
+        public string PreImage { get; set; }
+        public long TotalAmount { get; set; }
+        public long TotalFees { get; set; }
     }
 }

@@ -34,5 +34,6 @@ namespace BTCPayServer.Lightning
             get; set;
         }
         public LightMoney AmountReceived { get; set; }
+        public string PaymentHash { get; set; }
     }
 }
