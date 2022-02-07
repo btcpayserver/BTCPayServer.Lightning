@@ -12,5 +12,6 @@ namespace BTCPayServer.Lightning.LNbank.Models
         public LightMoney Amount { get; set; }
 
         public TimeSpan Expiry { get; set; }
+        public bool PrivateRouteHints { get; set; }
     }
 }

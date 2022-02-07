@@ -82,7 +82,12 @@ namespace BTCPayServer.Lightning.LNbank
 
         public async Task<LightningInvoice> CreateInvoice(LightMoney amount, string description, TimeSpan expiry, CancellationToken cancellation = default)
         {
-            var invoice = await _client.CreateInvoice(amount, description, expiry, cancellation);
+            return await (this as ILightningClient).CreateInvoice(new CreateInvoiceParams(amount, description, expiry), cancellation);
+        }
+
+        public async Task<LightningInvoice> CreateInvoice(CreateInvoiceParams req, CancellationToken cancellation = default)
+        {
+            var invoice = await _client.CreateInvoice(req, cancellation);
 
             return new LightningInvoice
             {
@@ -94,11 +99,6 @@ namespace BTCPayServer.Lightning.LNbank
                 Status = invoice.Status,
                 AmountReceived = invoice.AmountReceived
             };
-        }
-
-        public async Task<LightningInvoice> CreateInvoice(CreateInvoiceParams req, CancellationToken cancellation = default)
-        {
-            return await (this as ILightningClient).CreateInvoice(req.Amount, req.Description, req.Expiry, cancellation);
         }
 
         public async Task<PayResponse> Pay(string bolt11, CancellationToken cancellation = default)

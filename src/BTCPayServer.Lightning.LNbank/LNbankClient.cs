@@ -60,13 +60,14 @@ namespace BTCPayServer.Lightning.LNbank
             return await Get<ChannelData[]>("channels", cancellation);
         }
 
-        public async Task<InvoiceData> CreateInvoice(LightMoney amount, string description, TimeSpan expiry, CancellationToken cancellation)
+        public async Task<InvoiceData> CreateInvoice(CreateInvoiceParams req, CancellationToken cancellation)
         {
             var payload = new CreateInvoiceRequest
             {
-                Amount = amount,
-                Description = description,
-                Expiry = expiry
+                Amount = req.Amount,
+                Description = req.Description,
+                Expiry = req.Expiry,
+                PrivateRouteHints = req.PrivateRouteHints
             };
             return await Post<CreateInvoiceRequest, InvoiceData>("invoice", payload, cancellation);
         }
