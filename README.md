@@ -11,7 +11,9 @@ It is composed of 4 packages.
 * `BTCPayServer.Lightning.LND` exposes easy to use LND clients [![NuGet](https://img.shields.io/nuget/v/BTCPayServer.Lightning.LND.svg)](https://www.nuget.org/packages/BTCPayServer.Lightning.LND)
 * `BTCPayServer.Lightning.CLightning` exposes easy to use clightning clients [![NuGet](https://img.shields.io/nuget/v/BTCPayServer.Lightning.CLightning.svg)](https://www.nuget.org/packages/BTCPayServer.Lightning.CLightning)
 * `BTCPayServer.Lightning.Charge` exposes easy to use Charge clients [![NuGet](https://img.shields.io/nuget/v/BTCPayServer.Lightning.Charge.svg)](https://www.nuget.org/packages/BTCPayServer.Lightning.Charge)
-* `BTCPayServer.Lightning.Eclair` exposes easy to use Eclair clients [![NuGet](https://img.shields.io/nuget/v/BTCPayServer.Lightning.Eclair.svg)](https://www.nuget.org/packages/BTCPayServer.Lightning.Eclair)
+* `BTCPayServer.Lightning.Eclair` exposes easy to use Eclair clients [![NuGet](https://img.shields.io/nuget/v/BTCPayServer.Lightning.Eclair.svg)](https://www.nuget.org/packages/
+BTCPayServer.Lightning.Eclair)
+* `BTCPayServer.Lightning.LNbank` exposes easy to use LNbank clients [![NuGet](https://img.shields.io/nuget/v/BTCPayServer.Lightning.LNbank.svg)](https://www.nuget.org/packages/BTCPayServer.Lightning.LNbank)
 * `BTCPayServer.Lightning.Ptarmigan` exposes easy to use Ptarmigan clients [![NuGet](https://img.shields.io/nuget/v/BTCPayServer.Lightning.Ptarmigan.svg)](https://www.nuget.org/packages/BTCPayServer.Lightning.Ptarmigan)
 * `BTCPayServer.Lightning.Common` exposes common classes and `ILightningClient` [![NuGet](https://img.shields.io/nuget/v/BTCPayServer.Lightning.Common.svg)](https://www.nuget.org/packages/BTCPayServer.Lightning.Common)
 
