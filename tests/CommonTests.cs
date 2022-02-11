@@ -57,14 +57,14 @@ namespace BTCPayServer.Lightning.Tests
 				Assert.Null(retrievedInvoice);
 			}
 		}
-		
+
 		[Fact(Timeout = Timeout)]
 		public async Task CanCreateInvoiceWithDescriptionHash()
 		{
-			var hashToUse = 
+			var hashToUse =
 				new uint256(
 						new SHA256Managed().ComputeHash(Encoding.UTF8.GetBytes("CanCreateInvoiceWithDescriptionHash")));
-			
+
 			async Task<LightningInvoice> CreateWithHash(ILightningClient lightningClient)
 			{
 				return await lightningClient.CreateInvoice(new CreateInvoiceParams(10000, hashToUse,
@@ -88,8 +88,8 @@ namespace BTCPayServer.Lightning.Tests
 						var retrievedInvoiceeBOLT = BOLT11PaymentRequest.Parse(retrievedInvoice.BOLT11, Network.RegTest);
 						Assert.Equal(createdInvoiceBOLT.PaymentHash, retrievedInvoiceeBOLT.PaymentHash);
 						Assert.Equal(createdInvoiceBOLT.DescriptionHash, hashToUse);
-						
-						
+
+
 						break;
 					default:
 						await Assert.ThrowsAsync<NotSupportedException>(async () =>
@@ -98,11 +98,11 @@ namespace BTCPayServer.Lightning.Tests
 						});
 						break;
 				}
-				
+
 			}
 		}
-		
-		
+
+
 		[Fact(Timeout = Timeout)]
 		public async Task CanCancelInvoices()
 		{
@@ -114,7 +114,7 @@ namespace BTCPayServer.Lightning.Tests
 				await lightningClient.CancelInvoice(i.Id);
 				i = await lightningClient.GetInvoice(i.Id);
 				Assert.Null(i);
-				
+
 
 			}
 			await WaitServersAreUp();
@@ -135,7 +135,7 @@ namespace BTCPayServer.Lightning.Tests
 						});
 						break;
 				}
-				
+
 			}
 		}
 
@@ -237,6 +237,8 @@ namespace BTCPayServer.Lightning.Tests
 					var waiting = listener.WaitInvoice(default);
 					var paidReply = await test.Customer.Pay(invoice.BOLT11);
 					Assert.Equal(PayResult.Ok, paidReply.Result);
+                    Assert.Equal(amount, paidReply.Details.TotalAmount);
+                    Assert.Equal(0, paidReply.Details.FeeAmount);
 					var paidInvoice = await waiting;
 					Assert.Equal(LightningInvoiceStatus.Paid, paidInvoice.Status);
 					var retrievedInvoice = await test.Merchant.GetInvoice(invoice.Id);
@@ -371,7 +373,6 @@ namespace BTCPayServer.Lightning.Tests
 			}
 		}
 
-
 		private static void AssertUnpaid(LightningInvoice invoice, LightMoney expectedAmount = null)
 		{
 			expectedAmount ??= LightMoney.MilliSatoshis(10000);
@@ -384,11 +385,11 @@ namespace BTCPayServer.Lightning.Tests
 		private async Task EnsureConnectedToDestinations((string Name, ILightningClient Customer, ILightningClient Merchant) test)
 		{
 			await Task.WhenAll(WaitServersAreUp($"{test.Name} (Customer)", test.Customer), WaitServersAreUp($"{test.Name} (Merchant)", test.Merchant));
-			Tests.Logs.Tester.LogInformation($"{test.Name}: Connecting channels...");
+            Tests.Logs.Tester.LogInformation($"{test.Name}: Connecting channels...");
 			var cashcow = Tester.CreateRPC();
 			await cashcow.ScanRPCCapabilitiesAsync();
 			await ConnectChannels.ConnectAll(cashcow, new[] { test.Customer }, new[] { test.Merchant });
-			Tests.Logs.Tester.LogInformation($"{test.Name}: Channels connected");
+            Tests.Logs.Tester.LogInformation($"{test.Name}: Channels connected");
 		}
 
 		[Fact]

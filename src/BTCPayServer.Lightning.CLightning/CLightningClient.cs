@@ -45,7 +45,7 @@ namespace BTCPayServer.Lightning.CLightning
 		/* Errors from `invoice` command */
 		LABEL_ALREADY_EXISTS = 900,
 		PREIMAGE_ALREADY_EXISTS = 901,
-		
+
 		/*delinvoice errors */
 		DATABASE_ERROR = -1,
 		LABEL_DOES_NOT_EXIST = 905,
@@ -99,12 +99,12 @@ namespace BTCPayServer.Lightning.CLightning
 			return SendCommandAsync<GetInfoResponse>("getinfo", cancellation: cancellation);
 		}
 
-		public Task SendAsync(string bolt11, CancellationToken cancellationToken)
+		public Task<CLightningPayResponse> SendAsync(string bolt11, CancellationToken cancellationToken)
 		{
 			if (bolt11 == null)
 				throw new ArgumentNullException(nameof(bolt11));
 			bolt11 = bolt11.Replace("lightning:", "").Replace("LIGHTNING:", "");
-			return SendCommandAsync<object>("pay", new[] { bolt11 }, true, cancellation: cancellationToken);
+			return SendCommandAsync<CLightningPayResponse>("pay", new[] { bolt11 }, false, cancellation: cancellationToken);
 		}
 
 		public async Task<PeerInfo[]> ListPeersAsync(CancellationToken cancellation = default(CancellationToken))
@@ -167,29 +167,28 @@ namespace BTCPayServer.Lightning.CLightning
 								 socket.Dispose();
 							 }))
 							{
-								try
-								{
-
-									var result = await resultAsync;
-									var error = result.Property("error");
-									if (error != null)
-									{
-										throw new LightningRPCException(error.Value["message"].Value<string>(), error.Value["code"].Value<int>());
-									}
-									if (noReturn)
-										return default(T);
-									if (isArray)
-									{
-										return result["result"].Children().First().Children().First().ToObject<T>();
-									}
-									return result["result"].ToObject<T>();
-								}
-								catch when (cancellation.IsCancellationRequested)
-								{
-									cancellation.ThrowIfCancellationRequested();
-									throw new NotSupportedException(); // impossible
-								}
-							}
+                                try
+                                {
+                                    var result = await resultAsync;
+                                    var error = result.Property("error");
+                                    if (error != null)
+                                    {
+                                        throw new LightningRPCException(error.Value["message"].Value<string>(), error.Value["code"].Value<int>());
+                                    }
+                                    if (noReturn)
+                                        return default;
+                                    if (isArray)
+                                    {
+                                        return result["result"].Children().First().Children().First().ToObject<T>();
+                                    }
+                                    return result["result"].ToObject<T>();
+                                }
+                                catch when (cancellation.IsCancellationRequested)
+                                {
+                                    cancellation.ThrowIfCancellationRequested();
+                                    throw new NotSupportedException(); // impossible
+                                }
+                            }
 						}
 					}
 				}
@@ -262,8 +261,12 @@ namespace BTCPayServer.Lightning.CLightning
 		{
 			try
 			{
-				await SendAsync(bolt11, cancellation);
-				return new PayResponse(PayResult.Ok);
+				var response = await SendAsync(bolt11, cancellation);
+				return new PayResponse(PayResult.Ok, new PayDetails
+                {
+                    TotalAmount = response.AmountSent,
+                    FeeAmount = response.AmountSent - response.Amount
+                });
 			}
 			catch (LightningRPCException ex) when (ex.Code == CLightningErrorCode.ROUTE_NOT_FOUND || ex.Code == CLightningErrorCode.STOPPED_RETRYING)
 			{
@@ -272,7 +275,7 @@ namespace BTCPayServer.Lightning.CLightning
 		}
 
 		static NBitcoin.DataEncoders.DataEncoder InvoiceIdEncoder = NBitcoin.DataEncoders.Encoders.Base58;
-		
+
 		async Task<LightningInvoice> CreateInvoice(LightMoney amount, uint256 descriptionHash, TimeSpan expiry, CancellationToken cancellation)
 		{
 			var id = InvoiceIdEncoder.EncodeData(RandomUtils.GetBytes(20));
@@ -282,7 +285,7 @@ namespace BTCPayServer.Lightning.CLightning
 			invoice.Status = "unpaid";
 			return ToLightningInvoice(invoice);
 		}
-		
+
 		async Task<LightningInvoice> ILightningClient.CreateInvoice(LightMoney amount, string description, TimeSpan expiry, CancellationToken cancellation)
 		{
 			var id = InvoiceIdEncoder.EncodeData(RandomUtils.GetBytes(20));

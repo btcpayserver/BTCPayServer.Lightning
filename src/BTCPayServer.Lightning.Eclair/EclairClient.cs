@@ -335,8 +335,6 @@ namespace BTCPayServer.Lightning.Eclair
 
 		private async Task<TResponse> SendCommandAsync<TRequest, TResponse>(string method, TRequest data, CancellationToken cts)
 		{
-
-
 			HttpContent content = null;
 			if (data != null && !(data is NoRequestModel))
 			{
@@ -353,7 +351,7 @@ namespace BTCPayServer.Lightning.Eclair
 				content = new FormUrlEncodedContent(x.Select(pair => pair));
 			}
 
-			var httpRequest = new HttpRequestMessage()
+			var httpRequest = new HttpRequestMessage
 			{
 				Method = HttpMethod.Post,
 				RequestUri = new Uri(_address, method),

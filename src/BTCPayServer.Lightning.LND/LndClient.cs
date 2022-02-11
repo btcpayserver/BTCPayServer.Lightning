@@ -1,20 +1,13 @@
 using System;
-using System.Collections.Generic;
 using System.Globalization;
 using System.IO;
 using System.Linq;
 using System.Net.Http;
-using System.Net.Http.Headers;
-using System.Net.Security;
 using System.Runtime.ExceptionServices;
-using System.Security.Authentication;
-using System.Security.Cryptography.X509Certificates;
-using System.Text;
 using System.Threading;
 using System.Threading.Channels;
 using System.Threading.Tasks;
 using NBitcoin;
-using Newtonsoft.Json;
 using Newtonsoft.Json.Linq;
 
 namespace BTCPayServer.Lightning.LND
@@ -296,7 +289,7 @@ namespace BTCPayServer.Lightning.LND
             return session;
         }
 
-        internal static LightningInvoice ConvertLndInvoice(LnrpcInvoice resp)
+        private static LightningInvoice ConvertLndInvoice(LnrpcInvoice resp)
         {
             var invoice = new LightningInvoice
             {
@@ -305,13 +298,13 @@ namespace BTCPayServer.Lightning.LND
                 Amount = new LightMoney(ConvertInv.ToInt64(resp.ValueMSat), LightMoneyUnit.MilliSatoshi),
                 AmountReceived = string.IsNullOrWhiteSpace(resp.AmountPaid) ? null : new LightMoney(ConvertInv.ToInt64(resp.AmountPaid), LightMoneyUnit.MilliSatoshi),
                 BOLT11 = resp.Payment_request,
-                Status = LightningInvoiceStatus.Unpaid
+                Status = LightningInvoiceStatus.Unpaid,
+                ExpiresAt = DateTimeOffset.FromUnixTimeSeconds(ConvertInv.ToInt64(resp.Creation_date) + ConvertInv.ToInt64(resp.Expiry))
             };
-            invoice.ExpiresAt = DateTimeOffset.FromUnixTimeSeconds(ConvertInv.ToInt64(resp.Creation_date) + ConvertInv.ToInt64(resp.Expiry));
             if (resp.Settled == true)
             {
                 invoice.PaidAt = DateTimeOffset.FromUnixTimeSeconds(ConvertInv.ToInt64(resp.Settle_date));
-                
+
                 invoice.Status = LightningInvoiceStatus.Paid;
             }
             else
@@ -336,31 +329,39 @@ namespace BTCPayServer.Lightning.LND
         async Task<PayResponse> ILightningClient.Pay(string bolt11, CancellationToken cancellation)
         {
             retry:
-            int retryCount = 0;
+            var retryCount = 0;
             try
             {
-                var response = await this.SwaggerClient.SendPaymentSyncAsync(new LnrpcSendRequest
+                var response = await SwaggerClient.SendPaymentSyncAsync(new LnrpcSendRequest
                 {
                     Payment_request = bolt11
                 }, cancellation);
 
-                if (String.IsNullOrEmpty(response.Payment_error) && response.Payment_preimage != null)
+                if (string.IsNullOrEmpty(response.Payment_error) && response.Payment_preimage != null)
                 {
+                    if (response.Payment_route != null)
+                    {
+                        return new PayResponse(PayResult.Ok, new PayDetails
+                        {
+                            TotalAmount = new LightMoney(response.Payment_route.Total_amt_msat),
+                            FeeAmount = new LightMoney(response.Payment_route.Total_fees_msat)
+                        });
+                    }
+
                     return new PayResponse(PayResult.Ok);
                 }
-                else if(response.Payment_error == "invoice is already paid")
+
+                switch (response.Payment_error)
                 {
-                    return new PayResponse(PayResult.Ok);
-                }
-                else if (response.Payment_error == "insufficient local balance" ||
-                    response.Payment_error == "unable to find a path to destination" ||
-                    response.Payment_error == "insufficient_balance") // code in 0.10.0+
-                {
-                    return new PayResponse(PayResult.CouldNotFindRoute, response.Payment_error);
-                }
-                else
-                {
-                    return new PayResponse(PayResult.Error, response.Payment_error);
+                    case "invoice is already paid":
+                        return new PayResponse(PayResult.Ok);
+                    case "insufficient local balance":
+                    case "unable to find a path to destination":
+                    // code in 0.10.0+
+                    case "insufficient_balance":
+                        return new PayResponse(PayResult.CouldNotFindRoute, response.Payment_error);
+                    default:
+                        return new PayResponse(PayResult.Error, response.Payment_error);
                 }
             }
             catch(SwaggerException ex) when
@@ -417,7 +418,7 @@ namespace BTCPayServer.Lightning.LND
             {
                 var pendingChannels = await this.SwaggerClient.PendingChannelsAsync(cancellation);
                 var nodePub = openChannelRequest.NodeInfo.NodeId.ToHex();
-                if(pendingChannels.Pending_open_channels != null && 
+                if(pendingChannels.Pending_open_channels != null &&
                    pendingChannels.Pending_open_channels.Any(p => p.Channel.Remote_node_pub == nodePub))
                     return new OpenChannelResponse(OpenChannelResult.NeedMoreConf);
                 return new OpenChannelResponse(OpenChannelResult.AlreadyExists);
