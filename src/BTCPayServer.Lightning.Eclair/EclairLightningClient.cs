@@ -45,7 +45,7 @@ namespace BTCPayServer.Lightning.Eclair
             {
                 return null;
             }
-            
+
             GetReceivedInfoResponse info = null;
             try
             {
@@ -143,10 +143,15 @@ namespace BTCPayServer.Lightning.Eclair
                         continue;
                     }
 
-                    switch (status.First().Status.type)
+                    var sentInfo = status.First();
+                    switch (sentInfo.Status.type)
                     {
                         case "sent":
-                            return new PayResponse(PayResult.Ok);
+                            return new PayResponse(PayResult.Ok, new PayDetails
+                                {
+                                    TotalAmount = sentInfo.Amount,
+                                    FeeAmount = sentInfo.FeesPaid
+                                });
                         case "failed":
                             return new PayResponse(PayResult.CouldNotFindRoute);
                         case "pending":
