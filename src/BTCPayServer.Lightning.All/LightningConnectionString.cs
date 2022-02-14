@@ -17,7 +17,6 @@ namespace BTCPayServer.Lightning
         [Display(Name = "LND (gRPC)")]
         LndGRPC,
         Eclair,
-        Ptarmigan,
         LNbank
     }
     public class LightningConnectionString
@@ -32,7 +31,6 @@ namespace BTCPayServer.Lightning
             typeMapping.Add("lnd-rest", LightningConnectionType.LndREST);
             typeMapping.Add("lnd-grpc", LightningConnectionType.LndGRPC);
             typeMapping.Add("eclair", LightningConnectionType.Eclair);
-            typeMapping.Add("ptarmigan", LightningConnectionType.Ptarmigan);
             typeMapping.Add("lnbank", LightningConnectionType.LNbank);
             typeMappingReverse = new Dictionary<LightningConnectionType, string>();
             foreach (var kv in typeMapping)
@@ -352,32 +350,6 @@ namespace BTCPayServer.Lightning
                     }
 
                     break;
-                case LightningConnectionType.Ptarmigan:
-                    var ptarmiganserver = Take(keyValues, "server");
-
-                    if (ptarmiganserver == null)
-                    {
-                        error = $"The key 'server' is mandatory for lnd connection strings";
-                        return false;
-                    }
-                    if (!Uri.TryCreate(ptarmiganserver, UriKind.Absolute, out var ptarmiganuri)
-                        || (ptarmiganuri.Scheme != "http" && ptarmiganuri.Scheme != "https"))
-                    {
-                        error = $"The key 'server' should be an URI starting by http:// or https://";
-                        return false;
-                    }
-
-                    var ptarmiganApiToken = Take(keyValues, "api-token");
-                    if (ptarmiganApiToken == null)
-                    {
-                        error = $"The key 'api-token' is not found";
-                        return false;
-                    }
-
-                    result.BaseUri = ptarmiganuri;
-                    result.ApiToken = ptarmiganApiToken;
-
-                    break;
                 case LightningConnectionType.LNbank:
                     {
                         var server = Take(keyValues, "server");
@@ -629,9 +601,6 @@ namespace BTCPayServer.Lightning
                         builder.Append($";bitcoin-auth={BitcoinAuth}");
                     }
                     
-                    break;
-                case LightningConnectionType.Ptarmigan:
-                    builder.Append($";server={BaseUri}");
                     break;
                 case LightningConnectionType.LNbank:
                     builder.Append($";server={BaseUri};api-token={ApiToken}");

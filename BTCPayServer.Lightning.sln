@@ -1,7 +1,7 @@
 ﻿
 Microsoft Visual Studio Solution File, Format Version 12.00
-# Visual Studio 15
-VisualStudioVersion = 15.0.26124.0
+# Visual Studio Version 17
+VisualStudioVersion = 17.0.32014.148
 MinimumVisualStudioVersion = 15.0.26124.0
 Project("{2150E333-8FDC-42A3-9474-1A3956D46DE8}") = "src", "src", "{5BA1A1B2-2713-4CF4-9B63-087531598797}"
 	ProjectSection(SolutionItems) = preProject
@@ -20,11 +20,9 @@ Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "BTCPayServer.Lightning.Comm
 EndProject
 Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "BTCPayServer.Lightning.All", "src\BTCPayServer.Lightning.All\BTCPayServer.Lightning.All.csproj", "{691B1F98-4CC3-47FF-B3F3-B97FC0AB4C94}"
 EndProject
-Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "BTCPayServer.Lightning.Eclair", "src\BTCPayServer.Lightning.Eclair\BTCPayServer.Lightning.Eclair.csproj", "{542D3F73-7067-4873-89EF-FA0345E32C04}"
+Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "BTCPayServer.Lightning.Eclair", "src\BTCPayServer.Lightning.Eclair\BTCPayServer.Lightning.Eclair.csproj", "{542D3F73-7067-4873-89EF-FA0345E32C04}"
 EndProject
-Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "BTCPayServer.Lightning.Ptarmigan", "src\BTCPayServer.Lightning.Ptarmigan\BTCPayServer.Lightning.Ptarmigan.csproj", "{58B60560-55F2-4F95-98E9-F532D8282492}"
-EndProject
-Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "BTCPayServer.Lightning.LNbank", "src\BTCPayServer.Lightning.LNbank\BTCPayServer.Lightning.LNbank.csproj", "{4057015B-9D8A-411A-B7C2-3342D9F53BD0}"
+Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "BTCPayServer.Lightning.LNbank", "src\BTCPayServer.Lightning.LNbank\BTCPayServer.Lightning.LNbank.csproj", "{4057015B-9D8A-411A-B7C2-3342D9F53BD0}"
 EndProject
 Global
 	GlobalSection(SolutionConfigurationPlatforms) = preSolution
@@ -120,18 +118,6 @@ Global
 		{542D3F73-7067-4873-89EF-FA0345E32C04}.Release|x64.Build.0 = Release|Any CPU
 		{542D3F73-7067-4873-89EF-FA0345E32C04}.Release|x86.ActiveCfg = Release|Any CPU
 		{542D3F73-7067-4873-89EF-FA0345E32C04}.Release|x86.Build.0 = Release|Any CPU
-		{58B60560-55F2-4F95-98E9-F532D8282492}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
-		{58B60560-55F2-4F95-98E9-F532D8282492}.Debug|Any CPU.Build.0 = Debug|Any CPU
-		{58B60560-55F2-4F95-98E9-F532D8282492}.Debug|x64.ActiveCfg = Debug|Any CPU
-		{58B60560-55F2-4F95-98E9-F532D8282492}.Debug|x64.Build.0 = Debug|Any CPU
-		{58B60560-55F2-4F95-98E9-F532D8282492}.Debug|x86.ActiveCfg = Debug|Any CPU
-		{58B60560-55F2-4F95-98E9-F532D8282492}.Debug|x86.Build.0 = Debug|Any CPU
-		{58B60560-55F2-4F95-98E9-F532D8282492}.Release|Any CPU.ActiveCfg = Release|Any CPU
-		{58B60560-55F2-4F95-98E9-F532D8282492}.Release|Any CPU.Build.0 = Release|Any CPU
-		{58B60560-55F2-4F95-98E9-F532D8282492}.Release|x64.ActiveCfg = Release|Any CPU
-		{58B60560-55F2-4F95-98E9-F532D8282492}.Release|x64.Build.0 = Release|Any CPU
-		{58B60560-55F2-4F95-98E9-F532D8282492}.Release|x86.ActiveCfg = Release|Any CPU
-		{58B60560-55F2-4F95-98E9-F532D8282492}.Release|x86.Build.0 = Release|Any CPU
 		{4057015B-9D8A-411A-B7C2-3342D9F53BD0}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
 		{4057015B-9D8A-411A-B7C2-3342D9F53BD0}.Debug|Any CPU.Build.0 = Debug|Any CPU
 		{4057015B-9D8A-411A-B7C2-3342D9F53BD0}.Debug|x64.ActiveCfg = Debug|Any CPU
@@ -155,7 +141,6 @@ Global
 		{CA4021BC-41F4-44C6-B249-F2DC05429E44} = {5BA1A1B2-2713-4CF4-9B63-087531598797}
 		{691B1F98-4CC3-47FF-B3F3-B97FC0AB4C94} = {5BA1A1B2-2713-4CF4-9B63-087531598797}
 		{542D3F73-7067-4873-89EF-FA0345E32C04} = {5BA1A1B2-2713-4CF4-9B63-087531598797}
-		{58B60560-55F2-4F95-98E9-F532D8282492} = {5BA1A1B2-2713-4CF4-9B63-087531598797}
 		{4057015B-9D8A-411A-B7C2-3342D9F53BD0} = {5BA1A1B2-2713-4CF4-9B63-087531598797}
 	EndGlobalSection
 	GlobalSection(ExtensibilityGlobals) = postSolution

@@ -8,7 +8,6 @@ using BTCPayServer.Lightning.CLightning;
 using BTCPayServer.Lightning.Eclair;
 using BTCPayServer.Lightning.LNbank;
 using BTCPayServer.Lightning.LND;
-using BTCPayServer.Lightning.Ptarmigan;
 using NBitcoin;
 using NBitcoin.RPC;
 
@@ -76,18 +75,6 @@ namespace BTCPayServer.Lightning
             else if (connectionString.ConnectionType == LightningConnectionType.Eclair)
             {
                 return new EclairLightningClient(connectionString.BaseUri, connectionString.Password, Network, HttpClient);
-            }
-            else if (connectionString.ConnectionType == LightningConnectionType.Ptarmigan)
-            {
-                var rpcClient =
-                    !string.IsNullOrEmpty(connectionString.BitcoinHost) &&
-                    !string.IsNullOrEmpty(connectionString.BitcoinAuth)
-                        ? new RPCClient(connectionString.BitcoinAuth, connectionString.BitcoinHost, Network)
-                        {
-                            HttpClient = HttpClient
-                        }
-                        : null;
-                return new PtarmiganLightningClient(connectionString.BaseUri, connectionString.ApiToken, Network, rpcClient, HttpClient);
             }
             else if (connectionString.ConnectionType == LightningConnectionType.LNbank)
             {

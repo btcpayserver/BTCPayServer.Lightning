@@ -7,7 +7,6 @@ using System;
 using System.Collections.Generic;
 using System.Text;
 using BTCPayServer.Lightning.Eclair;
-using BTCPayServer.Lightning.Ptarmigan;
 
 namespace BTCPayServer.Lightning.Tests
 {
@@ -58,16 +57,6 @@ namespace BTCPayServer.Lightning.Tests
 		public static EclairLightningClient CreateEclairClientDest()
 		{
 			return new EclairLightningClient(new Uri(CommonTests.Docker ? "http://eclair_dest:8080" : "http://127.0.0.1:4571"), "bukkake", Network);
-		}
-
-		public static PtarmiganLightningClient CreatePtarmiganClient()
-		{
-			return new PtarmiganLightningClient(new Uri(CommonTests.Docker ? "http://ptarmigan:3000" : "http://127.0.0.1:3000"), "ptarmigan", Network, CreateRPC());
-		}
-
-		public static PtarmiganLightningClient CreatePtarmiganClientDest()
-		{
-			return new PtarmiganLightningClient(new Uri(CommonTests.Docker ? "http://ptarmigan_dest:3000" : "http://127.0.0.1:3001"), "ptarmigan", Network, CreateRPC());
 		}
 
 		public static LndClient CreateLndClientDest()

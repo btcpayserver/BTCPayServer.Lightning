@@ -13,7 +13,6 @@ using BTCPayServer.Lightning.Charge;
 using BTCPayServer.Lightning.CLightning;
 using BTCPayServer.Lightning.Eclair;
 using BTCPayServer.Lightning.LND;
-using BTCPayServer.Lightning.Ptarmigan;
 using NBitcoin.Crypto;
 using Newtonsoft.Json.Linq;
 using Xunit.Abstractions;

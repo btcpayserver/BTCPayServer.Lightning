@@ -23,7 +23,6 @@
     <ProjectReference Include="..\src\BTCPayServer.Lightning.CLightning\BTCPayServer.Lightning.CLightning.csproj" />
     <ProjectReference Include="..\src\BTCPayServer.Lightning.Eclair\BTCPayServer.Lightning.Eclair.csproj" />
     <ProjectReference Include="..\src\BTCPayServer.Lightning.LND\BTCPayServer.Lightning.LND.csproj" />
-    <ProjectReference Include="..\src\BTCPayServer.Lightning.Ptarmigan\BTCPayServer.Lightning.Ptarmigan.csproj" />
   </ItemGroup>
 
 </Project>
