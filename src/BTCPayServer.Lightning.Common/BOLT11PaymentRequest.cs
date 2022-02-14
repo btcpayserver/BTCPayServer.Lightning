@@ -251,7 +251,7 @@ namespace BTCPayServer.Lightning
                     case Bolt11FieldType.H:
                         if (size != 52 * 5)
                             break;
-                        DescriptionHash = new uint256(reader.ReadBytes(32), true);
+                        DescriptionHash = new uint256(reader.ReadBytes(32), false);
                         break;
 
                     case Bolt11FieldType.R:
@@ -435,7 +435,7 @@ namespace BTCPayServer.Lightning
             if (DescriptionHash == null)
                 throw new InvalidOperationException($"{nameof(DescriptionHash)} ('h' field) is not specified in the BOLT11 object");
             var bytes = UTF8NoBOM.GetBytes(text);
-            return new uint256(Hashes.SHA256(bytes)) == DescriptionHash;
+            return new uint256(Hashes.SHA256(bytes), false) == DescriptionHash;
         }
 
 		public override string ToString()
