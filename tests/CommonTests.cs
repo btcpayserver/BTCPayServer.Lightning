@@ -62,8 +62,7 @@ namespace BTCPayServer.Lightning.Tests
 		public async Task CanCreateInvoiceWithDescriptionHash()
 		{
 			var hashToUse =
-				new uint256(
-						new SHA256Managed().ComputeHash(Encoding.UTF8.GetBytes("CanCreateInvoiceWithDescriptionHash")));
+				new uint256(new SHA256Managed().ComputeHash(Encoding.UTF8.GetBytes("CanCreateInvoiceWithDescriptionHash")));
 
 			async Task<LightningInvoice> CreateWithHash(ILightningClient lightningClient)
 			{
@@ -87,7 +86,7 @@ namespace BTCPayServer.Lightning.Tests
 						var createdInvoiceBOLT = BOLT11PaymentRequest.Parse(createdInvoice.BOLT11, Network.RegTest);
 						var retrievedInvoiceeBOLT = BOLT11PaymentRequest.Parse(retrievedInvoice.BOLT11, Network.RegTest);
 						Assert.Equal(createdInvoiceBOLT.PaymentHash, retrievedInvoiceeBOLT.PaymentHash);
-						Assert.Equal(hashToUse.ToBytes(), createdInvoiceBOLT.DescriptionHash.ToBytes(false));
+						Assert.Equal(hashToUse, createdInvoiceBOLT.DescriptionHash);
 						
 						
 						break;
