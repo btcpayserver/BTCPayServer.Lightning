@@ -73,7 +73,6 @@ namespace BTCPayServer.Lightning.Charge
             }
 
             var handler = new HttpClientHandler();
-            
 
             if (allowInsecure) {
                 handler.ServerCertificateCustomValidationCallback = (request, cert, chain, errors) => true;
@@ -104,7 +103,7 @@ namespace BTCPayServer.Lightning.Charge
         public async Task<ChargeSession> Listen(CancellationToken cancellation = default(CancellationToken))
         {
             return new ChargeSession(
-                await WebsocketHelper.CreateClientWebSocket(Uri.ToString(), 
+                await WebsocketHelper.CreateClientWebSocket(Uri.ToString(),
                     $"Basic {ChargeAuthentication.GetBase64Creds()}", cancellation));
         }
 
@@ -199,6 +198,11 @@ namespace BTCPayServer.Lightning.Charge
         }
 
         Task<PayResponse> ILightningClient.Pay(string bolt11, CancellationToken cancellation)
+        {
+            throw new NotSupportedException();
+        }
+
+        Task<PayResponse> ILightningClient.Pay(string bolt11, float? maxFeePercent, CancellationToken cancellation)
         {
             throw new NotSupportedException();
         }

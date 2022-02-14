@@ -8091,11 +8091,68 @@ namespace BTCPayServer.Lightning.LND
     }
 
     [System.CodeDom.Compiler.GeneratedCode("NJsonSchema", "9.9.11.0 (Newtonsoft.Json v9.0.0.0)")]
+    public partial class LnrpcFeeLimit : System.ComponentModel.INotifyPropertyChanged
+    {
+        private string _fixed;
+        private string _percent;
+
+        /// <summary>/ The fee limit expressed as a fixed amount of satoshis.</summary>
+        [Newtonsoft.Json.JsonProperty("fixed", Required = Newtonsoft.Json.Required.Default, NullValueHandling = Newtonsoft.Json.NullValueHandling.Ignore)]
+        public string Fixed
+        {
+            get { return _fixed; }
+            set
+            {
+                if (_fixed != value)
+                {
+                    _fixed = value;
+                    RaisePropertyChanged();
+                }
+            }
+        }
+
+        /// <summary>/ The fee limit expressed as a percentage of the payment amount.</summary>
+        [Newtonsoft.Json.JsonProperty("percent", Required = Newtonsoft.Json.Required.Default, NullValueHandling = Newtonsoft.Json.NullValueHandling.Ignore)]
+        public string Percent
+        {
+            get { return _percent; }
+            set
+            {
+                if (_percent != value)
+                {
+                    _percent = value;
+                    RaisePropertyChanged();
+                }
+            }
+        }
+
+        public event System.ComponentModel.PropertyChangedEventHandler PropertyChanged;
+
+        public string ToJson()
+        {
+            return Newtonsoft.Json.JsonConvert.SerializeObject(this);
+        }
+
+        public static LnrpcFeeLimit FromJson(string data)
+        {
+            return Newtonsoft.Json.JsonConvert.DeserializeObject<LnrpcFeeLimit>(data);
+        }
+
+        protected virtual void RaisePropertyChanged([System.Runtime.CompilerServices.CallerMemberName] string propertyName = null)
+        {
+            var handler = PropertyChanged;
+            if (handler != null)
+                handler(this, new System.ComponentModel.PropertyChangedEventArgs(propertyName));
+        }
+    }
+
+    [System.CodeDom.Compiler.GeneratedCode("NJsonSchema", "9.9.11.0 (Newtonsoft.Json v9.0.0.0)")]
     public partial class LnrpcSendRequest : System.ComponentModel.INotifyPropertyChanged
     {
         private byte[] _dest;
         private string _dest_string;
         private string _amt;
+        private LnrpcFeeLimit _fee_limit;
         private byte[] _payment_hash;
         private string _payment_hash_string;
         private string _payment_request;
@@ -8139,6 +8196,21 @@ namespace BTCPayServer.Lightning.LND
                 if (_amt != value)
                 {
                     _amt = value;
+                    RaisePropertyChanged();
+                }
+            }
+        }
+
+        /// <summary>/ The maximum number of satoshis that will be paid as a fee of the payment. If this field is left to the default value of 0, only zero-fee routes will be considered.</summary>
+        [Newtonsoft.Json.JsonProperty("fee_limit", Required = Newtonsoft.Json.Required.Default, NullValueHandling = Newtonsoft.Json.NullValueHandling.Ignore)]
+        public LnrpcFeeLimit Fee_limit
+        {
+            get { return _fee_limit; }
+            set
+            {
+                if (_fee_limit != value)
+                {
+                    _fee_limit = value;
                     RaisePropertyChanged();
                 }
             }

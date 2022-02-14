@@ -317,7 +317,6 @@ namespace BTCPayServer.Lightning.LND
             return invoice;
         }
 
-
         // utility static methods... maybe move to separate class
         private static string BitString(byte[] bytes)
         {
@@ -326,17 +325,23 @@ namespace BTCPayServer.Lightning.LND
                 .ToLower(CultureInfo.InvariantCulture);
         }
 
-        async Task<PayResponse> ILightningClient.Pay(string bolt11, CancellationToken cancellation)
+        private async Task<PayResponse> PayAsync(string bolt11, float? maxFeePercent, CancellationToken cancellation)
         {
             retry:
             var retryCount = 0;
             try
             {
-                var response = await SwaggerClient.SendPaymentSyncAsync(new LnrpcSendRequest
+                var req = new LnrpcSendRequest { Payment_request = bolt11 };
+                if (maxFeePercent > 0)
                 {
-                    Payment_request = bolt11
-                }, cancellation);
+                    req.Fee_limit = new LnrpcFeeLimit
+                    {
+                        // needs to be a string representation of an integer, not float
+                        Percent = ((int)Math.Round(maxFeePercent.Value)).ToString()
+                    };
+                }
 
+                var response = await SwaggerClient.SendPaymentSyncAsync(req, cancellation);
                 if (string.IsNullOrEmpty(response.Payment_error) && response.Payment_preimage != null)
                 {
                     if (response.Payment_route != null)
@@ -376,7 +381,15 @@ namespace BTCPayServer.Lightning.LND
             }
         }
 
+        async Task<PayResponse> ILightningClient.Pay(string bolt11, float? maxFeePercent, CancellationToken cancellation)
+        {
+            return await PayAsync(bolt11, maxFeePercent, cancellation);
+        }
 
+        async Task<PayResponse> ILightningClient.Pay(string bolt11, CancellationToken cancellation)
+        {
+            return await PayAsync(bolt11, null, cancellation);
+        }
 
 //TODO: There is a bug here somewhere where we do not detect "requires funding channel message"
         async Task<OpenChannelResponse> ILightningClient.OpenChannel(OpenChannelRequest openChannelRequest, CancellationToken cancellation)

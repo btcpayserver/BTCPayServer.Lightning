@@ -99,14 +99,6 @@ namespace BTCPayServer.Lightning.CLightning
 			return SendCommandAsync<GetInfoResponse>("getinfo", cancellation: cancellation);
 		}
 
-		public Task<CLightningPayResponse> SendAsync(string bolt11, CancellationToken cancellationToken)
-		{
-			if (bolt11 == null)
-				throw new ArgumentNullException(nameof(bolt11));
-			bolt11 = bolt11.Replace("lightning:", "").Replace("LIGHTNING:", "");
-			return SendCommandAsync<CLightningPayResponse>("pay", new[] { bolt11 }, false, cancellation: cancellationToken);
-		}
-
 		public async Task<PeerInfo[]> ListPeersAsync(CancellationToken cancellation = default(CancellationToken))
 		{
 			var peers = await SendCommandAsync<PeerInfo[]>("listpeers", isArray: true, cancellation: cancellation);
@@ -257,22 +249,37 @@ namespace BTCPayServer.Lightning.CLightning
 			return ToLightningInvoice(invoices[0]);
 		}
 
-		async Task<PayResponse> ILightningClient.Pay(string bolt11, CancellationToken cancellation)
-		{
-			try
-			{
-				var response = await SendAsync(bolt11, cancellation);
-				return new PayResponse(PayResult.Ok, new PayDetails
+        private async Task<PayResponse> PayAsync(string bolt11, float? maxFeePercent, CancellationToken cancellation)
+        {
+            try
+            {
+                if (bolt11 == null)
+                    throw new ArgumentNullException(nameof(bolt11));
+
+                bolt11 = bolt11.Replace("lightning:", "").Replace("LIGHTNING:", "");
+                var response = await SendCommandAsync<CLightningPayResponse>("pay", new object[] { bolt11, null, null, null, maxFeePercent }, false, cancellation: cancellation);
+
+                return new PayResponse(PayResult.Ok, new PayDetails
                 {
                     TotalAmount = response.AmountSent,
                     FeeAmount = response.AmountSent - response.Amount
                 });
-			}
-			catch (LightningRPCException ex) when (ex.Code == CLightningErrorCode.ROUTE_NOT_FOUND || ex.Code == CLightningErrorCode.STOPPED_RETRYING)
-			{
-				return new PayResponse(PayResult.CouldNotFindRoute);
-			}
-		}
+            }
+            catch (LightningRPCException ex) when (ex.Code == CLightningErrorCode.ROUTE_NOT_FOUND || ex.Code == CLightningErrorCode.STOPPED_RETRYING)
+            {
+                return new PayResponse(PayResult.CouldNotFindRoute);
+            }
+        }
+
+        async Task<PayResponse> ILightningClient.Pay(string bolt11, float? maxFeePercent, CancellationToken cancellation)
+        {
+            return await PayAsync(bolt11, maxFeePercent, cancellation);
+        }
+
+        async Task<PayResponse> ILightningClient.Pay(string bolt11, CancellationToken cancellation)
+        {
+            return await PayAsync(bolt11, null, cancellation);
+        }
 
 		static NBitcoin.DataEncoders.DataEncoder InvoiceIdEncoder = NBitcoin.DataEncoders.Encoders.Base58;
 

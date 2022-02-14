@@ -106,6 +106,11 @@ namespace BTCPayServer.Lightning.LNbank
             return await _client.Pay(bolt11, cancellation);
         }
 
+        public async Task<PayResponse> Pay(string bolt11, float? maxFeePercent, CancellationToken cancellation = default)
+        {
+            return await _client.Pay(bolt11, maxFeePercent, cancellation);
+        }
+
         public async Task<OpenChannelResponse> OpenChannel(OpenChannelRequest req, CancellationToken cancellation = default)
         {
             OpenChannelResult result;
