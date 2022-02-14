@@ -87,9 +87,9 @@ namespace BTCPayServer.Lightning.Tests
 						var createdInvoiceBOLT = BOLT11PaymentRequest.Parse(createdInvoice.BOLT11, Network.RegTest);
 						var retrievedInvoiceeBOLT = BOLT11PaymentRequest.Parse(retrievedInvoice.BOLT11, Network.RegTest);
 						Assert.Equal(createdInvoiceBOLT.PaymentHash, retrievedInvoiceeBOLT.PaymentHash);
-						Assert.Equal(createdInvoiceBOLT.DescriptionHash, hashToUse);
-
-
+						Assert.Equal(hashToUse.ToBytes(), createdInvoiceBOLT.DescriptionHash.ToBytes(false));
+						
+						
 						break;
 					default:
 						await Assert.ThrowsAsync<NotSupportedException>(async () =>
@@ -478,6 +478,9 @@ namespace BTCPayServer.Lightning.Tests
 
 			Assert.True(p.VerifyDescriptionHash("One piece of chocolate cake, one icecream cone, one pickle, one slice of swiss cheese, one slice of salami, one lollypop, one piece of cherry pie, one sausage, one cupcake, and one slice of watermelon"));
 			Assert.False(p.VerifyDescriptionHash("lol"));
+
+			p = BOLT11PaymentRequest.Parse("lnbc20m1pvjluezpp5qqqsyqcyq5rqwzqfqqqsyqcyq5rqwzqfqqqsyqcyq5rqwzqfqypqhp58yjmdan79s6qqdhdzgynm4zwqd5d7xmw5fk98klysy043l2ahrqscc6gd6ql3jrc5yzme8v4ntcewwz5cnw92tz0pc8qcuufvq7khhr8wpald05e92xw006sq94mg8v2ndf4sefvf9sygkshp5zfem29trqq2yxxz7", Network.Main);
+            Assert.Equal("3925b6f67e2c340036ed12093dd44e0368df1b6ea26c53dbe4811f58fd5db8c1", p.DescriptionHash.ToString());
 
 			p = BOLT11PaymentRequest.Parse("lntb20m1pvjluezhp58yjmdan79s6qqdhdzgynm4zwqd5d7xmw5fk98klysy043l2ahrqspp5qqqsyqcyq5rqwzqfqqqsyqcyq5rqwzqfqqqsyqcyq5rqwzqfqypqfpp3x9et2e20v6pu37c5d9vax37wxq72un98kmzzhznpurw9sgl2v0nklu2g4d0keph5t7tj9tcqd8rexnd07ux4uv2cjvcqwaxgj7v4uwn5wmypjd5n69z2xm3xgksg28nwht7f6zspwp3f9t", Network.TestNet);
 			hash = new uint256(Encoders.Hex.DecodeData("00c17b39642becc064615ef196a6cc0cce262f1d8dde7b3c23694aeeda473abe"));
