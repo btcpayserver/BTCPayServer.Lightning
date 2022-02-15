@@ -202,7 +202,7 @@ namespace BTCPayServer.Lightning.Charge
             throw new NotSupportedException();
         }
 
-        Task<PayResponse> ILightningClient.Pay(string bolt11, float? maxFeePercent, CancellationToken cancellation)
+        Task<PayResponse> ILightningClient.Pay(string bolt11, PayInvoiceParams payParams, CancellationToken cancellation)
         {
             throw new NotSupportedException();
         }

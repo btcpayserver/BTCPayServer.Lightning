@@ -249,7 +249,7 @@ namespace BTCPayServer.Lightning.CLightning
 			return ToLightningInvoice(invoices[0]);
 		}
 
-        private async Task<PayResponse> PayAsync(string bolt11, float? maxFeePercent, CancellationToken cancellation)
+        private async Task<PayResponse> PayAsync(string bolt11, PayInvoiceParams payParams, CancellationToken cancellation)
         {
             try
             {
@@ -257,7 +257,7 @@ namespace BTCPayServer.Lightning.CLightning
                     throw new ArgumentNullException(nameof(bolt11));
 
                 bolt11 = bolt11.Replace("lightning:", "").Replace("LIGHTNING:", "");
-                var response = await SendCommandAsync<CLightningPayResponse>("pay", new object[] { bolt11, null, null, null, maxFeePercent }, false, cancellation: cancellation);
+                var response = await SendCommandAsync<CLightningPayResponse>("pay", new object[] { bolt11, null, null, null, payParams?.MaxFeePercent }, false, cancellation: cancellation);
 
                 return new PayResponse(PayResult.Ok, new PayDetails
                 {
@@ -271,9 +271,9 @@ namespace BTCPayServer.Lightning.CLightning
             }
         }
 
-        async Task<PayResponse> ILightningClient.Pay(string bolt11, float? maxFeePercent, CancellationToken cancellation)
+        async Task<PayResponse> ILightningClient.Pay(string bolt11, PayInvoiceParams payParams, CancellationToken cancellation)
         {
-            return await PayAsync(bolt11, maxFeePercent, cancellation);
+            return await PayAsync(bolt11, payParams, cancellation);
         }
 
         async Task<PayResponse> ILightningClient.Pay(string bolt11, CancellationToken cancellation)

@@ -325,19 +325,19 @@ namespace BTCPayServer.Lightning.LND
                 .ToLower(CultureInfo.InvariantCulture);
         }
 
-        private async Task<PayResponse> PayAsync(string bolt11, float? maxFeePercent, CancellationToken cancellation)
+        private async Task<PayResponse> PayAsync(string bolt11, PayInvoiceParams payParams, CancellationToken cancellation)
         {
             retry:
             var retryCount = 0;
             try
             {
                 var req = new LnrpcSendRequest { Payment_request = bolt11 };
-                if (maxFeePercent > 0)
+                if (payParams?.MaxFeePercent > 0)
                 {
                     req.Fee_limit = new LnrpcFeeLimit
                     {
                         // needs to be a string representation of an integer, not float
-                        Percent = ((int)Math.Round(maxFeePercent.Value)).ToString()
+                        Percent = ((int)Math.Round(payParams.MaxFeePercent.Value)).ToString()
                     };
                 }
 
@@ -381,9 +381,9 @@ namespace BTCPayServer.Lightning.LND
             }
         }
 
-        async Task<PayResponse> ILightningClient.Pay(string bolt11, float? maxFeePercent, CancellationToken cancellation)
+        async Task<PayResponse> ILightningClient.Pay(string bolt11, PayInvoiceParams payParams, CancellationToken cancellation)
         {
-            return await PayAsync(bolt11, maxFeePercent, cancellation);
+            return await PayAsync(bolt11, payParams, cancellation);
         }
 
         async Task<PayResponse> ILightningClient.Pay(string bolt11, CancellationToken cancellation)

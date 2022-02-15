@@ -77,12 +77,12 @@ namespace BTCPayServer.Lightning.LNbank
             return await Pay(bolt11, null, cancellation);
         }
 
-        public async Task<PayResponse> Pay(string bolt11, float? maxFeePercent, CancellationToken cancellation)
+        public async Task<PayResponse> Pay(string bolt11, PayInvoiceParams payParams, CancellationToken cancellation)
         {
             var payload = new PayInvoiceRequest
             {
                 PaymentRequest = bolt11,
-                MaxFeePercent = maxFeePercent
+                MaxFeePercent = payParams?.MaxFeePercent
             };
             return await Post<PayInvoiceRequest, PayResponse>("pay", payload, cancellation);
         }

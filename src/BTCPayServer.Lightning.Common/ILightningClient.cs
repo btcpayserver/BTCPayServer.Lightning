@@ -12,7 +12,7 @@ namespace BTCPayServer.Lightning
         Task<LightningInvoice> CreateInvoice(CreateInvoiceParams createInvoiceRequest, CancellationToken cancellation = default);
         Task<ILightningInvoiceListener> Listen(CancellationToken cancellation = default);
         Task<LightningNodeInformation> GetInfo(CancellationToken cancellation = default);
-        Task<PayResponse> Pay(string bolt11, float? maxFeePercent, CancellationToken cancellation = default);
+        Task<PayResponse> Pay(string bolt11, PayInvoiceParams payParams, CancellationToken cancellation = default);
         Task<PayResponse> Pay(string bolt11, CancellationToken cancellation = default);
         Task<OpenChannelResponse> OpenChannel(OpenChannelRequest openChannelRequest, CancellationToken cancellation = default);
         Task<BitcoinAddress> GetDepositAddress();

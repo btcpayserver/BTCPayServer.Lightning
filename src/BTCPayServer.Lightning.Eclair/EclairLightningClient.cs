@@ -130,11 +130,11 @@ namespace BTCPayServer.Lightning.Eclair
             return nodeInfo;
         }
 
-        public async Task<PayResponse> Pay(string bolt11, float? maxFeePercent, CancellationToken cancellation = default)
+        public async Task<PayResponse> Pay(string bolt11, PayInvoiceParams payParams, CancellationToken cancellation = default)
         {
             try
             {
-                var maxFeePct = maxFeePercent > 0 ? (int)Math.Round(maxFeePercent.Value) : (int?)null;
+                var maxFeePct = payParams?.MaxFeePercent > 0 ? (int)Math.Round(payParams.MaxFeePercent.Value) : (int?)null;
                 var uuid = await _eclairClient.PayInvoice(bolt11, null, null, maxFeePct, cancellation);
                 while (!cancellation.IsCancellationRequested)
                 {
