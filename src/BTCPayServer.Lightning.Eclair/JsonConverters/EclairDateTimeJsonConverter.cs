@@ -23,7 +23,9 @@ namespace BTCPayServer.Lightning.Eclair.JsonConverters
 				return null;
 			DateTimeOffset result;
 			if (reader.TokenType == JsonToken.StartObject)
+			{
 				result = Utils.UnixTimeToDateTime(JObject.Load(reader)["unix"].Value<long>());
+			}
 			else
 				result = Utils.UnixTimeToDateTime((ulong)(long)reader.Value / 1000UL);
 			if (objectType == typeof(DateTime))

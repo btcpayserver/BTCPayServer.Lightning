@@ -19,8 +19,6 @@ namespace BTCPayServer.Lightning.Eclair.Models
         {
             public Commitments Commitments { get; set; }
             public FundingTx FundingTx { get; set; }
-            [JsonConverter(typeof(EclairDateTimeJsonConverter))]
-            public DateTimeOffset WaitingSince { get; set; }
             public LastSent LastSent { get; set; }
         }
 
