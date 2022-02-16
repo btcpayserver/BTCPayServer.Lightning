@@ -17,6 +17,7 @@ services:
         port=39388
         whitelist=0.0.0.0/0
         zmqpubrawblock=tcp://0.0.0.0:28332
+        zmqpubhashblock=tcp://0.0.0.0:28334
         zmqpubrawtx=tcp://0.0.0.0:28333
         txindex=1
         deprecatedrpc=signrawtransaction
@@ -193,7 +194,7 @@ services:
         -Declair.bitcoind.rpcport=43782
         -Declair.bitcoind.rpcuser=ceiwHEbqWI83
         -Declair.bitcoind.rpcpassword=DwubwWsoo3
-        -Declair.bitcoind.zmqblock=tcp://bitcoind:28332
+        -Declair.bitcoind.zmqblock=tcp://bitcoind:28334
         -Declair.bitcoind.zmqtx=tcp://bitcoind:28333
         -Don-chain-fees.feerate-tolerance.ratio-low=0.1
         -Don-chain-fees.feerate-tolerance.ratio-high=100.0
@@ -234,7 +235,7 @@ services:
         -Declair.bitcoind.rpcport=43782
         -Declair.bitcoind.rpcuser=ceiwHEbqWI83
         -Declair.bitcoind.rpcpassword=DwubwWsoo3
-        -Declair.bitcoind.zmqblock=tcp://bitcoind:28332
+        -Declair.bitcoind.zmqblock=tcp://bitcoind:28334
         -Declair.bitcoind.zmqtx=tcp://bitcoind:28333
         -Don-chain-fees.feerate-tolerance.ratio-low=0.1
         -Don-chain-fees.feerate-tolerance.ratio-high=100.0
