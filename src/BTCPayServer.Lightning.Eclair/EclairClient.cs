@@ -172,14 +172,15 @@ namespace BTCPayServer.Lightning.Eclair
 		}
 
 		public async Task<string> PayInvoice(string invoice, int? amountMsat = null, int? maxAttempts = null,
-			CancellationToken cts = default(CancellationToken))
+            int? maxFeePercent = null, CancellationToken cts = default(CancellationToken))
 		{
 			return await SendCommandAsync<PayInvoiceRequest, string>("payinvoice",
 				new PayInvoiceRequest()
 				{
 					Invoice = invoice,
 					AmountMsat = amountMsat,
-					MaxAttempts = maxAttempts
+					MaxAttempts = maxAttempts,
+                    MaxFeePct = maxFeePercent
 				}, cts);
 		}
 

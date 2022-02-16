@@ -130,11 +130,12 @@ namespace BTCPayServer.Lightning.Eclair
             return nodeInfo;
         }
 
-        public async Task<PayResponse> Pay(string bolt11, CancellationToken cancellation = default(CancellationToken))
+        public async Task<PayResponse> Pay(string bolt11, PayInvoiceParams payParams, CancellationToken cancellation = default)
         {
             try
             {
-                var uuid = await _eclairClient.PayInvoice(bolt11, null, null, cancellation);
+                var maxFeePct = payParams?.MaxFeePercent > 0 ? (int)Math.Round(payParams.MaxFeePercent.Value) : (int?)null;
+                var uuid = await _eclairClient.PayInvoice(bolt11, null, null, maxFeePct, cancellation);
                 while (!cancellation.IsCancellationRequested)
                 {
                     var status = await _eclairClient.GetSentInfo(null, uuid, cancellation);
@@ -165,6 +166,11 @@ namespace BTCPayServer.Lightning.Eclair
             }
 
             return new PayResponse(PayResult.CouldNotFindRoute);
+        }
+
+        public async Task<PayResponse> Pay(string bolt11, CancellationToken cancellation = default)
+        {
+            return await Pay(bolt11, null, cancellation);
         }
 
         public async Task<OpenChannelResponse> OpenChannel(OpenChannelRequest openChannelRequest,
