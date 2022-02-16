@@ -4,6 +4,7 @@ using System.Text;
 using System.Reflection;
 using Newtonsoft.Json;
 using NBitcoin;
+using Newtonsoft.Json.Linq;
 
 namespace BTCPayServer.Lightning.Eclair.JsonConverters
 {
@@ -18,9 +19,13 @@ namespace BTCPayServer.Lightning.Eclair.JsonConverters
 
 		public override object ReadJson(JsonReader reader, Type objectType, object existingValue, JsonSerializer serializer)
 		{
-			if (reader.Value == null)
+			if (reader.TokenType == JsonToken.Null)
 				return null;
-			var result = Utils.UnixTimeToDateTime((ulong)(long)reader.Value / 1000UL);
+			DateTimeOffset result;
+			if (reader.TokenType == JsonToken.StartObject)
+				result = Utils.UnixTimeToDateTime(JObject.Load(reader)["unix"].Value<long>());
+			else
+				result = Utils.UnixTimeToDateTime((ulong)(long)reader.Value / 1000UL);
 			if (objectType == typeof(DateTime))
 				return result.UtcDateTime;
 			return result;

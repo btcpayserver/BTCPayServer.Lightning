@@ -1,4 +1,5 @@
 using System;
+using BTCPayServer.Lightning.Eclair.JsonConverters;
 using BTCPayServer.Lightning.JsonConverters;
 using Newtonsoft.Json;
 
@@ -14,8 +15,10 @@ namespace BTCPayServer.Lightning.Eclair.Models
         public string RecipientNodeId { get; set; }
         public string Preimage { get; set; }
         public long AmountMsat { get; set; }
-        public long CreatedAt { get; set; }
-        public long CompletedAt { get; set; }
+        [JsonConverter(typeof(EclairDateTimeJsonConverter))]
+        public DateTimeOffset CreatedAt { get; set; }
+        [JsonConverter(typeof(EclairDateTimeJsonConverter))]
+        public DateTimeOffset CompletedAt { get; set; }
 
         [JsonConverter(typeof(LightMoneyJsonConverter))]
         public LightMoney RecipientAmount { get; set; }

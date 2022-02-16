@@ -334,11 +334,19 @@ namespace BTCPayServer.Lightning.LND
                 var req = new LnrpcSendRequest { Payment_request = bolt11 };
                 if (payParams?.MaxFeePercent > 0)
                 {
-                    req.Fee_limit = new LnrpcFeeLimit
+                    req.Fee_limit ??= new LnrpcFeeLimit();
+                    if (payParams.MaxFeePercent.Value < 1.0) // doesn't support sub 1% fee, so we calculate ourself
                     {
-                        // needs to be a string representation of an integer, not float
-                        Percent = ((int)Math.Round(payParams.MaxFeePercent.Value)).ToString()
-                    };
+                        var satValue = BOLT11PaymentRequest.Parse(bolt11, Network).MinimumAmount.ToDecimal(LightMoneyUnit.Satoshi);
+                        req.Fee_limit.Fixed = (long)((satValue * (decimal)payParams.MaxFeePercent.Value) / 100m);
+                    }
+                    else
+                        req.Fee_limit.Percent = ((int)Math.Round(payParams.MaxFeePercent.Value));
+                }
+                if (payParams?.MaxFeeFlat?.Satoshi > 0)
+                {
+                    req.Fee_limit ??= new LnrpcFeeLimit();
+                    req.Fee_limit.Fixed = payParams.MaxFeeFlat.Satoshi;
                 }
 
                 var response = await SwaggerClient.SendPaymentSyncAsync(req, cancellation);

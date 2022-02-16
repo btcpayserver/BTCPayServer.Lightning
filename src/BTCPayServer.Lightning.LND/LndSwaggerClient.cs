@@ -8093,12 +8093,12 @@ namespace BTCPayServer.Lightning.LND
     [System.CodeDom.Compiler.GeneratedCode("NJsonSchema", "9.9.11.0 (Newtonsoft.Json v9.0.0.0)")]
     public partial class LnrpcFeeLimit : System.ComponentModel.INotifyPropertyChanged
     {
-        private string _fixed;
-        private string _percent;
+        private long? _fixed;
+        private long? _percent;
 
         /// <summary>/ The fee limit expressed as a fixed amount of satoshis.</summary>
         [Newtonsoft.Json.JsonProperty("fixed", Required = Newtonsoft.Json.Required.Default, NullValueHandling = Newtonsoft.Json.NullValueHandling.Ignore)]
-        public string Fixed
+        public long? Fixed
         {
             get { return _fixed; }
             set
@@ -8113,7 +8113,7 @@ namespace BTCPayServer.Lightning.LND
 
         /// <summary>/ The fee limit expressed as a percentage of the payment amount.</summary>
         [Newtonsoft.Json.JsonProperty("percent", Required = Newtonsoft.Json.Required.Default, NullValueHandling = Newtonsoft.Json.NullValueHandling.Ignore)]
-        public string Percent
+        public long? Percent
         {
             get { return _percent; }
             set

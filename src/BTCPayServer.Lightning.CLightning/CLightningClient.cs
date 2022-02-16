@@ -257,7 +257,14 @@ namespace BTCPayServer.Lightning.CLightning
                     throw new ArgumentNullException(nameof(bolt11));
 
                 bolt11 = bolt11.Replace("lightning:", "").Replace("LIGHTNING:", "");
-                var response = await SendCommandAsync<CLightningPayResponse>("pay", new object[] { bolt11, null, null, null, payParams?.MaxFeePercent }, false, cancellation: cancellation);
+				var feePercent = payParams?.MaxFeePercent;
+				if (feePercent is null && payParams?.MaxFeeFlat is Money m)
+				{
+					var pr = BOLT11PaymentRequest.Parse(bolt11, Network);
+					var amount = pr.MinimumAmount.ToUnit(LightMoneyUnit.Satoshi);
+					feePercent = (double)(m.Satoshi / amount) * 100;
+				}
+				var response = await SendCommandAsync<CLightningPayResponse>("pay", new object[] { bolt11, null, null, null, feePercent }, false, cancellation: cancellation);
 
                 return new PayResponse(PayResult.Ok, new PayDetails
                 {

@@ -174,7 +174,7 @@ services:
   eclair:
     restart: unless-stopped
     stop_signal: SIGKILL
-    image: acinq/eclair:release-0.6.1
+    image: acinq/eclair:release-0.7.0
     environment:
       JAVA_OPTS: |
         -Xmx256m
@@ -197,7 +197,7 @@ services:
         -Declair.bitcoind.zmqtx=tcp://bitcoind:28333
         -Don-chain-fees.feerate-tolerance.ratio-low=0.1
         -Don-chain-fees.feerate-tolerance.ratio-high=100.0
-        -Declair.mindepth-blocks=1
+        -Declair.channel.mindepth-blocks=1
         -Declair.ping-disconnect=false
     ports:
       - "4570:8080" # api port
@@ -215,7 +215,7 @@ services:
   eclair_dest:
     restart: unless-stopped
     stop_signal: SIGKILL
-    image: acinq/eclair:release-0.6.1
+    image: acinq/eclair:release-0.7.0
     environment:
       JAVA_OPTS: |
         -Xmx256m
@@ -238,7 +238,7 @@ services:
         -Declair.bitcoind.zmqtx=tcp://bitcoind:28333
         -Don-chain-fees.feerate-tolerance.ratio-low=0.1
         -Don-chain-fees.feerate-tolerance.ratio-high=100.0
-        -Declair.mindepth-blocks=1
+        -Declair.channel.mindepth-blocks=1
         -Declair.ping-disconnect=false
     ports:
       - "4571:8080" # api port

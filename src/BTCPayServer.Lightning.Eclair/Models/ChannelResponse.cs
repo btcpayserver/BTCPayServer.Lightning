@@ -1,4 +1,6 @@
+using System;
 using System.Collections.Generic;
+using BTCPayServer.Lightning.Eclair.JsonConverters;
 using NBitcoin;
 using Newtonsoft.Json;
 using Newtonsoft.Json.Linq;
@@ -17,7 +19,8 @@ namespace BTCPayServer.Lightning.Eclair.Models
         {
             public Commitments Commitments { get; set; }
             public FundingTx FundingTx { get; set; }
-            public long WaitingSince { get; set; }
+            [JsonConverter(typeof(EclairDateTimeJsonConverter))]
+            public DateTimeOffset WaitingSince { get; set; }
             public LastSent LastSent { get; set; }
         }
 
@@ -33,7 +36,19 @@ namespace BTCPayServer.Lightning.Eclair.Models
         {
             public LocalParams LocalParams { get; set; }
             public RemoteParams RemoteParams { get; set; }
-            public long ChannelFlags { get; set; }
+            public JToken ChannelFlags { get; set; }
+            public bool IsPublic
+            {
+                get
+                {
+                    if (ChannelFlags.Type == JTokenType.Integer)
+                        return ChannelFlags.Value<long>() == 1;
+                    else
+                    {
+                        return ChannelFlags["announceChannel"].Value<bool>();
+                    }
+                }
+            }
             public LocalCommit LocalCommit { get; set; }
             public RemoteCommit RemoteCommit { get; set; }
             public Changes LocalChanges { get; set; }

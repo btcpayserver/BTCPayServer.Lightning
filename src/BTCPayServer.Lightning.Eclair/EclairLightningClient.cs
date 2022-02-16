@@ -134,8 +134,13 @@ namespace BTCPayServer.Lightning.Eclair
         {
             try
             {
-                var maxFeePct = payParams?.MaxFeePercent > 0 ? (int)Math.Round(payParams.MaxFeePercent.Value) : (int?)null;
-                var uuid = await _eclairClient.PayInvoice(bolt11, null, null, maxFeePct, cancellation);
+                var req = new PayInvoiceRequest()
+                {
+                    Invoice = bolt11
+                };
+                req.MaxFeePct = payParams?.MaxFeePercent;
+                req.MaxFeeFlatSat = payParams?.MaxFeeFlat?.Satoshi;
+                var uuid = await _eclairClient.PayInvoice(req, cancellation);
                 while (!cancellation.IsCancellationRequested)
                 {
                     var status = await _eclairClient.GetSentInfo(null, uuid, cancellation);
@@ -206,7 +211,7 @@ namespace BTCPayServer.Lightning.Eclair
 
                 return new OpenChannelResponse(OpenChannelResult.Ok);
             }
-            catch (Exception e) when (e.Message.Contains("not connected", StringComparison.OrdinalIgnoreCase) || e.Message.Contains("no connection to peer", StringComparison.OrdinalIgnoreCase))
+            catch (Exception e) when (e.Message.Contains("not connected", StringComparison.OrdinalIgnoreCase) || e.Message.Contains("no connection to peer", StringComparison.OrdinalIgnoreCase) || e.Message.Contains("not found", StringComparison.OrdinalIgnoreCase))
             {
                 return new OpenChannelResponse(OpenChannelResult.PeerNotConnected);
             }
@@ -252,7 +257,7 @@ namespace BTCPayServer.Lightning.Eclair
 
                 return new LightningChannel()
                 {
-                    IsPublic = ((ChannelFlags)response.Data.Commitments.ChannelFlags) == ChannelFlags.Public,
+                    IsPublic = response.Data.Commitments.IsPublic,
                     RemoteNode = new PubKey(response.NodeId),
                     IsActive = response.State == "NORMAL",
                     LocalBalance = new LightMoney(response.Data.Commitments.LocalCommit.Spec.ToLocalMsat),

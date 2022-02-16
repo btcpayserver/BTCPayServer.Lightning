@@ -224,19 +224,21 @@ namespace BTCPayServer.Lightning.Tests
 		{
 			foreach (var test in Tester.GetTestedPairs())
 			{
-				await EnsureConnectedToDestinations(test);
 				Logs.Tester.LogInformation($"{test.Name}: {nameof(CanPayInvoiceAndReceive)}");
-                var expiry = TimeSpan.FromSeconds(5000);
+				await EnsureConnectedToDestinations(test);
+				var expiry = TimeSpan.FromSeconds(5000);
 				var amount = LightMoney.Satoshis(1000);
 				var invoice = await test.Merchant.CreateInvoice(amount, "CanPayInvoiceAndReceive", expiry);
-                var invoiceMaxFee = await test.Merchant.CreateInvoice(amount, "CanPayInvoiceWithMaxFeeAndReceive", expiry);
+				var invoiceMaxFeePercent = await test.Merchant.CreateInvoice(amount, "CanPayInvoiceWithMaxFeeAndReceivePercent", expiry);
+				var invoiceMaxFeePercent2 = await test.Merchant.CreateInvoice(amount, "CanPayInvoiceWithMaxFeeAndReceivePercent2", expiry);
+				var invoiceMaxFeeLimit = await test.Merchant.CreateInvoice(amount, "CanPayInvoiceWithMaxFeeAndReceiveLimit", expiry);
 				using (var listener = await test.Merchant.Listen())
 				{
 					var waiting = listener.WaitInvoice(default);
 					var paidReply = await test.Customer.Pay(invoice.BOLT11);
 					Assert.Equal(PayResult.Ok, paidReply.Result);
-                    Assert.Equal(amount, paidReply.Details.TotalAmount);
-                    Assert.Equal(0, paidReply.Details.FeeAmount);
+					Assert.Equal(amount, paidReply.Details.TotalAmount);
+					Assert.Equal(0, paidReply.Details.FeeAmount);
 					var paidInvoice = await waiting;
 					Assert.Equal(LightningInvoiceStatus.Paid, paidInvoice.Status);
 					var retrievedInvoice = await test.Merchant.GetInvoice(invoice.Id);
@@ -244,11 +246,23 @@ namespace BTCPayServer.Lightning.Tests
 					Assert.Equal(amount, paidInvoice.Amount);
 					Assert.Equal(amount, paidInvoice.AmountReceived);
 
-                    // with max fee percent
-                    paidReply = await test.Customer.Pay(invoiceMaxFee.BOLT11, new PayInvoiceParams { MaxFeePercent = 6.15f });
-                    Assert.Equal(PayResult.Ok, paidReply.Result);
-                    Assert.Equal(amount, paidReply.Details.TotalAmount);
-                    Assert.Equal(0, paidReply.Details.FeeAmount);
+					// with max fee percent
+					paidReply = await test.Customer.Pay(invoiceMaxFeePercent.BOLT11, new PayInvoiceParams { MaxFeePercent = 6.15f });
+					Assert.Equal(PayResult.Ok, paidReply.Result);
+					Assert.Equal(amount, paidReply.Details.TotalAmount);
+					Assert.Equal(0, paidReply.Details.FeeAmount);
+
+					// with fee below 1%
+					paidReply = await test.Customer.Pay(invoiceMaxFeePercent.BOLT11, new PayInvoiceParams { MaxFeePercent = 0.5f });
+					Assert.Equal(PayResult.Ok, paidReply.Result);
+					Assert.Equal(amount, paidReply.Details.TotalAmount);
+					Assert.Equal(0, paidReply.Details.FeeAmount);
+
+					// with max fee limit
+					paidReply = await test.Customer.Pay(invoiceMaxFeeLimit.BOLT11, new PayInvoiceParams { MaxFeeFlat = Money.Satoshis(100) });
+					Assert.Equal(PayResult.Ok, paidReply.Result);
+					Assert.Equal(amount, paidReply.Details.TotalAmount);
+					Assert.Equal(0, paidReply.Details.FeeAmount);
 				}
 			}
 		}

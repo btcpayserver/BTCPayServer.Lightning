@@ -1,3 +1,4 @@
+#nullable enable
 namespace BTCPayServer.Lightning
 {
     public class PayInvoiceParams
@@ -6,11 +7,8 @@ namespace BTCPayServer.Lightning
         {
         }
 
-        public PayInvoiceParams(float maxFeePercent)
-        {
-            MaxFeePercent = maxFeePercent;
-        }
 
-        public float? MaxFeePercent { get; set; }
+        public double? MaxFeePercent { get; set; }
+        public NBitcoin.Money? MaxFeeFlat { get; set; }
     }
 }
