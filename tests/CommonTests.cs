@@ -253,7 +253,7 @@ namespace BTCPayServer.Lightning.Tests
 					Assert.Equal(0, paidReply.Details.FeeAmount);
 
 					// with fee below 1%
-					paidReply = await test.Customer.Pay(invoiceMaxFeePercent.BOLT11, new PayInvoiceParams { MaxFeePercent = 0.5f });
+					paidReply = await test.Customer.Pay(invoiceMaxFeePercent2.BOLT11, new PayInvoiceParams { MaxFeePercent = 0.5f });
 					Assert.Equal(PayResult.Ok, paidReply.Result);
 					Assert.Equal(amount, paidReply.Details.TotalAmount);
 					Assert.Equal(0, paidReply.Details.FeeAmount);

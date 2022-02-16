@@ -144,7 +144,7 @@ namespace BTCPayServer.Lightning
             if (!reader.CanConsume(65))
                 throw new FormatException("Invalid BOLT11: Invalid size");
             var rs = reader.ReadBytes(64);
-            _OriginalFormat = rs;
+            _Signature = rs;
             if (!ECDSASignature.TryParseFromCompact(rs, out var s) || s is null)
                 throw new FormatException("Invalid BOLT11: Invalid ECDSA signature");
             ECDSASignature = s;
@@ -375,7 +375,7 @@ namespace BTCPayServer.Lightning
             return RecoverPayeePubKey(Hash);
         }
 
-        byte[] _OriginalFormat;
+        byte[] _Signature;
         public int RecoveryId { get; set; }
         public ECDSASignature ECDSASignature { get; }
 
@@ -383,11 +383,7 @@ namespace BTCPayServer.Lightning
         {
             if (hash == null)
                 throw new ArgumentNullException(nameof(hash));
-            var nbitcoinFormat = new byte[65];
-            nbitcoinFormat[0] = (byte)(27 + RecoveryId);
-            Array.Copy(_OriginalFormat, 0, nbitcoinFormat, 1, 32);
-            Array.Copy(_OriginalFormat, 32, nbitcoinFormat, 33, 32);
-            return PubKey.RecoverCompact(hash, nbitcoinFormat).Compress();
+            return PubKey.RecoverCompact(hash, new CompactSignature(RecoveryId, _Signature));
         }
 
         public string Prefix { get; }
