@@ -79,7 +79,7 @@ namespace BTCPayServer.Lightning.LNbank
 
         public async Task<PayResponse> Pay(string bolt11, PayInvoiceParams payParams, CancellationToken cancellation)
         {
-            
+
             var payload = new PayInvoiceRequest
             {
                 PaymentRequest = bolt11,
@@ -137,7 +137,7 @@ namespace BTCPayServer.Lightning.LNbank
             req.Headers.Accept.Clear();
             req.Headers.Accept.Add(new MediaTypeWithQualityHeaderValue("application/json"));
             req.Headers.Authorization = new AuthenticationHeaderValue("Bearer", _apiToken);
-            req.Headers.Add("User-Agent", "BTCPayServer.Lightning.LNbankLightningClient");
+            req.Headers.Add("User-Agent", "BTCPayServer.Lightning.LNbankClient");
 
             var res = await _httpClient.SendAsync(req, cancellation);
             var str = await res.Content.ReadAsStringAsync();
