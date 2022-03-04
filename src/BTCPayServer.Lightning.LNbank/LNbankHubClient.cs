@@ -18,7 +18,7 @@ namespace BTCPayServer.Lightning.LNbank
             _lightningClient = lightningClient;
             _cancellationToken = cancellation;
             _connection = new HubConnectionBuilder()
-                .WithUrl($"{baseUri.AbsoluteUri}Hubs/Transaction", options => {
+                .WithUrl($"{baseUri.AbsoluteUri}plugins/lnbank/hubs/transaction", options => {
                     options.AccessTokenProvider = () => Task.FromResult(apiToken);
                 })
                 .WithAutomaticReconnect()
