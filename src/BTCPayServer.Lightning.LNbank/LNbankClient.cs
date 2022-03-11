@@ -43,16 +43,21 @@ namespace BTCPayServer.Lightning.LNbank
             return await Get<InvoiceData>($"invoice/{invoiceId}", cancellation);
         }
 
+        public async Task<PaymentData> GetPayment(string paymentHash, CancellationToken cancellation)
+        {
+            return await Get<PaymentData>($"payment/{paymentHash}", cancellation);
+        }
+
         public async Task CancelInvoice(string invoiceId,CancellationToken cancellation)
         {
-            _ = await Send<EmptyRequestModel, EmptyRequestModel>(HttpMethod.Delete, $"invoice/{invoiceId}", new EmptyRequestModel(), cancellation);
+            await Send<EmptyRequestModel, EmptyRequestModel>(HttpMethod.Delete, $"invoice/{invoiceId}", new EmptyRequestModel(), cancellation);
         }
 
         public async Task<BitcoinAddress> GetDepositAddress(CancellationToken cancellation = default)
         {
-            var addr = await Post<EmptyRequestModel, string>("deposit-address", null, cancellation);
+            var address = await Post<EmptyRequestModel, string>("deposit-address", null, cancellation);
 
-            return BitcoinAddress.Create(addr, _network);
+            return BitcoinAddress.Create(address, _network);
         }
 
         public async Task<ChannelData[]> ListChannels(CancellationToken cancellation)

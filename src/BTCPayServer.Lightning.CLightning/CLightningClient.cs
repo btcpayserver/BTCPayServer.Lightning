@@ -241,6 +241,14 @@ namespace BTCPayServer.Lightning.CLightning
 			return resp;
 		}
 
+        async Task<LightningPayment> ILightningClient.GetPayment(string paymentHash, CancellationToken cancellation)
+        {
+            var payments = await SendCommandAsync<CLightningPayment[]>("listpays", new[] { null, paymentHash }, false, true, cancellation);
+            if (payments.Length == 0)
+                return null;
+            return ToLightningPayment(payments[0]);
+        }
+
 		async Task<LightningInvoice> ILightningClient.GetInvoice(string invoiceId, CancellationToken cancellation)
 		{
 			var invoices = await SendCommandAsync<CLightningInvoice[]>("listinvoices", new[] { invoiceId }, false, true, cancellation);
@@ -354,21 +362,33 @@ namespace BTCPayServer.Lightning.CLightning
 			return channels.ToArray();
 		}
 
-		internal static LightningInvoice ToLightningInvoice(CLightningInvoice invoice)
-		{
-			return new LightningInvoice()
+		internal static LightningInvoice ToLightningInvoice(CLightningInvoice invoice) =>
+            new LightningInvoice
 			{
 				Id = invoice.Label,
 				Amount = invoice.MilliSatoshi,
 				AmountReceived = invoice.MilliSatoshiReceived,
 				BOLT11 = invoice.BOLT11,
-				Status = ToStatus(invoice.Status),
+				Status = ToInvoiceStatus(invoice.Status),
 				PaidAt = invoice.PaidAt,
 				ExpiresAt = invoice.ExpiryAt
 			};
-		}
 
-		public static LightningInvoiceStatus ToStatus(string status)
+        internal static LightningPayment ToLightningPayment(CLightningPayment payment) =>
+            new LightningPayment
+            {
+                Id = payment.Label,
+                Amount = payment.MilliSatoshi,
+                AmountSent = payment.MilliSatoshiSent,
+                Fee = payment.MilliSatoshiSent != null && payment.MilliSatoshi != null ? payment.MilliSatoshiSent - payment.MilliSatoshi : null,
+                BOLT11 = payment.BOLT11,
+                Status = ToPaymentStatus(payment.Status),
+                CreatedAt = payment.CreatedAt,
+                PaymentHash = payment.PaymentHash.ToString(),
+                Preimage = payment.Preimage.ToString()
+            };
+
+		public static LightningInvoiceStatus ToInvoiceStatus(string status)
 		{
 			switch (status)
 			{
@@ -382,6 +402,21 @@ namespace BTCPayServer.Lightning.CLightning
 					throw new NotSupportedException($"'{status}' can't map to any LightningInvoiceStatus");
 			}
 		}
+
+        public static LightningPaymentStatus ToPaymentStatus(string status)
+        {
+            switch (status)
+            {
+                case "pending":
+                    return LightningPaymentStatus.Pending;
+                case "failed":
+                    return LightningPaymentStatus.Failed;
+                case "complete":
+                    return LightningPaymentStatus.Complete;
+                default:
+                    throw new NotSupportedException($"'{status}' can't map to any LightningPaymentStatus");
+            }
+        }
 
 		Task<ILightningInvoiceListener> ILightningClient.Listen(CancellationToken cancellation)
 		{

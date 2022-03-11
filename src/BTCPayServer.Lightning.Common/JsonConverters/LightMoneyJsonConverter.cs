@@ -21,12 +21,17 @@ namespace BTCPayServer.Lightning.JsonConverters
         {
             try
             {
-                return reader.TokenType == JsonToken.Null ? null :
-                    reader.TokenType == JsonToken.Integer ?
-                                                longType.IsAssignableFrom(reader.ValueType) ? new LightMoney((long)reader.Value)
-                                                                                            : new LightMoney(long.MaxValue) :
-                    reader.TokenType == JsonToken.String ? new LightMoney(long.Parse((string)reader.Value, CultureInfo.InvariantCulture)) 
-                    : null;
+                return reader.TokenType switch
+                {
+                    JsonToken.Null => null,
+                    JsonToken.Integer => longType.IsAssignableFrom(reader.ValueType)
+                        ? new LightMoney((long)reader.Value)
+                        : new LightMoney(long.MaxValue),
+                    JsonToken.String =>
+                        // some of the c-lightning values have a trailing "msat" that we need to remove before parsing
+                        new LightMoney(long.Parse(((string)reader.Value).Replace("msat", ""), CultureInfo.InvariantCulture)),
+                    _ => null
+                };
             }
             catch (InvalidCastException)
             {

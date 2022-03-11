@@ -173,7 +173,7 @@ namespace BTCPayServer.Lightning.Charge
                 BOLT11 = invoice.PaymentRequest,
                 PaidAt = invoice.PaidAt,
                 ExpiresAt = invoice.ExpiresAt,
-                Status = CLightningClient.ToStatus(invoice.Status)
+                Status = CLightningClient.ToInvoiceStatus(invoice.Status)
             };
         }
 
@@ -233,6 +233,11 @@ namespace BTCPayServer.Lightning.Charge
         }
 
         Task<LightningChannel[]> ILightningClient.ListChannels(CancellationToken cancellation)
+        {
+            throw new NotSupportedException();
+        }
+
+        public Task<LightningPayment> GetPayment(string paymentHash, CancellationToken cancellation = default)
         {
             throw new NotSupportedException();
         }

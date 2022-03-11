@@ -4,8 +4,11 @@
 // </auto-generated>
 //----------------------
 
+using System;
 using Newtonsoft.Json.Linq;
 using System.Diagnostics;
+using NBitcoin;
+using NBitcoin.DataEncoders;
 
 namespace BTCPayServer.Lightning.LND
 {
@@ -504,6 +507,88 @@ namespace BTCPayServer.Lightning.LND
                         }
 
                         return default(LnrpcSendResponse);
+                    }
+                    finally
+                    {
+                        if (response_ != null)
+                            response_.Dispose();
+                    }
+                }
+            }
+            finally
+            {
+            }
+        }
+
+        /// <summary>* lncli: `trackpayment`
+        /// TrackPaymentV2 returns an update stream for the payment identified by the
+        /// payment hash.</summary>
+        /// <exception cref="SwaggerException">A server side error occurred.</exception>
+        public System.Threading.Tasks.Task<LnrpcPayment> TrackPaymentAsync(string payment_hash)
+        {
+            return TrackPaymentAsync(payment_hash, System.Threading.CancellationToken.None);
+        }
+
+        /// <summary>* lncli: `trackpayment`
+        /// TrackPaymentV2 returns an update stream for the payment identified by the
+        /// payment hash.</summary>
+        /// <param name="cancellationToken">A cancellation token that can be used by other objects or threads to receive notice of cancellation.</param>
+        /// <exception cref="SwaggerException">A server side error occurred.</exception>
+        public async System.Threading.Tasks.Task<LnrpcPayment> TrackPaymentAsync(string payment_hash, System.Threading.CancellationToken cancellationToken)
+        {
+            if (payment_hash == null)
+                throw new System.ArgumentNullException("payment_hash");
+
+            var urlBuilder_ = new System.Text.StringBuilder();
+            urlBuilder_.Append(BaseUrl).Append("/v2/router/track/{payment_hash}");
+            urlBuilder_.Replace("{payment_hash}", Converters.HexStringToBase64UrlString(payment_hash));
+            var client_ = _httpClient;
+            try
+            {
+                using (var request_ = new System.Net.Http.HttpRequestMessage())
+                {
+                    request_.Method = new System.Net.Http.HttpMethod("GET");
+                    request_.Headers.Accept.Add(new System.Net.Http.Headers.MediaTypeWithQualityHeaderValue("application/json"));
+
+                    PrepareRequest(client_, request_, urlBuilder_);
+                    var url_ = urlBuilder_.ToString();
+                    request_.RequestUri = new System.Uri(url_, System.UriKind.RelativeOrAbsolute);
+                    PrepareRequest(client_, request_, url_);
+
+                    // NOTE: This is a streaming API! It waits for the final status to be determined.
+                    // In case the status is IN_FLIGHT, it does not respond immediately.
+                    var response_ = await client_.SendAsync(request_, System.Net.Http.HttpCompletionOption.ResponseHeadersRead, cancellationToken).ConfigureAwait(false);
+                    try
+                    {
+                        var headers_ = System.Linq.Enumerable.ToDictionary(response_.Headers, h_ => h_.Key, h_ => h_.Value);
+                        foreach (var item_ in response_.Content.Headers)
+                            headers_[item_.Key] = item_.Value;
+
+                        ProcessResponse(client_, response_);
+
+                        var status_ = ((int)response_.StatusCode).ToString();
+                        if (status_ == "200")
+                        {
+                            var responseData_ = await response_.Content.ReadAsStringAsync().ConfigureAwait(false);
+                            var result_ = default(LnrpcPaymentResult);
+                            try
+                            {
+                                result_ = Newtonsoft.Json.JsonConvert.DeserializeObject<LnrpcPaymentResult>(responseData_, _settings.Value);
+                                return result_.Result;
+                            }
+                            catch (System.Exception exception)
+                            {
+                                throw new SwaggerException("Could not deserialize the response body.", status_, responseData_, headers_, exception);
+                            }
+                        }
+                        else
+                        if (status_ != "200" && status_ != "204")
+                        {
+                            var responseData_ = await response_.Content.ReadAsStringAsync().ConfigureAwait(false);
+                            throw new SwaggerException("The HTTP status code of the response was not expected (" + (int)response_.StatusCode + ").", status_, responseData_, headers_, null);
+                        }
+
+                        return default(LnrpcPayment);
                     }
                     finally
                     {
@@ -6988,14 +7073,61 @@ namespace BTCPayServer.Lightning.LND
     }
 
     [System.CodeDom.Compiler.GeneratedCode("NJsonSchema", "9.9.11.0 (Newtonsoft.Json v9.0.0.0)")]
+    public partial class LnrpcPaymentResult : System.ComponentModel.INotifyPropertyChanged
+    {
+        [Newtonsoft.Json.JsonProperty("result")]
+        public LnrpcPayment Result { get; set; }
+
+        public event System.ComponentModel.PropertyChangedEventHandler PropertyChanged;
+
+        public string ToJson()
+        {
+            return Newtonsoft.Json.JsonConvert.SerializeObject(this);
+        }
+
+        public static LnrpcPaymentResult FromJson(string data)
+        {
+            return Newtonsoft.Json.JsonConvert.DeserializeObject<LnrpcPaymentResult>(data);
+        }
+
+        protected virtual void RaisePropertyChanged([System.Runtime.CompilerServices.CallerMemberName] string propertyName = null)
+        {
+            var handler = PropertyChanged;
+            if (handler != null)
+                handler(this, new System.ComponentModel.PropertyChangedEventArgs(propertyName));
+        }
+    }
+
+    [System.CodeDom.Compiler.GeneratedCode("NJsonSchema", "9.9.11.0 (Newtonsoft.Json v9.0.0.0)")]
     public partial class LnrpcPayment : System.ComponentModel.INotifyPropertyChanged
     {
         private string _payment_hash;
         private string _value;
+        private string _value_sat;
+        private string _value_msat;
         private string _creation_date;
         private System.Collections.ObjectModel.ObservableCollection<string> _path;
         private string _fee;
+        private string _fee_sat;
+        private string _fee_msat;
         private string _payment_preimage;
+        private string _payment_request;
+        [Newtonsoft.Json.JsonProperty("status")]
+        public string Status { get; set; }
+
+        [Newtonsoft.Json.JsonProperty("payment_request", Required = Newtonsoft.Json.Required.Default, NullValueHandling = Newtonsoft.Json.NullValueHandling.Ignore)]
+        public string Payment_request
+        {
+            get { return _payment_request; }
+            set
+            {
+                if (_payment_request != value)
+                {
+                    _payment_request = value;
+                    RaisePropertyChanged();
+                }
+            }
+        }
 
         [Newtonsoft.Json.JsonProperty("payment_hash", Required = Newtonsoft.Json.Required.Default, NullValueHandling = Newtonsoft.Json.NullValueHandling.Ignore)]
         public string Payment_hash
@@ -7020,6 +7152,34 @@ namespace BTCPayServer.Lightning.LND
                 if (_value != value)
                 {
                     _value = value;
+                    RaisePropertyChanged();
+                }
+            }
+        }
+
+        [Newtonsoft.Json.JsonProperty("value_sat", Required = Newtonsoft.Json.Required.Default, NullValueHandling = Newtonsoft.Json.NullValueHandling.Ignore)]
+        public string ValueSat
+        {
+            get { return _value_sat; }
+            set
+            {
+                if (_value_sat != value)
+                {
+                    _value_sat = value;
+                    RaisePropertyChanged();
+                }
+            }
+        }
+
+        [Newtonsoft.Json.JsonProperty("value_msat", Required = Newtonsoft.Json.Required.Default, NullValueHandling = Newtonsoft.Json.NullValueHandling.Ignore)]
+        public string ValueMSat
+        {
+            get { return _value_msat; }
+            set
+            {
+                if (_value_msat != value)
+                {
+                    _value_msat = value;
                     RaisePropertyChanged();
                 }
             }
@@ -7062,6 +7222,34 @@ namespace BTCPayServer.Lightning.LND
                 if (_fee != value)
                 {
                     _fee = value;
+                    RaisePropertyChanged();
+                }
+            }
+        }
+
+        [Newtonsoft.Json.JsonProperty("fee_sat", Required = Newtonsoft.Json.Required.Default, NullValueHandling = Newtonsoft.Json.NullValueHandling.Ignore)]
+        public string FeeSat
+        {
+            get { return _fee_sat; }
+            set
+            {
+                if (_fee_sat != value)
+                {
+                    _fee_sat = value;
+                    RaisePropertyChanged();
+                }
+            }
+        }
+
+        [Newtonsoft.Json.JsonProperty("fee_msat", Required = Newtonsoft.Json.Required.Default, NullValueHandling = Newtonsoft.Json.NullValueHandling.Ignore)]
+        public string FeeMSat
+        {
+            get { return _fee_msat; }
+            set
+            {
+                if (_fee_msat != value)
+                {
+                    _fee_msat = value;
                     RaisePropertyChanged();
                 }
             }

@@ -19,8 +19,6 @@ namespace BTCPayServer.Lightning.LND
             private LndSwaggerClient _Parent;
             Channel<LightningInvoice> _Invoices = Channel.CreateBounded<LightningInvoice>(50);
             CancellationTokenSource _Cts = new CancellationTokenSource();
-
-
             HttpClient _Client;
             HttpResponseMessage _Response;
             Stream _Body;
@@ -282,6 +280,12 @@ namespace BTCPayServer.Lightning.LND
             }
         }
 
+        async Task<LightningPayment> ILightningClient.GetPayment(string paymentHash, CancellationToken cancellation)
+        {
+            var resp = await SwaggerClient.TrackPaymentAsync(paymentHash, cancellation);
+            return ConvertLndPayment(resp);
+        }
+
         async Task<ILightningInvoiceListener> ILightningClient.Listen(CancellationToken cancellation)
         {
             var session = new LndInvoiceClientSession(this.SwaggerClient);
@@ -315,6 +319,39 @@ namespace BTCPayServer.Lightning.LND
                 }
             }
             return invoice;
+        }
+
+        private static LightningPayment ConvertLndPayment(LnrpcPayment resp)
+        {
+            var payment = new LightningPayment
+            {
+                PaymentHash = resp.Payment_hash,
+                Preimage = resp.Payment_preimage,
+                Fee = new LightMoney(ConvertInv.ToInt64(resp.FeeMSat), LightMoneyUnit.MilliSatoshi),
+                Amount = new LightMoney(ConvertInv.ToInt64(resp.ValueMSat), LightMoneyUnit.MilliSatoshi),
+                AmountSent = string.IsNullOrWhiteSpace(resp.ValueMSat) && string.IsNullOrWhiteSpace(resp.FeeMSat) ? null : new LightMoney(ConvertInv.ToInt64(resp.ValueMSat) + ConvertInv.ToInt64(resp.FeeMSat), LightMoneyUnit.MilliSatoshi),
+                BOLT11 = resp.Payment_request,
+                Status = LightningPaymentStatus.Unknown,
+                CreatedAt = DateTimeOffset.FromUnixTimeSeconds(ConvertInv.ToInt64(resp.Creation_date))
+            };
+
+            switch (resp.Status)
+            {
+                case "IN_FLIGHT":
+                    payment.Status = LightningPaymentStatus.Pending;
+                    break;
+                case "SUCCEEDED":
+                    payment.Status = LightningPaymentStatus.Complete;
+                    break;
+                case "FAILED":
+                    payment.Status = LightningPaymentStatus.Failed;
+                    break;
+                case "UNKNOWN":
+                    payment.Status = LightningPaymentStatus.Unknown;
+                    break;
+            }
+
+            return payment;
         }
 
         // utility static methods... maybe move to separate class

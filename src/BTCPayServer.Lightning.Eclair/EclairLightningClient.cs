@@ -1,5 +1,6 @@
-﻿using System;
+using System;
 using System.Collections.Concurrent;
+using System.Collections.Generic;
 using System.Linq;
 using System.Net.Http;
 using System.Net.Http.Headers;
@@ -74,6 +75,41 @@ namespace BTCPayServer.Lightning.Eclair
                 lnInvoice.PaidAt = info.Status.ReceivedAt;
             }
             return lnInvoice;
+        }
+
+        public async Task<LightningPayment> GetPayment(string paymentHash, CancellationToken cancellation = default)
+        {
+            var result = await _eclairClient.GetSentInfo(paymentHash, null, cancellation);
+
+            var sentInfo = result.First();
+            var payment = new LightningPayment
+            {
+                Id = sentInfo.Id.ToString(),
+                Preimage = sentInfo.Preimage,
+                PaymentHash = sentInfo.PaymentHash,
+                CreatedAt = sentInfo.CreatedAt,
+                Amount = sentInfo.Amount,
+                AmountSent = sentInfo.Amount + sentInfo.FeesPaid,
+                Fee = sentInfo.FeesPaid
+            };
+
+            switch (sentInfo.Status.type)
+            {
+                case "pending":
+                    payment.Status = LightningPaymentStatus.Pending;
+                    break;
+                case "failed":
+                    payment.Status = LightningPaymentStatus.Failed;
+                    break;
+                case "sent":
+                    payment.Status = LightningPaymentStatus.Complete;
+                    break;
+                default:
+                    payment.Status = LightningPaymentStatus.Unknown;
+                    break;
+            }
+
+            return payment;
         }
 
         async Task<LightningInvoice> ILightningClient.CreateInvoice(LightMoney amount, string description, TimeSpan expiry,
