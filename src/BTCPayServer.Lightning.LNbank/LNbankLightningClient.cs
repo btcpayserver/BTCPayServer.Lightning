@@ -53,6 +53,23 @@ namespace BTCPayServer.Lightning.LNbank
             };
         }
 
+        public async Task<LightningPayment> GetPayment(string paymentHash, CancellationToken cancellation = default)
+        {
+            var payment = await _client.GetPayment(paymentHash, cancellation);
+
+            return new LightningPayment
+            {
+                Id = payment.Id,
+                Amount = payment.TotalAmount != null && payment.FeeAmount != null ? payment.TotalAmount - payment.FeeAmount : null,
+                AmountSent = payment.TotalAmount,
+                CreatedAt = payment.CreatedAt,
+                BOLT11 = payment.BOLT11,
+                Preimage = payment.Preimage,
+                PaymentHash = payment.PaymentHash,
+                Status = payment.Status
+            };
+        }
+
         public async Task<BitcoinAddress> GetDepositAddress()
         {
             return await _client.GetDepositAddress();

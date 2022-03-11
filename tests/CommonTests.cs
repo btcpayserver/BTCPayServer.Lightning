@@ -265,7 +265,17 @@ namespace BTCPayServer.Lightning.Tests
 					Assert.Equal(PayResult.Ok, paidReply.Result);
 					Assert.Equal(amount, paidReply.Details.TotalAmount);
 					Assert.Equal(0, paidReply.Details.FeeAmount);
-				}
+
+                    // check payment
+                    var payReq = BOLT11PaymentRequest.Parse(invoice.BOLT11, Network.RegTest);
+                    var hash = payReq.PaymentHash?.ToString();
+                    var payment = await test.Customer.GetPayment(hash);
+                    Assert.Equal(hash, payment.PaymentHash);
+                    Assert.Equal(amount, payment.Amount);
+                    Assert.Equal(amount, payment.AmountSent);
+                    Assert.Equal(0, payment.Fee);
+                    Assert.Equal(LightningPaymentStatus.Complete, payment.Status);
+                }
 			}
 		}
 
