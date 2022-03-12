@@ -134,12 +134,12 @@ namespace BTCPayServer.Lightning.Eclair
         {
             try
             {
-                var req = new PayInvoiceRequest()
+                var req = new PayInvoiceRequest
                 {
-                    Invoice = bolt11
+                    Invoice = bolt11,
+                    MaxFeePct = payParams?.MaxFeePercent != null ? (int)Math.Round(payParams.MaxFeePercent.Value) : (int?)null,
+                    MaxFeeFlatSat = payParams?.MaxFeeFlat?.Satoshi
                 };
-                req.MaxFeePct = payParams?.MaxFeePercent;
-                req.MaxFeeFlatSat = payParams?.MaxFeeFlat?.Satoshi;
                 var uuid = await _eclairClient.PayInvoice(req, cancellation);
                 while (!cancellation.IsCancellationRequested)
                 {
