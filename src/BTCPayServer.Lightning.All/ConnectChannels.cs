@@ -1,4 +1,4 @@
-﻿using NBitcoin;
+using NBitcoin;
 using System.Linq;
 using NBitcoin.RPC;
 using System;
@@ -50,8 +50,9 @@ namespace BTCPayServer.Lightning.Tests
         }
         public static async Task CreateChannel(RPCClient cashCow, ILightningClient sender, ILightningClient dest)
         {
+            var amount = new LightMoney(1234); // use arbitrary amount to check if channel exists
             var destInfo = await dest.GetInfo();
-            var destInvoice = await dest.CreateInvoice(1000, "EnsureConnectedToDestination", TimeSpan.FromSeconds(5000));
+            var destInvoice = await dest.CreateInvoice(amount, "EnsureConnectedToDestination", TimeSpan.FromSeconds(5000));
             while(true)
             {
                 int payErrors = 0;

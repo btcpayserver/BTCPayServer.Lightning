@@ -227,22 +227,24 @@ namespace BTCPayServer.Lightning.Tests
 				Logs.Tester.LogInformation($"{test.Name}: {nameof(CanPayInvoiceAndReceive)}");
 				await EnsureConnectedToDestinations(test);
 				var expiry = TimeSpan.FromSeconds(5000);
-				var amount = LightMoney.Satoshis(1000);
+				var amount = LightMoney.Satoshis(21);
 				var invoice = await test.Merchant.CreateInvoice(amount, "CanPayInvoiceAndReceive", expiry);
 				var invoiceMaxFeePercent = await test.Merchant.CreateInvoice(amount, "CanPayInvoiceWithMaxFeeAndReceivePercent", expiry);
 				var invoiceMaxFeePercent2 = await test.Merchant.CreateInvoice(amount, "CanPayInvoiceWithMaxFeeAndReceivePercent2", expiry);
 				var invoiceMaxFeeLimit = await test.Merchant.CreateInvoice(amount, "CanPayInvoiceWithMaxFeeAndReceiveLimit", expiry);
+
 				using (var listener = await test.Merchant.Listen())
 				{
-					var waiting = listener.WaitInvoice(default);
+                    var waiting = listener.WaitInvoice(default);
 					var paidReply = await test.Customer.Pay(invoice.BOLT11);
+                    var paidInvoice = await GetPaidInvoice(listener, waiting, invoice.Id);
+                    var retrievedInvoice = await test.Merchant.GetInvoice(invoice.Id);
+
 					Assert.Equal(PayResult.Ok, paidReply.Result);
 					Assert.Equal(amount, paidReply.Details.TotalAmount);
 					Assert.Equal(0, paidReply.Details.FeeAmount);
-					var paidInvoice = await waiting;
+
 					Assert.Equal(LightningInvoiceStatus.Paid, paidInvoice.Status);
-					var retrievedInvoice = await test.Merchant.GetInvoice(invoice.Id);
-					Assert.Equal(LightningInvoiceStatus.Paid, retrievedInvoice.Status);
 					Assert.Equal(amount, paidInvoice.Amount);
 					Assert.Equal(amount, paidInvoice.AmountReceived);
 
@@ -723,5 +725,21 @@ namespace BTCPayServer.Lightning.Tests
 
 			Assert.True(LightningConnectionString.TryParse("type=lnbank;server=https://mybtcpay.com/;api-token=myapitoken", false, out conn));
 		}
+
+        private async Task<LightningInvoice> GetPaidInvoice(ILightningInvoiceListener listener, Task<LightningInvoice> waiting, string invoiceId)
+        {
+            LightningInvoice invoice;
+            while (true)
+            {
+                invoice = await waiting;
+                if (invoice.Id == invoiceId)
+                {
+                    break;
+                }
+                waiting = listener.WaitInvoice(default);
+            }
+
+            return invoice;
+        }
 	}
 }
