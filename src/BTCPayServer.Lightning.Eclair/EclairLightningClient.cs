@@ -166,8 +166,9 @@ namespace BTCPayServer.Lightning.Eclair
                     }
                 }
             }
-            catch (EclairClient.EclairApiException)
+            catch (EclairClient.EclairApiException exception)
             {
+                return new PayResponse(PayResult.Error, exception.Message);
             }
 
             return new PayResponse(PayResult.CouldNotFindRoute);
