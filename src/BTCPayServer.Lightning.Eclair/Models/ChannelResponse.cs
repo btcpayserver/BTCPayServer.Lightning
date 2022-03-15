@@ -82,8 +82,11 @@ namespace BTCPayServer.Lightning.Eclair.Models
         public partial class Spec
         {
             public List<object> Htlcs { get; set; }
+            [JsonProperty("commitTxFeerate")]
             public long FeeratePerKw { get; set; }
+            [JsonProperty("toLocal")]
             public ulong ToLocalMsat { get; set; }
+            [JsonProperty("toRemote")]
             public ulong ToRemoteMsat { get; set; }
         }
 

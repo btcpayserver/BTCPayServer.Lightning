@@ -255,13 +255,13 @@ namespace BTCPayServer.Lightning.Eclair
                 OutPoint.TryParse(response.Data.Commitments.CommitInput.OutPoint.Replace(":", "-"),
                     out var outPoint);
 
-                return new LightningChannel()
+                return new LightningChannel
                 {
                     IsPublic = response.Data.Commitments.IsPublic,
                     RemoteNode = new PubKey(response.NodeId),
                     IsActive = response.State == "NORMAL",
                     LocalBalance = new LightMoney(response.Data.Commitments.LocalCommit.Spec.ToLocalMsat),
-                    Capacity = new LightMoney(response.Data.Commitments.CommitInput.AmountSatoshis),
+                    Capacity = new LightMoney(response.Data.Commitments.CommitInput.AmountSatoshis, LightMoneyUnit.Satoshi),
                     ChannelPoint = outPoint,
                 };
             }).ToArray();
