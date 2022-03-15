@@ -1,14 +1,16 @@
 version: 2
 jobs:
   build:
-    machine: 
-        enabled: true
-    steps: 
+    machine:
+      enabled: true
+      image: ubuntu-2004:202201-02
+    steps:
       - checkout
 
   test:
     machine:
-        enabled: true
+      enabled: true
+      image: ubuntu-2004:202201-02
     steps:
       - checkout
       - run:
