@@ -219,19 +219,19 @@ namespace BTCPayServer.Lightning.LND
 
         async Task<LightningChannel[]> ILightningClient.ListChannels(CancellationToken token)
         {
-            var resp = await this.SwaggerClient.ListChannelsAsync(false, false, false, false, token);
+            var resp = await SwaggerClient.ListChannelsAsync(false, false, false, false, token);
             if (resp.Channels == null)
                 return new LightningChannel[] {};
             return (from c in resp.Channels
                     let tmp = c.Channel_point.Split(':')
                     let txHash = new uint256(tmp[0])
                     let outIndex = int.Parse(tmp[1])
-                    select new LightningChannel() {
+                    select new LightningChannel {
                         RemoteNode = new PubKey(c.Remote_pubkey),
-                        IsPublic = !(c.Private ?? false) ,
-                        IsActive = (c.Active == null ? false : c.Active.Value),
-                        Capacity = c.Capacity,
-                        LocalBalance = c.Local_balance,
+                        IsPublic = !(c.Private ?? false),
+                        IsActive = c.Active ?? false,
+                        Capacity = LightMoney.Satoshis(long.Parse(c.Capacity)),
+                        LocalBalance = LightMoney.Satoshis(long.Parse(c.Local_balance)),
                         ChannelPoint = new OutPoint(txHash, outIndex)
                     }).ToArray();
         }

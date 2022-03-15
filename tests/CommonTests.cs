@@ -364,6 +364,10 @@ namespace BTCPayServer.Lightning.Tests
 		[Fact(Timeout = Timeout)]
 		public async Task CanListChannels()
 		{
+            // for channel values to be in reasonable bounds
+            var lowerBound = LightMoney.Satoshis(10000000);
+            var upperBound = LightMoney.Satoshis(16777215);
+
 			foreach (var test in Tester.GetTestedPairs())
 			{
 				await EnsureConnectedToDestinations(test);
@@ -382,9 +386,9 @@ namespace BTCPayServer.Lightning.Tests
 					Assert.NotNull(c.RemoteNode);
 					Assert.True(c.IsPublic);
 					Assert.True(c.IsActive);
-					Assert.NotNull(c.Capacity);
-					Assert.NotNull(c.LocalBalance);
 					Assert.NotNull(c.ChannelPoint);
+                    Assert.InRange(c.Capacity, lowerBound, upperBound);
+                    Assert.InRange(c.LocalBalance, lowerBound, upperBound);
 				}
 				Assert.Contains(senderChannels, c => c.RemoteNode.Equals(destInfo.NodeInfo.NodeId));
 				Assert.Contains(destChannels, c => c.RemoteNode.Equals(senderInfo.NodeInfo.NodeId));
