@@ -267,7 +267,6 @@ namespace BTCPayServer.Lightning.Tests
 			}
 		}
 
-
 		[Fact(Timeout = Timeout)]
 		public async Task CanSendCorrectConnectError()
 		{
@@ -406,12 +405,25 @@ namespace BTCPayServer.Lightning.Tests
 
 		private async Task EnsureConnectedToDestinations((string Name, ILightningClient Customer, ILightningClient Merchant) test)
 		{
-			await Task.WhenAll(WaitServersAreUp($"{test.Name} (Customer)", test.Customer), WaitServersAreUp($"{test.Name} (Merchant)", test.Merchant));
-            Tests.Logs.Tester.LogInformation($"{test.Name}: Connecting channels...");
+			await Task.WhenAll(
+                WaitServersAreUp($"{test.Name} Customer ({(await test.Customer.GetInfo()).NodeInfoList.Select(e => e.NodeId).First()}):", test.Customer),
+                WaitServersAreUp($"{test.Name} Merchant ({(await test.Merchant.GetInfo()).NodeInfoList.Select(e => e.NodeId).First()}):", test.Merchant));
+            Logs.Tester.LogInformation($"{test.Name}: Connecting channels...");
 			var cashcow = Tester.CreateRPC();
 			await cashcow.ScanRPCCapabilitiesAsync();
 			await ConnectChannels.ConnectAll(cashcow, new[] { test.Customer }, new[] { test.Merchant });
-            Tests.Logs.Tester.LogInformation($"{test.Name}: Channels connected");
+            Logs.Tester.LogInformation($"{test.Name}: Channels connected");
+            var channelsCustomer = await test.Customer.ListChannels();
+            var channelsMerchant = await test.Merchant.ListChannels();
+            foreach (var channel in channelsCustomer)
+            {
+                Logs.Tester.LogInformation($"Customer to {channel.RemoteNode}: Capacity = {channel.Capacity} BTC, Local Balance = {channel.LocalBalance} BTC");
+            }
+            foreach (var channel in channelsMerchant)
+            {
+                Logs.Tester.LogInformation($"Merchant to {channel.RemoteNode}: Capacity = {channel.Capacity} BTC, Local Balance = {channel.LocalBalance} BTC");
+            }
+            Logs.Tester.LogInformation("-----------------");
 		}
 
 		[Fact]
