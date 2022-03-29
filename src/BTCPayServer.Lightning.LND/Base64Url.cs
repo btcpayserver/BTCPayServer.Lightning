@@ -1,4 +1,5 @@
 using System;
+using NBitcoin.DataEncoders;
 
 namespace BTCPayServer.Lightning.LND
 {
@@ -6,30 +7,10 @@ namespace BTCPayServer.Lightning.LND
     {
         public static string HexStringToBase64UrlString(this string input)
         {
-            return ToBase64UrlString(input.HexStringToHex());
-        }
-
-        private static string ToBase64UrlString(byte[] arg)
-        {
-            if (arg == null)
-            {
-                throw new ArgumentNullException("arg");
-            }
-
-            var s = Convert.ToBase64String(arg);
-            return s
+            var decoded = Encoders.Hex.DecodeData(input);
+            return Encoders.Base64.EncodeData(decoded)
                 .Replace("/", "_")
                 .Replace("+", "-");
-        }
-
-        private static byte[] HexStringToHex(this string inputHex)
-        {
-            var resultantArray = new byte[inputHex.Length / 2];
-            for (var i = 0; i < resultantArray.Length; i++)
-            {
-                resultantArray[i] = Convert.ToByte(inputHex.Substring(i * 2, 2), 16);
-            }
-            return resultantArray;
         }
     }
 }
