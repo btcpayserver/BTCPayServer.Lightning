@@ -1,5 +1,7 @@
 using System;
 using System.Linq;
+using NBitcoin;
+using NBitcoin.DataEncoders;
 using System.Security.Cryptography;
 using System.Security.Cryptography.X509Certificates;
 using System.Text;
@@ -9,9 +11,7 @@ using BTCPayServer.Lightning.Charge;
 using BTCPayServer.Lightning.CLightning;
 using BTCPayServer.Lightning.Eclair;
 using BTCPayServer.Lightning.LND;
-using NBitcoin;
 using NBitcoin.Crypto;
-using NBitcoin.DataEncoders;
 using Newtonsoft.Json.Linq;
 using Xunit;
 using Xunit.Abstractions;
@@ -142,14 +142,16 @@ namespace BTCPayServer.Lightning.Tests
                     "type=charge;server=http://api-token:foiewnccewuify@charge:9112;allowinsecure=true",
                     "type=lnd-rest;server=http://lnd_dest:8080;allowinsecure=true",
                     "type=clightning;server=tcp://lightningd:9835",
-                    "type=eclair;server=http://eclair:8080;password=bukkake"
+                    "type=eclair;server=http://eclair:8080;password=bukkake",
+                    "type=lndhub;server=http://lndhub:3000;api-token=c5306a3f151f23103420:81c6843d3b2506a66361;allowinsecure=true"
                 }
                 : new[]
                 {
                     "type=charge;server=http://api-token:foiewnccewuify@127.0.0.1:37462;allowinsecure=true",
                     "type=lnd-rest;server=http://127.0.0.1:42802;allowinsecure=true",
                     "type=clightning;server=tcp://127.0.0.1:48532",
-                    "type=eclair;server=http://127.0.0.1:4570;password=bukkake"
+                    "type=eclair;server=http://127.0.0.1:4570;password=bukkake",
+                    "type=lndhub;server=http://127.0.0.1:42923;api-token=c5306a3f151f23103420:81c6843d3b2506a66361;allowinsecure=true"
                 };
 
             var clientTypes = Tester.GetLightningClients().Select(l => l.Client.GetType()).ToArray();
@@ -825,6 +827,7 @@ retry:
             Assert.True(LightningConnectionString.TryParse("type=charge;server=http://api-token:foiewnccewuify@127.0.0.1:54938/;allowinsecure=true", out conn));
             Assert.Equal("type=charge;server=http://127.0.0.1:54938/;api-token=foiewnccewuify;allowinsecure=true", conn.ToString());
             Assert.True(LightningConnectionString.TryParse("type=lnbank;server=https://mybtcpay.com/;api-token=myapitoken", false, out conn));
+            Assert.True(LightningConnectionString.TryParse("type=lndhub;server=https://lndhub.io/;api-token=mylndhub:apitoken", false, out conn));
         }
 
         private async Task<LightningInvoice> GetPaidInvoice(ILightningInvoiceListener listener, Task<LightningInvoice> waiting, string invoiceId)

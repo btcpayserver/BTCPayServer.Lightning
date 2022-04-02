@@ -17,7 +17,8 @@ namespace BTCPayServer.Lightning
         [Display(Name = "LND (gRPC)")]
         LndGRPC,
         Eclair,
-        LNbank
+        LNbank,
+        LNDhub
     }
     public class LightningConnectionString
     {
@@ -32,6 +33,7 @@ namespace BTCPayServer.Lightning
             typeMapping.Add("lnd-grpc", LightningConnectionType.LndGRPC);
             typeMapping.Add("eclair", LightningConnectionType.Eclair);
             typeMapping.Add("lnbank", LightningConnectionType.LNbank);
+            typeMapping.Add("lndhub", LightningConnectionType.LNDhub);
             typeMappingReverse = new Dictionary<LightningConnectionType, string>();
             foreach (var kv in typeMapping)
             {
@@ -266,7 +268,6 @@ namespace BTCPayServer.Lightning
                         Take(keyValues, "restrictedmacaroon");
                         Take(keyValues, "restrictedmacaroonfilepath");
 
-
                         result.MacaroonDirectoryPath = Take(keyValues, "macaroondirectorypath");
 
                         string securitySet = null;
@@ -357,6 +358,52 @@ namespace BTCPayServer.Lightning
                         if (server == null)
                         {
                             error = "The key 'server' is mandatory for LNbank connection strings";
+                            return false;
+                        }
+                        if (!Uri.TryCreate(server, UriKind.Absolute, out var uri)
+                            || uri.Scheme != "http" && uri.Scheme != "https")
+                        {
+                            error = "The key 'server' should be an URI starting by http:// or https://";
+                            return false;
+                        }
+
+                        var allowinsecureStr = Take(keyValues, "allowinsecure");
+                        if (allowinsecureStr != null)
+                        {
+                            var allowedValues = new[] { "true", "false" };
+                            if (!allowedValues.Any(v => v.Equals(allowinsecureStr, StringComparison.OrdinalIgnoreCase)))
+                            {
+                                error = "The key 'allowinsecure' should be true or false";
+                                return false;
+                            }
+
+                            result.AllowInsecure = allowinsecureStr.Equals("true", StringComparison.OrdinalIgnoreCase);
+                        }
+
+                        if (!result.AllowInsecure && uri.Scheme == "http")
+                        {
+                            error = "The key 'allowinsecure' is false, but server's Uri is not using https";
+                            return false;
+                        }
+
+                        var apiToken = Take(keyValues, "api-token");
+                        if (apiToken == null)
+                        {
+                            error = "The key 'api-token' is not found";
+                            return false;
+                        }
+
+                        result.BaseUri = uri;
+                        result.ApiToken = apiToken;
+                    }
+                    break;
+                case LightningConnectionType.LNDhub:
+                    {
+                        var server = Take(keyValues, "server");
+
+                        if (server == null)
+                        {
+                            error = "The key 'server' is mandatory for LNDhub connection strings";
                             return false;
                         }
                         if (!Uri.TryCreate(server, UriKind.Absolute, out var uri)

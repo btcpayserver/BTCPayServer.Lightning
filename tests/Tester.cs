@@ -1,9 +1,11 @@
 using System;
 using System.Collections.Generic;
+using System.Threading.Tasks;
 using BTCPayServer.Lightning.Charge;
 using BTCPayServer.Lightning.CLightning;
 using BTCPayServer.Lightning.Eclair;
 using BTCPayServer.Lightning.LND;
+using BTCPayServer.Lightning.LndHub;
 using NBitcoin;
 using NBitcoin.RPC;
 
@@ -61,20 +63,37 @@ namespace BTCPayServer.Lightning.Tests
             var host = CommonTests.Docker ? "http://eclair_dest:8080" : "http://127.0.0.1:4571";
             return new EclairLightningClient(new Uri(host), "bukkake", Network);
         }
-
-        public static IEnumerable<(string Name, ILightningClient Client)> GetLightningClients()
+        
+        public static async Task<LndHubLightningClient> CreateLndHubClient()
         {
-            yield return ("Charge (Client)", CreateChargeClient());
-            yield return ("C-Lightning (Client)", CreateCLightningClient());
-            yield return ("LND (Client)", CreateLndClient());
-            yield return ("Eclair (Client)", CreateEclairClient());
+            var uri = new Uri(CommonTests.Docker ? "http://lndhub:3000" : "http://127.0.0.1:42923");
+            var client = new LndHubLightningClient(uri, "_:_", Network.RegTest);
+            var data = await client.CreateAccount();
+            return new LndHubLightningClient(uri, $"{data.Login}:{data.Password}", Network.RegTest);
         }
 
-        public static IEnumerable<(string Name, ILightningClient Customer, ILightningClient Merchant)> GetTestedPairs()
+        public static async Task<LndHubLightningClient> CreateLndHubClientDest()
         {
-            yield return ("C-Lightning", CreateCLightningClient(), CreateCLightningClientDest());
-            yield return ("LND", CreateLndClient(), CreateLndClientDest());
+            var uri = new Uri(CommonTests.Docker ? "http://lndhub_dest:3000" : "http://127.0.0.1:42924");
+            var client = new LndHubLightningClient(uri, "_:_", Network.RegTest);
+            var data = await client.CreateAccount();
+            return new LndHubLightningClient(uri, $"{data.Login}:{data.Password}", Network.RegTest);
+        }
+
+		public static IEnumerable<(string Name, ILightningClient Client)> GetLightningClients()
+		{
+			yield return ("Charge (Client)", CreateChargeClient());
+			yield return ("C-Lightning (Client)", CreateCLightningClient());
+			yield return ("LND (Client)", CreateLndClient());
+			yield return ("Eclair (Client)", CreateEclairClient());
+            yield return ("LNDhub (Client)", CreateLndHubClient().Result);
+        }
+
+		public static IEnumerable<(string Name, ILightningClient Customer, ILightningClient Merchant)> GetTestedPairs()
+		{
+			yield return ("C-Lightning", CreateCLightningClient(), CreateCLightningClientDest());
+			yield return ("LND", CreateLndClient(), CreateLndClientDest());
             yield return ("Eclair", CreateEclairClient(), CreateEclairClientDest());
-        }
-    }
+		}
+	}
 }

@@ -8,6 +8,7 @@ This library is meant to facilitate the development of Lightning Network based a
 Its main goal isn't to perfectly implement client API of all lightning node implementation, but to provide a common abstraction that can be used to support many implementations at once.
 
 The most important packages are:
+
 * `BTCPayServer.Lightning.Common` contains the common abstractions shared between those implementation.
 * `BTCPayServer.Lightning.All` contains `LightningClientFactory` which can convert a connection string to an instance of `ILightningClient`.
 
@@ -20,9 +21,9 @@ Here is a description of all packages:
 * `BTCPayServer.Lightning.LND` exposes easy to use LND clients [![NuGet](https://img.shields.io/nuget/v/BTCPayServer.Lightning.LND.svg)](https://www.nuget.org/packages/BTCPayServer.Lightning.LND)
 * `BTCPayServer.Lightning.CLightning` exposes easy to use clightning clients [![NuGet](https://img.shields.io/nuget/v/BTCPayServer.Lightning.CLightning.svg)](https://www.nuget.org/packages/BTCPayServer.Lightning.CLightning)
 * `BTCPayServer.Lightning.Charge` exposes easy to use Charge clients [![NuGet](https://img.shields.io/nuget/v/BTCPayServer.Lightning.Charge.svg)](https://www.nuget.org/packages/BTCPayServer.Lightning.Charge)
-* `BTCPayServer.Lightning.Eclair` exposes easy to use Eclair clients [![NuGet](https://img.shields.io/nuget/v/BTCPayServer.Lightning.Eclair.svg)](https://www.nuget.org/packages/
-BTCPayServer.Lightning.Eclair)
+* `BTCPayServer.Lightning.Eclair` exposes easy to use Eclair clients [![NuGet](https://img.shields.io/nuget/v/BTCPayServer.Lightning.Eclair.svg)](https://www.nuget.org/packages/BTCPayServer.Lightning.Eclair)
 * `BTCPayServer.Lightning.LNbank` exposes easy to use LNbank clients [![NuGet](https://img.shields.io/nuget/v/BTCPayServer.Lightning.LNbank.svg)](https://www.nuget.org/packages/BTCPayServer.Lightning.LNbank)
+* `BTCPayServer.Lightning.LNDhub` exposes easy to use LNDhub clients [![NuGet](https://img.shields.io/nuget/v/BTCPayServer.Lightning.LNDhub.svg)](https://www.nuget.org/packages/BTCPayServer.Lightning.LNDhub)
 
 If you develop an app, we advise you to reference `BTCPayServer.Lightning.All` [![NuGet](https://img.shields.io/nuget/v/BTCPayServer.Lightning.All.svg)](https://www.nuget.org/packages/BTCPayServer.Lightning.All).
 
@@ -63,6 +64,7 @@ The `connectionString` encapsulates the necessary information BTCPay needs to co
 * `lightning charge` via HTTPS
 * `LND` via the REST proxy
 * `Eclair` via their new REST API
+* `LNDhub` via their REST API
 
 #### Examples
 
@@ -76,6 +78,7 @@ The `connectionString` encapsulates the necessary information BTCPay needs to co
 * `type=eclair;server=http://127.0.0.1:4570;password=eclairpass`
 * `type=lnbank;server=http://lnbank:5000;api-token=myapitoken;allowinsecure=true`
 * `type=lnbank;server=https://mybtcpay.com/lnbank;api-token=myapitoken`
+* `type=lndhub;server=https://lndhub.io;api-token=mylndhub:apitoken`
 
 Note that `bitcoin-host` and `bitcoin-auth` are optional, only useful if you want to call `ILightningClient.GetDepositAddress` on Eclair.
 We expect this won't be needed in the future.

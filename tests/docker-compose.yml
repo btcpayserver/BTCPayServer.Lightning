@@ -22,7 +22,7 @@ services:
         txindex=1
         deprecatedrpc=signrawtransaction
         fallbackfee=0.0002
-    ports: 
+    ports:
       - "37393:43782"
       - "23823:28332"
     expose:
@@ -125,10 +125,10 @@ services:
         bitcoind.zmqpubrawtx=tcp://bitcoind:28333
         externalip=lnd:9735
         bitcoin.defaultchanconfs=1
-        no-macaroons=1
         debuglevel=debug
         trickledelay=1000
         no-rest-tls=1
+        no-macaroons=1
     ports:
       - "32736:8080"
     expose:
@@ -158,10 +158,10 @@ services:
         bitcoind.zmqpubrawtx=tcp://bitcoind:28333
         externalip=lnd_dest:9735
         bitcoin.defaultchanconfs=1
-        no-macaroons=1
         debuglevel=debug
         trickledelay=1000
         no-rest-tls=1
+        no-macaroons=1
     ports:
       - "42802:8080"
     expose:
@@ -253,7 +253,55 @@ services:
     links:
       - bitcoind
 
-  
+  lndhub_redis:
+    restart: unless-stopped
+    image: "redis:6.2.2-buster@sha256:e10f55f92478715698a2cef97c2bbdc48df2a05081edd884938903aa60df6396"
+    command: "redis-server --requirepass redispassword"
+    volumes:
+      - "lndhub_redisdir:/data"
+
+  lndhub_dest_redis:
+    restart: unless-stopped
+    image: "redis:6.2.2-buster@sha256:e10f55f92478715698a2cef97c2bbdc48df2a05081edd884938903aa60df6396"
+    command: "redis-server --requirepass redispassword"
+    volumes:
+      - "lndhub_dest_redisdir:/data"
+
+  lndhub:
+    restart: unless-stopped
+    image: "bluewalletorganization/lndhub:v1.4.1"
+    user: root
+    depends_on: [ "lndhub_redis" ]
+    volumes:
+      - "lndhub_dir:/data"
+      - "lnd_dir:/lnd:ro"
+      - "$PWD/fake:/data/fake:ro"
+    ports:
+      - "42923:3000"
+    environment:
+      PORT: "3000"
+      LND_CERT_FILE: "/lnd/tls.cert"
+      LND_ADMIN_MACAROON_FILE: "/data/fake/admin.macaroon"
+      CONFIG: '{ "rateLimit": 10000, "postRateLimit": 10000, "redis": { "port": 6379, "host": "lndhub_redis", "family": 4, "password": "redispassword", "db": 0 }, "lnd": { "url": "lnd:10009", "password": ""}}'
+
+  lndhub_dest:
+    restart: unless-stopped
+    image: "bluewalletorganization/lndhub:v1.4.1"
+    user: root
+    depends_on: [ "lndhub_dest_redis" ]
+    volumes:
+      - "lndhub_dest_dir:/data"
+      - "lnd_dest_dir:/lnd:ro"
+      - "$PWD/fake:/data/fake:ro"
+    ports:
+      - "42924:3000"
+    environment:
+      PORT: "3000"
+      LND_CERT_FILE: "/lnd/tls.cert"
+      LND_ADMIN_MACAROON_FILE: "/data/fake/admin.macaroon"
+      CONFIG: '{ "rateLimit": 10000, "postRateLimit": 10000, "redis": { "port": 6379, "host": "lndhub_dest_redis", "family": 4, "password": "redispassword", "db": 0 }, "lnd": { "url": "lnd_dest:10009", "password": ""}}'
+
+
   dev:
     image: coscale/docker-sleep
     depends_on:
@@ -265,6 +313,10 @@ services:
       - lightningd_dest
       - lnd
       - lnd_dest
+      - lndhub
+      - lndhub_redis
+      - lndhub_dest
+      - lndhub_dest_redis
 
   tests:
     build:
@@ -281,6 +333,10 @@ services:
       - lightningd_dest
       - lnd
       - lnd_dest
+      - lndhub
+      - lndhub_redis
+      - lndhub_dest
+      - lndhub_dest_redis
     depends_on:
       - bitcoind
       - charge
@@ -290,6 +346,10 @@ services:
       - lightningd_dest
       - lnd
       - lnd_dest
+      - lndhub
+      - lndhub_redis
+      - lndhub_dest
+      - lndhub_dest_redis
 
 volumes:
   lnd_dir:
@@ -300,3 +360,7 @@ volumes:
   lightningd_dest_dir:
   eclair_dir:
   eclair_dest_dir:
+  lndhub_dir:
+  lndhub_redisdir:
+  lndhub_dest_dir:
+  lndhub_dest_redisdir:

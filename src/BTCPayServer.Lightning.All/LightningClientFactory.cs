@@ -8,6 +8,7 @@ using BTCPayServer.Lightning.CLightning;
 using BTCPayServer.Lightning.Eclair;
 using BTCPayServer.Lightning.LNbank;
 using BTCPayServer.Lightning.LND;
+using BTCPayServer.Lightning.LndHub;
 using NBitcoin;
 using NBitcoin.RPC;
 
@@ -24,23 +25,18 @@ namespace BTCPayServer.Lightning
         {
             if (!LightningConnectionString.TryParse(connectionString, false, out var conn, out string error))
                 throw new FormatException($"Invalid format ({error})");
-            return LightningClientFactory.CreateClient(conn, network);
+            return CreateClient(conn, network);
         }
 
         public LightningClientFactory(Network network)
         {
-            if (network == null)
-                throw new ArgumentNullException(nameof(network));
-            Network = network;
+            Network = network ?? throw new ArgumentNullException(nameof(network));
         }
 
         public Network Network { get; }
         public HttpClient HttpClient { get; set; }
 
-        public ILightningClient Create(string connectionString)
-        {
-            return LightningClientFactory.CreateClient(connectionString, Network);
-        }
+        public ILightningClient Create(string connectionString) => CreateClient(connectionString, Network);
 
         public ILightningClient Create(LightningConnectionString connectionString)
         {
@@ -53,16 +49,15 @@ namespace BTCPayServer.Lightning
                     return new ChargeClient(connectionString.BaseUri, connectionString.CookieFilePath, Network,
                         HttpClient, connectionString.AllowInsecure);
                 }
-                else
-                {
-                    return new ChargeClient(connectionString.ToUri(true), Network, HttpClient, connectionString.AllowInsecure);
-                }
+                return new ChargeClient(connectionString.ToUri(true), Network, HttpClient, connectionString.AllowInsecure);
             }
-            else if (connectionString.ConnectionType == LightningConnectionType.CLightning)
+
+            if (connectionString.ConnectionType == LightningConnectionType.CLightning)
             {
                 return new CLightningClient(connectionString.ToUri(false), Network);
             }
-            else if (connectionString.ConnectionType == LightningConnectionType.LndREST)
+
+            if (connectionString.ConnectionType == LightningConnectionType.LndREST)
             {
                 return new LndClient(new LndSwaggerClient(new LndRestSettings(connectionString.BaseUri)
                 {
@@ -72,17 +67,24 @@ namespace BTCPayServer.Lightning
                     AllowInsecure = connectionString.AllowInsecure,
                 }, HttpClient), Network);
             }
-            else if (connectionString.ConnectionType == LightningConnectionType.Eclair)
+
+            if (connectionString.ConnectionType == LightningConnectionType.Eclair)
             {
                 return new EclairLightningClient(connectionString.BaseUri, connectionString.Password, Network, HttpClient);
             }
-            else if (connectionString.ConnectionType == LightningConnectionType.LNbank)
+
+            if (connectionString.ConnectionType == LightningConnectionType.LNbank)
             {
                 return new LNbankLightningClient(connectionString.BaseUri, connectionString.ApiToken, Network, HttpClient);
             }
-            else
-                throw new NotSupportedException(
-                    $"Unsupported connection string for lightning server ({connectionString.ConnectionType})");
+
+            if (connectionString.ConnectionType == LightningConnectionType.LNDhub)
+            {
+                return new LndHubLightningClient(connectionString.BaseUri, connectionString.ApiToken, Network, HttpClient);
+            }
+
+            throw new NotSupportedException(
+                $"Unsupported connection string for lightning server ({connectionString.ConnectionType})");
         }
     }
 }
