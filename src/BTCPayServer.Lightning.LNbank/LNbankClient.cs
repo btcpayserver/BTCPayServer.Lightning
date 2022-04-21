@@ -71,6 +71,7 @@ namespace BTCPayServer.Lightning.LNbank
             {
                 Amount = req.Amount,
                 Description = req.Description,
+                DescriptionHash = req.DescriptionHash,
                 Expiry = req.Expiry,
                 PrivateRouteHints = req.PrivateRouteHints
             };
