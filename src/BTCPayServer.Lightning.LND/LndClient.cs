@@ -152,6 +152,145 @@ namespace BTCPayServer.Lightning.LND
             }
         }
 
+        class LndPaymentClientSession : IDisposable
+        {
+            private LndSwaggerClient _Parent;
+            Channel<LightningPayment> _Payments = Channel.CreateBounded<LightningPayment>(10);
+            CancellationTokenSource _Cts = new CancellationTokenSource();
+            HttpClient _Client;
+            HttpResponseMessage _Response;
+            Stream _Body;
+            StreamReader _Reader;
+            Task _ListenLoop;
+            private readonly string _PaymentHash;
+
+            public LndPaymentClientSession(LndSwaggerClient parent, string paymentHash)
+            {
+                _Parent = parent;
+                _PaymentHash = paymentHash;
+            }
+
+            public Task StartListening()
+            {
+                try
+                {
+                    _Client = _Parent.CreateHttpClient();
+                    _Client.Timeout = TimeSpan.FromMilliseconds(Timeout.Infinite);
+                    var paymentHash = _PaymentHash.HexStringToBase64UrlString();
+                    var request = new HttpRequestMessage(HttpMethod.Get, WithTrailingSlash(_Parent.BaseUrl) + $"v2/router/track/{paymentHash}");
+                    _Parent._Authentication.AddAuthentication(request);
+                    _ListenLoop = ListenLoop(request);
+                }
+                catch
+                {
+                    Dispose();
+                }
+                return Task.CompletedTask;
+            }
+
+            private string WithTrailingSlash(string str)
+            {
+                if(str.EndsWith("/", StringComparison.InvariantCulture))
+                    return str;
+                return str + "/";
+            }
+
+            private async Task ListenLoop(HttpRequestMessage request)
+            {
+                try
+                {
+                    _Response = await _Client.SendAsync(request, HttpCompletionOption.ResponseHeadersRead, _Cts.Token);
+                    _Body = await _Response.Content.ReadAsStreamAsync();
+                    _Reader = new StreamReader(_Body);
+                    while(!_Cts.IsCancellationRequested)
+                    {
+                        var line = await WithCancellation(_Reader.ReadLineAsync(), _Cts.Token);
+                        if (line != null)
+                        {
+                            if(line.StartsWith("{\"result\":", StringComparison.OrdinalIgnoreCase))
+                            {
+                                var paymentString = JObject.Parse(line)["result"].ToString();
+                                LnrpcPayment parsed = _Parent.Deserialize<LnrpcPayment>(paymentString);
+                                await _Payments.Writer.WriteAsync(ConvertLndPayment(parsed), _Cts.Token);
+                            }
+                            else if(line.StartsWith("{\"error\":", StringComparison.OrdinalIgnoreCase))
+                            {
+                                var errorString = JObject.Parse(line)["error"].ToString();
+                                var error = _Parent.Deserialize<LndError>(errorString);
+                                throw new LndException(error);
+                            }
+                            else
+                            {
+                                throw new LndException("Unknown result from LND: " + line);
+                            }
+                        }
+                    }
+                }
+                catch when(_Cts.IsCancellationRequested)
+                {
+
+                }
+                catch(Exception ex)
+                {
+                    _Payments.Writer.TryComplete(ex);
+                }
+                finally
+                {
+                    Dispose(false);
+                }
+            }
+
+            public static async Task<T> WithCancellation<T>(Task<T> task, CancellationToken cancellationToken)
+            {
+                using var delayCTS = CancellationTokenSource.CreateLinkedTokenSource(cancellationToken);
+                var waiting = Task.Delay(-1, delayCTS.Token);
+                var doing = task;
+                await Task.WhenAny(waiting, doing);
+                delayCTS.Cancel();
+                cancellationToken.ThrowIfCancellationRequested();
+                return await doing;
+            }
+
+            public async Task<LightningPayment> WaitPayment(CancellationToken cancellation)
+            {
+                try
+                {
+                    return await _Payments.Reader.ReadAsync(cancellation);
+                }
+                catch(ChannelClosedException ex) when(ex.InnerException == null)
+                {
+                    throw new OperationCanceledException();
+                }
+                catch(ChannelClosedException ex)
+                {
+                    ExceptionDispatchInfo.Capture(ex.InnerException).Throw();
+                    throw;
+                }
+            }
+
+            public void Dispose()
+            {
+                Dispose(true);
+            }
+            void Dispose(bool waitLoop)
+            {
+                if(_Cts.IsCancellationRequested)
+                    return;
+                _Cts.Cancel();
+                _Reader?.Dispose();
+                _Reader = null;
+                _Body?.Dispose();
+                _Body = null;
+                _Response?.Dispose();
+                _Response = null;
+                _Client?.Dispose();
+                _Client = null;
+                if(waitLoop)
+                    _ListenLoop?.Wait();
+                _Payments.Writer.TryComplete();
+            }
+        }
+
         public LndClient(LndSwaggerClient swaggerClient, Network network)
         {
             if(swaggerClient == null)
@@ -282,13 +421,24 @@ namespace BTCPayServer.Lightning.LND
 
         async Task<LightningPayment> ILightningClient.GetPayment(string paymentHash, CancellationToken cancellation)
         {
-            var resp = await SwaggerClient.TrackPaymentAsync(paymentHash, cancellation);
-            return ConvertLndPayment(resp);
+            try
+            {
+                using var session = new LndPaymentClientSession(SwaggerClient, paymentHash);
+                await session.StartListening();
+                var payment = await session.WaitPayment(cancellation);
+
+                return payment;
+            }
+            catch (SwaggerException ex)
+            {
+                var errorString = JObject.Parse(ex.Response)["error"]["message"].ToString();
+                throw new LndException(errorString);
+            }
         }
 
         async Task<ILightningInvoiceListener> ILightningClient.Listen(CancellationToken cancellation)
         {
-            var session = new LndInvoiceClientSession(this.SwaggerClient);
+            var session = new LndInvoiceClientSession(SwaggerClient);
             await session.StartListening();
             return session;
         }
