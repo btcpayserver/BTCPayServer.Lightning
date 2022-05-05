@@ -559,6 +559,7 @@ namespace BTCPayServer.Lightning.LND
                     case "unable to find a path to destination":
                     // code in 0.10.0+
                     case "insufficient_balance":
+                    case "no_route":
                         return new PayResponse(PayResult.CouldNotFindRoute, response.Payment_error);
                     default:
                         return new PayResponse(PayResult.Error, response.Payment_error);
