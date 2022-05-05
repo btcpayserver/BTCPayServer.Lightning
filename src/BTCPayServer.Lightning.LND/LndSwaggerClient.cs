@@ -464,6 +464,10 @@ namespace BTCPayServer.Lightning.LND
             {
                 using (var request_ = new System.Net.Http.HttpRequestMessage())
                 {
+                    if (body.AllowSelfPayment == null)
+                    {
+                        body.AllowSelfPayment = true;
+                    }
                     var content_ = new System.Net.Http.StringContent(Newtonsoft.Json.JsonConvert.SerializeObject(body, _settings.Value));
                     content_.Headers.ContentType.MediaType = "application/json";
                     request_.Content = content_;
@@ -8345,6 +8349,7 @@ namespace BTCPayServer.Lightning.LND
         private string _payment_hash_string;
         private string _payment_request;
         private int? _final_cltv_delta;
+        private bool? _allow_self_payment;
 
         [Newtonsoft.Json.JsonProperty("dest", Required = Newtonsoft.Json.Required.Default, NullValueHandling = Newtonsoft.Json.NullValueHandling.Ignore)]
         public byte[] Dest
@@ -8460,6 +8465,21 @@ namespace BTCPayServer.Lightning.LND
                 if (_final_cltv_delta != value)
                 {
                     _final_cltv_delta = value;
+                    RaisePropertyChanged();
+                }
+            }
+        }
+
+        /// <summary>/ If set, circular payments to self are permitted.</summary>
+        [Newtonsoft.Json.JsonProperty("allow_self_payment", Required = Newtonsoft.Json.Required.Default, NullValueHandling = Newtonsoft.Json.NullValueHandling.Ignore)]
+        public bool? AllowSelfPayment
+        {
+            get { return _allow_self_payment; }
+            set
+            {
+                if (_allow_self_payment != value)
+                {
+                    _allow_self_payment = value;
                     RaisePropertyChanged();
                 }
             }
