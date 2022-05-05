@@ -535,6 +535,10 @@ namespace BTCPayServer.Lightning.LND
                     req.Fee_limit ??= new LnrpcFeeLimit();
                     req.Fee_limit.Fixed = payParams.MaxFeeFlat.Satoshi;
                 }
+                if (payParams?.Amount?.MilliSatoshi > 0)
+                {
+                    req.AmtMsat = payParams.Amount.MilliSatoshi.ToString();
+                }
 
                 var response = await SwaggerClient.SendPaymentSyncAsync(req, cancellation);
                 if (string.IsNullOrEmpty(response.Payment_error) && response.Payment_preimage != null)

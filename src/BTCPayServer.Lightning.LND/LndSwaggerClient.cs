@@ -8344,6 +8344,7 @@ namespace BTCPayServer.Lightning.LND
         private byte[] _dest;
         private string _dest_string;
         private string _amt;
+        private string _amt_msat;
         private LnrpcFeeLimit _fee_limit;
         private byte[] _payment_hash;
         private string _payment_hash_string;
@@ -8379,7 +8380,7 @@ namespace BTCPayServer.Lightning.LND
             }
         }
 
-        /// <summary>/ Number of satoshis to send.</summary>
+        /// <summary>/ The amount to send expressed in satoshis. The fields amt and amt_msat are mutually exclusive.</summary>
         [Newtonsoft.Json.JsonProperty("amt", Required = Newtonsoft.Json.Required.Default, NullValueHandling = Newtonsoft.Json.NullValueHandling.Ignore)]
         public string Amt
         {
@@ -8389,6 +8390,21 @@ namespace BTCPayServer.Lightning.LND
                 if (_amt != value)
                 {
                     _amt = value;
+                    RaisePropertyChanged();
+                }
+            }
+        }
+
+        /// <summary>/ The amount to send expressed in millisatoshis. The fields amt and amt_msat are mutually exclusive.</summary>
+        [Newtonsoft.Json.JsonProperty("amt_msat", Required = Newtonsoft.Json.Required.Default, NullValueHandling = Newtonsoft.Json.NullValueHandling.Ignore)]
+        public string AmtMsat
+        {
+            get { return _amt_msat; }
+            set
+            {
+                if (_amt_msat != value)
+                {
+                    _amt_msat = value;
                     RaisePropertyChanged();
                 }
             }

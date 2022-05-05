@@ -173,6 +173,7 @@ namespace BTCPayServer.Lightning.Eclair
                 var req = new PayInvoiceRequest
                 {
                     Invoice = bolt11,
+                    AmountMsat = payParams?.Amount?.MilliSatoshi,
                     MaxFeePct = payParams?.MaxFeePercent != null ? (int)Math.Round(payParams.MaxFeePercent.Value) : (int?)null,
                     MaxFeeFlatSat = payParams?.MaxFeeFlat?.Satoshi
                 };

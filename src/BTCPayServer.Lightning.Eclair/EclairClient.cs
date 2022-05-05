@@ -149,14 +149,14 @@ namespace BTCPayServer.Lightning.Eclair
 
 		public async Task<InvoiceResponse> CreateInvoice(string description, long? amountMsat = null,
 			int? expireIn = null, BitcoinAddress fallbackAddress = null,
-			CancellationToken cts = default(CancellationToken))
-		{
+			CancellationToken cts = default)
+        {
 			return await SendCommandAsync<CreateInvoiceRequest, InvoiceResponse>("createinvoice",
-				new CreateInvoiceRequest()
+				new CreateInvoiceRequest
 				{
 					Description = description,
 					ExpireIn = expireIn,
-					AmountMsat = amountMsat,
+					AmountMsat = amountMsat == 0 ? null : amountMsat,
 					FallbackAddress = fallbackAddress?.ToString()
 				}, cts);
 		}

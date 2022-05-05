@@ -231,14 +231,14 @@ namespace BTCPayServer.Lightning.Tests
 				var invoice = await test.Merchant.CreateInvoice(amount, "CanPayInvoiceAndReceive", expiry);
 				var invoiceMaxFeePercent = await test.Merchant.CreateInvoice(amount, "CanPayInvoiceWithMaxFeeAndReceivePercent", expiry);
 				var invoiceMaxFeePercent2 = await test.Merchant.CreateInvoice(amount, "CanPayInvoiceWithMaxFeeAndReceivePercent2", expiry);
-				var invoiceMaxFeeLimit = await test.Merchant.CreateInvoice(amount, "CanPayInvoiceWithMaxFeeAndReceiveLimit", expiry);
+                var invoiceMaxFeeLimit = await test.Merchant.CreateInvoice(amount, "CanPayInvoiceWithMaxFeeAndReceiveLimit", expiry);
+                var invoiceZeroAmount = await test.Merchant.CreateInvoice(LightMoney.Zero, "CanPayInvoiceWithZeroAmount", expiry);
 
 				using (var listener = await test.Merchant.Listen())
 				{
                     var waiting = listener.WaitInvoice(default);
 					var paidReply = await test.Customer.Pay(invoice.BOLT11);
                     var paidInvoice = await GetPaidInvoice(listener, waiting, invoice.Id);
-                    var retrievedInvoice = await test.Merchant.GetInvoice(invoice.Id);
 
 					Assert.Equal(PayResult.Ok, paidReply.Result);
 					Assert.Equal(amount, paidReply.Details.TotalAmount);
@@ -265,6 +265,12 @@ namespace BTCPayServer.Lightning.Tests
 					Assert.Equal(PayResult.Ok, paidReply.Result);
 					Assert.Equal(amount, paidReply.Details.TotalAmount);
 					Assert.Equal(0, paidReply.Details.FeeAmount);
+
+                    // with zero/explicit amount
+                    paidReply = await test.Customer.Pay(invoiceZeroAmount.BOLT11, new PayInvoiceParams { Amount = amount });
+                    Assert.Equal(PayResult.Ok, paidReply.Result);
+                    Assert.Equal(amount, paidReply.Details.TotalAmount);
+                    Assert.Equal(0, paidReply.Details.FeeAmount);
 
                     // check payment
                     var payReq = BOLT11PaymentRequest.Parse(invoice.BOLT11, Network.RegTest);
