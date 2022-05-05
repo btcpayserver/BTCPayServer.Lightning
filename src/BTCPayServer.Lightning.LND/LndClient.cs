@@ -565,14 +565,18 @@ namespace BTCPayServer.Lightning.LND
                 }
             }
             catch(SwaggerException ex) when
-                (ex.AsLNDError() is LndError2 lndError &&
-                 lndError.Error.StartsWith("chain backend is still syncing"))
+                (ex.AsLNDError() is LndError2 lndError)
             {
-                if (retryCount++ > 3)
-                    return new PayResponse(PayResult.Error, ex.Response);
+                if (lndError.Error.StartsWith("chain backend is still syncing"))
+                {
+                    if (retryCount++ > 3)
+                        return new PayResponse(PayResult.Error, ex.Response);
 
-                await Task.Delay(1000);
-                goto retry;
+                    await Task.Delay(1000, cancellation);
+                    goto retry;
+                }
+
+                throw new LndException(lndError.Error);
             }
         }
 
