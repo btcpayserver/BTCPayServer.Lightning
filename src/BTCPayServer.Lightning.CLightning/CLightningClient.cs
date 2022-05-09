@@ -265,14 +265,15 @@ namespace BTCPayServer.Lightning.CLightning
                     throw new ArgumentNullException(nameof(bolt11));
 
                 bolt11 = bolt11.Replace("lightning:", "").Replace("LIGHTNING:", "");
+                var explicitAmount = payParams?.Amount;
 				var feePercent = payParams?.MaxFeePercent;
 				if (feePercent is null && payParams?.MaxFeeFlat is Money m)
 				{
 					var pr = BOLT11PaymentRequest.Parse(bolt11, Network);
-					var amount = pr.MinimumAmount.ToUnit(LightMoneyUnit.Satoshi);
-					feePercent = (double)(m.Satoshi / amount) * 100;
+					var amountSat = (explicitAmount ?? pr.MinimumAmount).ToUnit(LightMoneyUnit.Satoshi);
+					feePercent = (double)(m.Satoshi / amountSat) * 100;
 				}
-				var response = await SendCommandAsync<CLightningPayResponse>("pay", new object[] { bolt11, null, null, null, feePercent }, false, cancellation: cancellation);
+				var response = await SendCommandAsync<CLightningPayResponse>("pay", new object[] { bolt11, explicitAmount?.MilliSatoshi, null, null, feePercent }, false, cancellation: cancellation);
 
                 return new PayResponse(PayResult.Ok, new PayDetails
                 {
@@ -311,7 +312,8 @@ namespace BTCPayServer.Lightning.CLightning
 		async Task<LightningInvoice> ILightningClient.CreateInvoice(LightMoney amount, string description, TimeSpan expiry, CancellationToken cancellation)
 		{
 			var id = InvoiceIdEncoder.EncodeData(RandomUtils.GetBytes(20));
-			var invoice = await SendCommandAsync<CLightningInvoice>("invoice", new object[] { amount.MilliSatoshi, id, description ?? "", Math.Max(0, (int)expiry.TotalSeconds) }, cancellation: cancellation);
+            var msat = amount == LightMoney.Zero ? "any" : amount.MilliSatoshi.ToString();
+			var invoice = await SendCommandAsync<CLightningInvoice>("invoice", new object[] { msat, id, description ?? "", Math.Max(0, (int)expiry.TotalSeconds) }, cancellation: cancellation);
 			invoice.Label = id;
 			invoice.MilliSatoshi = amount;
 			invoice.Status = "unpaid";

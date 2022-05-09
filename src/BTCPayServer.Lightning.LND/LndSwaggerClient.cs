@@ -464,6 +464,10 @@ namespace BTCPayServer.Lightning.LND
             {
                 using (var request_ = new System.Net.Http.HttpRequestMessage())
                 {
+                    if (body.AllowSelfPayment == null)
+                    {
+                        body.AllowSelfPayment = true;
+                    }
                     var content_ = new System.Net.Http.StringContent(Newtonsoft.Json.JsonConvert.SerializeObject(body, _settings.Value));
                     content_.Headers.ContentType.MediaType = "application/json";
                     request_.Content = content_;
@@ -8340,11 +8344,13 @@ namespace BTCPayServer.Lightning.LND
         private byte[] _dest;
         private string _dest_string;
         private string _amt;
+        private string _amt_msat;
         private LnrpcFeeLimit _fee_limit;
         private byte[] _payment_hash;
         private string _payment_hash_string;
         private string _payment_request;
         private int? _final_cltv_delta;
+        private bool? _allow_self_payment;
 
         [Newtonsoft.Json.JsonProperty("dest", Required = Newtonsoft.Json.Required.Default, NullValueHandling = Newtonsoft.Json.NullValueHandling.Ignore)]
         public byte[] Dest
@@ -8374,7 +8380,7 @@ namespace BTCPayServer.Lightning.LND
             }
         }
 
-        /// <summary>/ Number of satoshis to send.</summary>
+        /// <summary>/ The amount to send expressed in satoshis. The fields amt and amt_msat are mutually exclusive.</summary>
         [Newtonsoft.Json.JsonProperty("amt", Required = Newtonsoft.Json.Required.Default, NullValueHandling = Newtonsoft.Json.NullValueHandling.Ignore)]
         public string Amt
         {
@@ -8384,6 +8390,21 @@ namespace BTCPayServer.Lightning.LND
                 if (_amt != value)
                 {
                     _amt = value;
+                    RaisePropertyChanged();
+                }
+            }
+        }
+
+        /// <summary>/ The amount to send expressed in millisatoshis. The fields amt and amt_msat are mutually exclusive.</summary>
+        [Newtonsoft.Json.JsonProperty("amt_msat", Required = Newtonsoft.Json.Required.Default, NullValueHandling = Newtonsoft.Json.NullValueHandling.Ignore)]
+        public string AmtMsat
+        {
+            get { return _amt_msat; }
+            set
+            {
+                if (_amt_msat != value)
+                {
+                    _amt_msat = value;
                     RaisePropertyChanged();
                 }
             }
@@ -8460,6 +8481,21 @@ namespace BTCPayServer.Lightning.LND
                 if (_final_cltv_delta != value)
                 {
                     _final_cltv_delta = value;
+                    RaisePropertyChanged();
+                }
+            }
+        }
+
+        /// <summary>/ If set, circular payments to self are permitted.</summary>
+        [Newtonsoft.Json.JsonProperty("allow_self_payment", Required = Newtonsoft.Json.Required.Default, NullValueHandling = Newtonsoft.Json.NullValueHandling.Ignore)]
+        public bool? AllowSelfPayment
+        {
+            get { return _allow_self_payment; }
+            set
+            {
+                if (_allow_self_payment != value)
+                {
+                    _allow_self_payment = value;
                     RaisePropertyChanged();
                 }
             }

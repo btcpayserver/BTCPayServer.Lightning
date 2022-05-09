@@ -535,6 +535,10 @@ namespace BTCPayServer.Lightning.LND
                     req.Fee_limit ??= new LnrpcFeeLimit();
                     req.Fee_limit.Fixed = payParams.MaxFeeFlat.Satoshi;
                 }
+                if (payParams?.Amount?.MilliSatoshi > 0)
+                {
+                    req.AmtMsat = payParams.Amount.MilliSatoshi.ToString();
+                }
 
                 var response = await SwaggerClient.SendPaymentSyncAsync(req, cancellation);
                 if (string.IsNullOrEmpty(response.Payment_error) && response.Payment_preimage != null)
@@ -559,20 +563,25 @@ namespace BTCPayServer.Lightning.LND
                     case "unable to find a path to destination":
                     // code in 0.10.0+
                     case "insufficient_balance":
+                    case "no_route":
                         return new PayResponse(PayResult.CouldNotFindRoute, response.Payment_error);
                     default:
                         return new PayResponse(PayResult.Error, response.Payment_error);
                 }
             }
             catch(SwaggerException ex) when
-                (ex.AsLNDError() is LndError2 lndError &&
-                 lndError.Error.StartsWith("chain backend is still syncing"))
+                (ex.AsLNDError() is LndError2 lndError)
             {
-                if (retryCount++ > 3)
-                    return new PayResponse(PayResult.Error, ex.Response);
+                if (lndError.Error.StartsWith("chain backend is still syncing"))
+                {
+                    if (retryCount++ > 3)
+                        return new PayResponse(PayResult.Error, ex.Response);
 
-                await Task.Delay(1000);
-                goto retry;
+                    await Task.Delay(1000, cancellation);
+                    goto retry;
+                }
+
+                throw new LndException(lndError.Error);
             }
         }
 
