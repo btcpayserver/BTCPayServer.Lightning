@@ -94,7 +94,6 @@ namespace BTCPayServer.Lightning.Tests
 						});
 						break;
 				}
-
 			}
 		}
 
@@ -118,9 +117,9 @@ namespace BTCPayServer.Lightning.Tests
 			{
 				switch (client.Client)
 				{
-					case ChargeClient  chargeClient:
-					case CLightningClient cLightningClient:
-					case LndClient lndClient:
+					case ChargeClient _:
+					case CLightningClient _:
+					case LndClient _:
 						Logs.Tester.LogInformation($"{client.Name}: {nameof(CanCancelInvoices)}");
 						await CreateAndCancel(client.Client);
 						break;
@@ -159,7 +158,7 @@ namespace BTCPayServer.Lightning.Tests
 			var clientTypes = Tester.GetLightningClients().Select(l => l.Client.GetType()).ToArray();
 			foreach (var connectionString in connectionStrings)
 			{
-				ILightningClient client = factory.Create(connectionString);
+				var client = factory.Create(connectionString);
 				if (!clientTypes.Contains(client.GetType()))
 					continue;
 				var createdInvoice = await client.CreateInvoice(10000, "CanCreateInvoice", TimeSpan.FromMinutes(5));
@@ -173,7 +172,7 @@ namespace BTCPayServer.Lightning.Tests
 		public async Task CanGetInfo()
 		{
 			await WaitServersAreUp();
-			var blockHeight = Tester.CreateRPC().GetBlockCount();
+			await Tester.CreateRPC().GetBlockCountAsync();
 			foreach (var client in Tester.GetLightningClients())
 			{
 				Logs.Tester.LogInformation($"{client.Name}: {nameof(CanGetInfo)}");
@@ -302,6 +301,25 @@ namespace BTCPayServer.Lightning.Tests
 				Assert.Equal(ConnectionResult.CouldNotConnect, await src.ConnectTo(new NodeInfo(new Key().PubKey, node.Host, node.Port)));
 			}
 		}
+
+        [Fact(Timeout = Timeout)]
+        public async Task CanGetDepositAddress()
+        {
+            await WaitServersAreUp();
+            foreach (var client in Tester.GetLightningClients())
+            {
+                Logs.Tester.LogInformation($"{client.Name}: {nameof(CanGetDepositAddress)}");
+                try
+                {
+                    var address = await client.Client.GetDepositAddress();
+                    Assert.NotNull(address);
+                }
+                catch (NotSupportedException _)
+                {
+                    Logs.Tester.LogInformation($"{client.Name}: {nameof(CanGetDepositAddress)} not supported");
+                }
+            }
+        }
 
 		[Fact(Timeout = Timeout)]
 		public async Task CanWaitListenInvoice()
