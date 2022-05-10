@@ -281,9 +281,13 @@ namespace BTCPayServer.Lightning.CLightning
                     FeeAmount = response.AmountSent - response.Amount
                 });
             }
-            catch (LightningRPCException ex) when (ex.Code == CLightningErrorCode.ROUTE_NOT_FOUND || ex.Code == CLightningErrorCode.STOPPED_RETRYING)
+            catch (LightningRPCException ex)
             {
-                return new PayResponse(PayResult.CouldNotFindRoute);
+                var result =
+                    ex.Code == CLightningErrorCode.ROUTE_NOT_FOUND || ex.Code == CLightningErrorCode.STOPPED_RETRYING
+                        ? PayResult.CouldNotFindRoute
+                        : PayResult.Error;
+                return new PayResponse(result, ex.Message);
             }
         }
 
