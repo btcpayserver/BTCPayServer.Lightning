@@ -314,7 +314,7 @@ namespace BTCPayServer.Lightning.Tests
                     var address = await client.Client.GetDepositAddress();
                     Assert.NotNull(address);
                 }
-                catch (NotSupportedException _)
+                catch (NotSupportedException)
                 {
                     Logs.Tester.LogInformation($"{client.Name}: {nameof(CanGetDepositAddress)} not supported");
                 }
@@ -425,8 +425,8 @@ namespace BTCPayServer.Lightning.Tests
                     Assert.InRange(c.Capacity, lowerBound, upperBound);
                     Assert.InRange(c.LocalBalance, lowerBound, upperBound);
 				}
-				Assert.Contains(senderChannels, c => c.RemoteNode.Equals(destInfo.NodeInfo.NodeId));
-				Assert.Contains(destChannels, c => c.RemoteNode.Equals(senderInfo.NodeInfo.NodeId));
+				Assert.Contains(senderChannels, c => c.RemoteNode.Equals(destInfo.NodeInfoList.FirstOrDefault()?.NodeId));
+				Assert.Contains(destChannels, c => c.RemoteNode.Equals(senderInfo.NodeInfoList.FirstOrDefault()?.NodeId));
 			}
 		}
 
