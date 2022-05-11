@@ -10,9 +10,7 @@ namespace BTCPayServer.Lightning.Tests
         public void CanSerializeDeserializeLightMoney()
         {
             var converter = new LightMoneyJsonConverter();
-
             var lm = new LightMoney(100);
-
             var json = JsonConvert.SerializeObject(lm, converter);
 
             Assert.Equal(lm.MilliSatoshi, JsonConvert.DeserializeObject<LightMoney>(json, converter).MilliSatoshi);

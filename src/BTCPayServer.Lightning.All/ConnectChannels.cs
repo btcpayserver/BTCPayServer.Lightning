@@ -12,7 +12,7 @@ using NBitcoin.Logging;
 namespace BTCPayServer.Lightning.Tests
 {
     /// <summary>
-    /// Utilities to connect channels on regtest 
+    /// Utilities to connect channels on regtest
     /// </summary>
     public static class ConnectChannels
     {
@@ -48,14 +48,16 @@ namespace BTCPayServer.Lightning.Tests
                 }
             }
         }
-        public static async Task CreateChannel(RPCClient cashCow, ILightningClient sender, ILightningClient dest)
+
+        private static async Task CreateChannel(RPCClient cashCow, ILightningClient sender, ILightningClient dest)
         {
             var amount = new LightMoney(1234); // use arbitrary amount to check if channel exists
             var destInfo = await dest.GetInfo();
             var destInvoice = await dest.CreateInvoice(amount, "EnsureConnectedToDestination", TimeSpan.FromSeconds(5000));
+            var payErrors = 0;
+
             while(true)
             {
-                int payErrors = 0;
                 var result = await Pay(sender, destInvoice.BOLT11);
                 Logs.LogInformation($"Pay Result: {result.Result} {result.ErrorDetail}");
                 if (result.Result == PayResult.Ok)
@@ -70,9 +72,9 @@ namespace BTCPayServer.Lightning.Tests
                     if (pendingChannels.Any(a => a.RemoteNode == destInfo.NodeInfoList[0].NodeId))
                     {
                         Logs.LogInformation($"Channel to {destInfo.NodeInfoList[0]} is already open(ing)");
-                        
+
                         Logs.LogInformation($"Attempting to reconnect Result: {await sender.ConnectTo(destInfo.NodeInfoList.First())}");
-                        
+
                         await cashCow.GenerateAsync(1);
                         await WaitLNSynched(cashCow, sender);
                         await WaitLNSynched(cashCow, dest);

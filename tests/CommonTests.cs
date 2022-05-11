@@ -128,7 +128,6 @@ namespace BTCPayServer.Lightning.Tests
 						});
 						break;
 				}
-
 			}
 		}
 
@@ -195,24 +194,24 @@ namespace BTCPayServer.Lightning.Tests
 			Exception realException = null;
 			using (var cts = new CancellationTokenSource(TimeSpan.FromSeconds(Timeout - 5)))
 			{
-			retry:
-				try
-				{
-					if (realException != null)
-						await Task.Delay(1000, cts.Token);
-					await client.GetInfo(cts.Token);
-					Logs.Tester.LogInformation($"{name}: Server is up");
-				}
-				catch (Exception ex) when (!cts.IsCancellationRequested)
-				{
-					realException = ex;
-					goto retry;
-				}
-				catch (Exception)
-				{
-					if (realException != null) Logs.Tester.LogInformation(realException.ToString());
-					Assert.False(true, $"{name}: The server could not be started");
-				}
+                retry:
+                try
+                {
+                    if (realException != null)
+                        await Task.Delay(1000, cts.Token);
+                    await client.GetInfo(cts.Token);
+                    Logs.Tester.LogInformation($"{name}: Server is up");
+                }
+                catch (Exception ex) when (!cts.IsCancellationRequested)
+                {
+                    realException = ex;
+                    goto retry;
+                }
+                catch (Exception)
+                {
+                    if (realException != null) Logs.Tester.LogInformation(realException.ToString());
+                    Assert.False(true, $"{name}: The server could not be started");
+                }
 			}
 		}
 
@@ -293,6 +292,7 @@ namespace BTCPayServer.Lightning.Tests
 
 				var info = await dest.GetInfo();
 				var node = info.NodeInfoList.First();
+
 				// Reconnecting to same node should be no op
 				Assert.Equal(ConnectionResult.Ok, await src.ConnectTo(node));
 				Assert.Equal(ConnectionResult.CouldNotConnect, await src.ConnectTo(new NodeInfo(new Key().PubKey, "127.0.0.2", node.Port)));
@@ -369,7 +369,7 @@ namespace BTCPayServer.Lightning.Tests
 			}
 		}
 
-		private void AssertEqual(LightMoney a, LightMoney b)
+		private static void AssertEqual(LightMoney a, LightMoney b)
 		{
 			Assert.Equal(a.ToDecimal(LightMoneyUnit.Satoshi), b.ToDecimal(LightMoneyUnit.Satoshi), 2);
 		}
@@ -630,13 +630,11 @@ namespace BTCPayServer.Lightning.Tests
 			Assert.Equal(LightMoney.MilliSatoshis(4109727), splitted[2]);
 		}
 
-
 		[Fact]
 		public void CanParseLightningURL()
 		{
-			LightningConnectionString conn = null;
-			Assert.True(LightningConnectionString.TryParse("/test/a", true, out conn));
-			for (int i = 0; i < 2; i++)
+            Assert.True(LightningConnectionString.TryParse("/test/a", true, out var conn));
+			for (var i = 0; i < 2; i++)
 			{
 				if (i == 1)
 					Assert.True(LightningConnectionString.TryParse(conn.ToString(), false, out conn));
@@ -648,7 +646,7 @@ namespace BTCPayServer.Lightning.Tests
 			}
 
 			Assert.True(LightningConnectionString.TryParse("unix://test/a", true, out conn));
-			for (int i = 0; i < 2; i++)
+			for (var i = 0; i < 2; i++)
 			{
 				if (i == 1)
 					Assert.True(LightningConnectionString.TryParse(conn.ToString(), false, out conn));
@@ -659,7 +657,7 @@ namespace BTCPayServer.Lightning.Tests
 			}
 
 			Assert.True(LightningConnectionString.TryParse("unix://test/a", true, out conn));
-			for (int i = 0; i < 2; i++)
+			for (var i = 0; i < 2; i++)
 			{
 				if (i == 1)
 					Assert.True(LightningConnectionString.TryParse(conn.ToString(), false, out conn));
@@ -670,7 +668,7 @@ namespace BTCPayServer.Lightning.Tests
 			}
 
 			Assert.True(LightningConnectionString.TryParse("tcp://test/a", true, out conn));
-			for (int i = 0; i < 2; i++)
+			for (var i = 0; i < 2; i++)
 			{
 				if (i == 1)
 					Assert.True(LightningConnectionString.TryParse(conn.ToString(), false, out conn));
@@ -681,7 +679,7 @@ namespace BTCPayServer.Lightning.Tests
 			}
 
 			Assert.True(LightningConnectionString.TryParse("http://aaa:bbb@test/a", true, out conn));
-			for (int i = 0; i < 2; i++)
+			for (var i = 0; i < 2; i++)
 			{
 				if (i == 1)
 					Assert.True(LightningConnectionString.TryParse(conn.ToString(), false, out conn));
@@ -694,7 +692,7 @@ namespace BTCPayServer.Lightning.Tests
 			}
 
 			Assert.True(LightningConnectionString.TryParse("http://api-token:bbb@test/a", true, out conn));
-			for (int i = 0; i < 2; i++)
+			for (var i = 0; i < 2; i++)
 			{
 				if (i == 1)
 					Assert.True(LightningConnectionString.TryParse(conn.ToString(), false, out conn));
@@ -728,7 +726,7 @@ namespace BTCPayServer.Lightning.Tests
 			var lndUri4 = $"type=lnd-rest;server=https://lnd:lnd@127.0.0.1:53280/;macaroon={macaroon};macaroondirectorypath=path";
 
 			var certificateHash = new X509Certificate2(Encoders.Hex.DecodeData("2d2d2d2d2d424547494e2043455254494649434154452d2d2d2d2d0a4d494942396a4343415a7967417749424167495156397a62474252724e54716b4e4b55676d72524d377a414b42676771686b6a4f50515144416a41784d5238770a485159445651514b45785a73626d5167595856306232646c626d56795958526c5a43426a5a584a304d51347744415944565151444577564754304e56557a41650a467730784f4441304d6a55794d7a517a4d6a4261467730784f5441324d6a41794d7a517a4d6a42614d444578487a416442674e5642416f54466d78755a4342680a645852765a3256755a584a686447566b49474e6c636e5178446a414d42674e5642414d5442555a50513156544d466b77457759484b6f5a497a6a3043415159490a4b6f5a497a6a304441516344516741454b7557424568564f75707965434157476130766e713262712f59396b41755a78616865646d454553482b753936436d450a397577486b4b2b4a7667547a66385141783550513741357254637155374b57595170303175364f426c5443426b6a414f42674e56485138424166384542414d430a4171517744775944565230544151482f42415577417745422f7a427642674e56485245456144426d6767564754304e565534494a6247396a5957786f62334e300a6877522f4141414268784141414141414141414141414141414141414141414268775373474f69786877514b41457342687753702f717473687754417141724c0a687753702f6d4a72687753702f754f77687753702f714e59687753702f6874436877514b70514157687753702f6c42514d416f4743437147534d343942414d430a413067414d45554349464866716d595a5043647a4a5178386b47586859473834394c31766541364c784d6f7a4f5774356d726835416945413662756e51556c710a6558553070474168776c3041654d726a4d4974394c7652736179756162565a593278343d0a2d2d2d2d2d454e442043455254494649434154452d2d2d2d2d0a"))
-							.GetCertHash(System.Security.Cryptography.HashAlgorithmName.SHA256);
+							.GetCertHash(HashAlgorithmName.SHA256);
 
 			Assert.True(LightningConnectionString.TryParse(lndUri, false, out conn));
 			Assert.True(LightningConnectionString.TryParse(lndUri2, false, out var conn2));
@@ -746,19 +744,17 @@ namespace BTCPayServer.Lightning.Tests
 			Assert.False(LightningConnectionString.TryParse($"type=lnd-rest;server=http://127.0.0.1:53280/;macaroon={macaroon};allowinsecure=false", false, out conn2));
 			Assert.True(LightningConnectionString.TryParse($"type=lnd-rest;server=http://127.0.0.1:53280/;macaroon={macaroon};allowinsecure=true", false, out conn2));
 			Assert.True(LightningConnectionString.TryParse($"type=lnd-rest;server=http://127.0.0.1:53280/;macaroon={macaroon};allowinsecure=true", false, out conn2));
-
-
 			Assert.True(LightningConnectionString.TryParse("type=charge;server=http://test/a;cookiefilepath=path;allowinsecure=true", false, out conn));
 			Assert.Equal("path", conn.CookieFilePath);
 			Assert.Equal("type=charge;server=http://test/a;cookiefilepath=path;allowinsecure=true", conn.ToString());
-			// Should not have cookiefilepath and api-token at once
-			Assert.False(LightningConnectionString.TryParse("type=charge;server=http://test/a;cookiefilepath=path;api-token=abc", false, out conn));
-			// Should not have cookiefilepath and api-token at once
-			Assert.False(LightningConnectionString.TryParse("type=charge;server=http://api-token:blah@test/a;cookiefilepath=path", false, out conn));
 
+            // Should not have cookiefilepath and api-token at once
+			Assert.False(LightningConnectionString.TryParse("type=charge;server=http://test/a;cookiefilepath=path;api-token=abc", false, out conn));
+
+            // Should not have cookiefilepath and api-token at once
+			Assert.False(LightningConnectionString.TryParse("type=charge;server=http://api-token:blah@test/a;cookiefilepath=path", false, out conn));
 			Assert.True(LightningConnectionString.TryParse("type=charge;server=http://api-token:foiewnccewuify@127.0.0.1:54938/;allowinsecure=true", out conn));
 			Assert.Equal("type=charge;server=http://127.0.0.1:54938/;api-token=foiewnccewuify;allowinsecure=true", conn.ToString());
-
 			Assert.True(LightningConnectionString.TryParse("type=lnbank;server=https://mybtcpay.com/;api-token=myapitoken", false, out conn));
 		}
 
