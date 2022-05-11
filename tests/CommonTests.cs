@@ -3,7 +3,6 @@ using System.Threading.Tasks;
 using Xunit;
 using System.Linq;
 using NBitcoin;
-using NBitcoin.RPC;
 using NBitcoin.DataEncoders;
 using System.Security.Cryptography.X509Certificates;
 using System.Security.Cryptography;
@@ -11,7 +10,6 @@ using System.Text;
 using System.Threading;
 using BTCPayServer.Lightning.Charge;
 using BTCPayServer.Lightning.CLightning;
-using BTCPayServer.Lightning.Eclair;
 using BTCPayServer.Lightning.LND;
 using NBitcoin.Crypto;
 using Newtonsoft.Json.Linq;
@@ -73,8 +71,8 @@ namespace BTCPayServer.Lightning.Tests
 			{
 				switch (client.Client)
 				{
-					case CLightningClient cLightningClient:
-					case LndClient lndClient:
+					case CLightningClient _:
+					case LndClient _:
 						Logs.Tester.LogInformation($"{client.Name}: {nameof(CanCreateInvoiceWithDescriptionHash)}");
 						var createdInvoice = await CreateWithHash(client.Client);
 						var retrievedInvoice = await client.Client.GetInvoice(createdInvoice.Id);
@@ -212,7 +210,7 @@ namespace BTCPayServer.Lightning.Tests
 				}
 				catch (Exception)
 				{
-					Logs.Tester.LogInformation(realException.ToString());
+					if (realException != null) Logs.Tester.LogInformation(realException.ToString());
 					Assert.False(true, $"{name}: The server could not be started");
 				}
 			}
@@ -328,29 +326,33 @@ namespace BTCPayServer.Lightning.Tests
 			{
 				await EnsureConnectedToDestinations(test);
 
+                var amount1 = 6150;
+                var amount2 = 8251;
 				var src = test.Customer;
 				var dest = test.Merchant;
 				Logs.Tester.LogInformation($"{test.Name}: {nameof(CanWaitListenInvoice)}");
-				var merchantInvoice = await dest.CreateInvoice(10000, "Hello world", TimeSpan.FromSeconds(3600));
-				Logs.Tester.LogInformation($"{test.Name}: Created invoice {merchantInvoice.Id}");
-				var merchantInvoice2 = await dest.CreateInvoice(10000, "Hello world", TimeSpan.FromSeconds(3600));
+				var merchantInvoice1 = await dest.CreateInvoice(amount1, "Hello world", TimeSpan.FromSeconds(3600));
+				Logs.Tester.LogInformation($"{test.Name}: Created invoice {merchantInvoice1.Id}");
+				var merchantInvoice2 = await dest.CreateInvoice(amount2, "Hello world", TimeSpan.FromSeconds(3600));
 				Logs.Tester.LogInformation($"{test.Name}: Created invoice {merchantInvoice2.Id}");
 				var waitToken = default(CancellationToken);
 				var listener = await dest.Listen(waitToken);
 				var waitTask = listener.WaitInvoice(waitToken);
 
-				var payResponse = await src.Pay(merchantInvoice.BOLT11);
-				Logs.Tester.LogInformation($"{test.Name}: Paid invoice {merchantInvoice.Id}");
+				var payResponse = await src.Pay(merchantInvoice1.BOLT11, waitToken);
+                AssertEqual(amount1, payResponse.Details.TotalAmount);
+				Logs.Tester.LogInformation($"{test.Name}: Paid invoice {merchantInvoice1.Id}");
 
 				var invoice = await waitTask;
 				Logs.Tester.LogInformation($"{test.Name}: Notification received for {invoice.Id}");
-				Assert.Equal(invoice.Id, merchantInvoice.Id);
+				Assert.Equal(invoice.Id, merchantInvoice1.Id);
 				Assert.True(invoice.PaidAt.HasValue);
-				AssertEqual(new LightMoney(10000, LightMoneyUnit.MilliSatoshi), invoice.AmountReceived);
+				AssertEqual(amount1, invoice.AmountReceived);
 
 				var waitTask2 = listener.WaitInvoice(waitToken);
 
-				payResponse = await src.Pay(merchantInvoice2.BOLT11);
+				payResponse = await src.Pay(merchantInvoice2.BOLT11, waitToken);
+                AssertEqual(amount2, payResponse.Details.TotalAmount);
 				Logs.Tester.LogInformation($"{test.Name}: Paid invoice {merchantInvoice2.Id}");
 				invoice = await waitTask2;
 				Logs.Tester.LogInformation($"{test.Name}: Notification received for {invoice.Id}");
@@ -358,9 +360,9 @@ namespace BTCPayServer.Lightning.Tests
 
 				AssertEqual(invoice.Amount, invoice.AmountReceived);
 				Assert.Equal(invoice.Id, merchantInvoice2.Id);
-				AssertEqual(new LightMoney(10000, LightMoneyUnit.MilliSatoshi), invoice.AmountReceived);
+				AssertEqual(amount2, invoice.AmountReceived);
 				var waitTask3 = listener.WaitInvoice(waitToken);
-				await Task.Delay(100);
+				await Task.Delay(100, waitToken);
 				listener.Dispose();
 				Logs.Tester.LogInformation($"{test.Name}: Listener disposed, should throw exception");
 				Assert.Throws<OperationCanceledException>(() => waitTask3.GetAwaiter().GetResult());
@@ -369,7 +371,7 @@ namespace BTCPayServer.Lightning.Tests
 
 		private void AssertEqual(LightMoney a, LightMoney b)
 		{
-			Assert.Equal(a.ToDecimal(LightMoneyUnit.Satoshi), a.ToDecimal(LightMoneyUnit.Satoshi), 2);
+			Assert.Equal(a.ToDecimal(LightMoneyUnit.Satoshi), b.ToDecimal(LightMoneyUnit.Satoshi), 2);
 		}
 
 		[Fact]
