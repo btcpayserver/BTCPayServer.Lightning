@@ -10,6 +10,7 @@ using System.Text;
 using System.Threading;
 using BTCPayServer.Lightning.Charge;
 using BTCPayServer.Lightning.CLightning;
+using BTCPayServer.Lightning.Eclair;
 using BTCPayServer.Lightning.LND;
 using NBitcoin.Crypto;
 using Newtonsoft.Json.Linq;
@@ -169,7 +170,6 @@ namespace BTCPayServer.Lightning.Tests
 		public async Task CanGetInfo()
 		{
 			await WaitServersAreUp();
-			await Tester.CreateRPC().GetBlockCountAsync();
 			foreach (var client in Tester.GetLightningClients())
 			{
 				Logs.Tester.LogInformation($"{client.Name}: {nameof(CanGetInfo)}");
@@ -179,6 +179,37 @@ namespace BTCPayServer.Lightning.Tests
 				Assert.NotEmpty(info.NodeInfoList);
 			}
 		}
+
+        [Fact(Timeout = Timeout)]
+		public async Task CanHandleSelfPayment()
+		{
+            await WaitServersAreUp();
+            foreach (var client in Tester.GetLightningClients())
+            {
+                Logs.Tester.LogInformation($"{client.Name}: {nameof(CanHandleSelfPayment)}");
+
+                var expiry = TimeSpan.FromSeconds(5000);
+                var amount = LightMoney.Satoshis(21);
+                var invoice = await client.Client.CreateInvoice(amount, "CanHandleSelfPayment", expiry);
+
+                switch (client.Client)
+                {
+                    case LndClient _:
+                    case CLightningClient _:
+                    case EclairLightningClient _:
+                        var response = await client.Client.Pay(invoice.BOLT11);
+                        Assert.Equal(PayResult.CouldNotFindRoute, response.Result);
+                        break;
+
+                    default:
+                        await Assert.ThrowsAsync<NotSupportedException>(async () =>
+                        {
+                            await client.Client.Pay(invoice.BOLT11);
+                        });
+                        break;
+                }
+            }
+        }
 
 		private async Task WaitServersAreUp()
 		{
@@ -347,7 +378,7 @@ namespace BTCPayServer.Lightning.Tests
 				Logs.Tester.LogInformation($"{test.Name}: Notification received for {invoice.Id}");
 				Assert.Equal(invoice.Id, merchantInvoice1.Id);
 				Assert.True(invoice.PaidAt.HasValue);
-				AssertEqual(amount1, invoice.AmountReceived);
+                AssertEqual(amount1, invoice.AmountReceived);
 
 				var waitTask2 = listener.WaitInvoice(waitToken);
 
