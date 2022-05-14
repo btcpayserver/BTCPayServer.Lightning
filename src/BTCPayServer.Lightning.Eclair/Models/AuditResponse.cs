@@ -7,7 +7,7 @@ namespace BTCPayServer.Lightning.Eclair.Models
         public List<AuditResponseSent> Sent { get; set; }
         public List<AuditResponseReceived> Received { get; set; }
         public List<AuditResponseRelayed> Relayed { get; set; }
-            
+
         public partial class AuditResponseReceived
         {
             public long Amount { get; set; }

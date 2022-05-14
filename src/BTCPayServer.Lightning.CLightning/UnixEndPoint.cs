@@ -1,4 +1,4 @@
-﻿//
+//
 // Mono.Unix.UnixEndPoint: EndPoint derived class for AF_UNIX family sockets.
 //
 // Authors:

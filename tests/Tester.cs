@@ -1,4 +1,4 @@
-﻿using System;
+using System;
 using System.Collections.Generic;
 using BTCPayServer.Lightning.Charge;
 using BTCPayServer.Lightning.CLightning;

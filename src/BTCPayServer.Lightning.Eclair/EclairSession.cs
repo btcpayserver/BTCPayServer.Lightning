@@ -9,7 +9,7 @@ using Newtonsoft.Json.Linq;
 
 namespace BTCPayServer.Lightning.Eclair
 {
-    public class EclairSession: WebsocketListener, ILightningInvoiceListener
+    public class EclairSession : WebsocketListener, ILightningInvoiceListener
     {
         private readonly EclairLightningClient lightningClient;
 
@@ -17,10 +17,10 @@ namespace BTCPayServer.Lightning.Eclair
         {
             this.lightningClient = lightningClient;
         }
-        
+
         public async Task<LightningInvoice> WaitInvoice(CancellationToken cancellation)
         {
-            retry:
+retry:
             var message = await this.WaitMessage(cancellation);
             var obj = JObject.Parse(message);
             object typedObj = null;
@@ -32,15 +32,15 @@ namespace BTCPayServer.Lightning.Eclair
                 case "payment-received":
                     typedObj = obj.ToObject<PaymentReceivedEvent>();
                     break;
-                //case "payment-failed":
-                //    typedObj = obj.ToObject<PaymentFailedEvent>();
-                //    break;
-                //case "payment-sent":
-                //    typedObj = obj.ToObject<PaymentSentEvent>();
-                //    break;
-                //case "payment-settling-onchain":
-                //    typedObj = obj.ToObject<PaymentSettlingOnChainEvent>();
-                //    break;
+                    //case "payment-failed":
+                    //    typedObj = obj.ToObject<PaymentFailedEvent>();
+                    //    break;
+                    //case "payment-sent":
+                    //    typedObj = obj.ToObject<PaymentSentEvent>();
+                    //    break;
+                    //case "payment-settling-onchain":
+                    //    typedObj = obj.ToObject<PaymentSettlingOnChainEvent>();
+                    //    break;
             }
 
             if (typedObj is PaymentReceivedEvent r)

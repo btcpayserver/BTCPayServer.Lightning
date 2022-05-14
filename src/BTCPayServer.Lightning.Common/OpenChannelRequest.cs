@@ -1,7 +1,7 @@
-﻿using NBitcoin;
 using System;
 using System.Collections.Generic;
 using System.Text;
+using NBitcoin;
 
 namespace BTCPayServer.Lightning
 {
@@ -21,11 +21,11 @@ namespace BTCPayServer.Lightning
         }
         public static void AssertIsSane(OpenChannelRequest openChannelRequest)
         {
-            if(openChannelRequest == null)
+            if (openChannelRequest == null)
                 throw new ArgumentNullException(nameof(openChannelRequest));
-            if(openChannelRequest.ChannelAmount == null)
+            if (openChannelRequest.ChannelAmount == null)
                 throw new ArgumentNullException(nameof(openChannelRequest.ChannelAmount));
-            if(openChannelRequest.NodeInfo == null)
+            if (openChannelRequest.NodeInfo == null)
                 throw new ArgumentNullException(nameof(openChannelRequest.NodeInfo));
         }
     }

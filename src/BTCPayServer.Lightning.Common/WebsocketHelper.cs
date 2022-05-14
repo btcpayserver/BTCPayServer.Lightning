@@ -31,16 +31,16 @@ namespace BTCPayServer.Lightning
                 uri += "/";
             uri += "ws";
             uri = ToWebsocketUri(uri);
-            
+
             await socket.ConnectAsync(new Uri(uri), cancellation);
             return socket;
         }
-        
+
         public static async Task CloseSocket(WebSocket webSocket, WebSocketCloseStatus status = WebSocketCloseStatus.NormalClosure, string description = null, CancellationToken cancellationToken = default(CancellationToken))
         {
             try
             {
-                if(webSocket.State == WebSocketState.Open)
+                if (webSocket.State == WebSocketState.Open)
                 {
                     CancellationTokenSource cts = new CancellationTokenSource();
                     cts.CancelAfter(5000);
@@ -51,7 +51,7 @@ namespace BTCPayServer.Lightning
             finally { try { webSocket.Dispose(); } catch { } }
         }
 
-        public static async Task CloseSocketAndThrow( ArraySegment<byte> buffer,ClientWebSocket socket, WebSocketCloseStatus status, string description, CancellationToken cancellation)
+        public static async Task CloseSocketAndThrow(ArraySegment<byte> buffer, ClientWebSocket socket, WebSocketCloseStatus status, string description, CancellationToken cancellation)
         {
             var array = buffer.Array;
             if (array.Length != WebsocketHelper.ORIGINAL_BUFFER_SIZE)

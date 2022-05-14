@@ -1,13 +1,13 @@
 using System;
 using System.Net.Http;
-using System.Threading;
-using System.Threading.Tasks;
 using System.Net.Http.Headers;
 using System.Text;
+using System.Threading;
+using System.Threading.Tasks;
 using BTCPayServer.Lightning.LNbank.Models;
-using Newtonsoft.Json;
 using NBitcoin;
 using NBitcoin.JsonConverters;
+using Newtonsoft.Json;
 
 namespace BTCPayServer.Lightning.LNbank
 {
@@ -48,7 +48,7 @@ namespace BTCPayServer.Lightning.LNbank
             return await Get<PaymentData>($"payment/{paymentHash}", cancellation);
         }
 
-        public async Task CancelInvoice(string invoiceId,CancellationToken cancellation)
+        public async Task CancelInvoice(string invoiceId, CancellationToken cancellation)
         {
             await Send<EmptyRequestModel, EmptyRequestModel>(HttpMethod.Delete, $"invoice/{invoiceId}", new EmptyRequestModel(), cancellation);
         }

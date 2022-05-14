@@ -10,6 +10,6 @@ namespace BTCPayServer.Lightning.Eclair.Models
         [JsonProperty("chainHash")] public string ChainHash { get; set; }
         [JsonProperty("blockHeight")] public int BlockHeight { get; set; }
         [JsonProperty("publicAddresses")] public List<string> PublicAddresses { get; set; }
-        
+
     }
 }

@@ -1,4 +1,4 @@
-﻿using System;
+using System;
 using System.Collections.Generic;
 using System.Diagnostics;
 using System.IO;
@@ -133,10 +133,8 @@ namespace BTCPayServer.Lightning.LND
 
         private static byte[] GetHash(X509Certificate2 cert)
         {
-            using (HashAlgorithm alg = SHA256.Create())
-            {
-                return alg.ComputeHash(cert.RawData);
-            }
+            using HashAlgorithm alg = SHA256.Create();
+            return alg.ComputeHash(cert.RawData);
         }
 
         internal HttpClient CreateHttpClient()

@@ -22,13 +22,13 @@ namespace BTCPayServer.Lightning.Eclair.Models
             public LastSent LastSent { get; set; }
         }
 
-		public class FundingTx
-		{
-			[JsonProperty("txid")]
-			public uint256 TxId { get; set; }
-			[JsonProperty("tx")]
-			public Transaction Transaction { get; set; }
-		}
+        public class FundingTx
+        {
+            [JsonProperty("txid")]
+            public uint256 TxId { get; set; }
+            [JsonProperty("tx")]
+            public Transaction Transaction { get; set; }
+        }
 
         public partial class Commitments
         {
@@ -55,14 +55,14 @@ namespace BTCPayServer.Lightning.Eclair.Models
             public long RemoteNextHtlcId { get; set; }
             public OriginChannels OriginChannels { get; set; }
             public JToken RemoteNextCommitInfo { get; set; }
-            
-            
+
+
             public CommitInput CommitInput { get; set; }
             public object RemotePerCommitmentSecrets { get; set; }
             public string ChannelId { get; set; }
         }
-        
-        
+
+
         public partial class RemoteNextCommitInfo
         {
             public NextRemoteCommit NextRemoteCommit { get; set; }
@@ -101,7 +101,7 @@ namespace BTCPayServer.Lightning.Eclair.Models
         public partial class CommitInput
         {
             public string OutPoint { get; set; }
-            public ulong  AmountSatoshis { get; set; }
+            public ulong AmountSatoshis { get; set; }
         }
 
         public partial class Changes
@@ -113,7 +113,7 @@ namespace BTCPayServer.Lightning.Eclair.Models
 
         public partial class LocalCommit
         {
-            public ulong  Index { get; set; }
+            public ulong Index { get; set; }
             public Spec Spec { get; set; }
             public PublishableTxs PublishableTxs { get; set; }
         }
@@ -124,7 +124,7 @@ namespace BTCPayServer.Lightning.Eclair.Models
             public List<object> HtlcTxsAndSigs { get; set; }
         }
 
-        public partial class CommitTx 
+        public partial class CommitTx
         {
             public string Txid { get; set; }
             public string Tx { get; set; }
@@ -134,10 +134,10 @@ namespace BTCPayServer.Lightning.Eclair.Models
         {
             public string NodeId { get; set; }
             public ChannelKeyPath ChannelKeyPath { get; set; }
-            public ulong  DustLimitSatoshis { get; set; }
-            public ulong  MaxHtlcValueInFlightMsat { get; set; }
-            public ulong  ChannelReserveSatoshis { get; set; }
-            public ulong  HtlcMinimumMsat { get; set; }
+            public ulong DustLimitSatoshis { get; set; }
+            public ulong MaxHtlcValueInFlightMsat { get; set; }
+            public ulong ChannelReserveSatoshis { get; set; }
+            public ulong HtlcMinimumMsat { get; set; }
             public long ToSelfDelay { get; set; }
             public long MaxAcceptedHtlcs { get; set; }
             public bool IsFunder { get; set; }
@@ -166,11 +166,11 @@ namespace BTCPayServer.Lightning.Eclair.Models
         public partial class RemoteParams
         {
             public string NodeId { get; set; }
-            public ulong  DustLimitSatoshis { get; set; }
-            public ulong  MaxHtlcValueInFlightMsat { get; set; }
-            public ulong  ChannelReserveSatoshis { get; set; }
-            public ulong  HtlcMinimumMsat { get; set; }
-            public ulong  ToSelfDelay { get; set; }
+            public ulong DustLimitSatoshis { get; set; }
+            public ulong MaxHtlcValueInFlightMsat { get; set; }
+            public ulong ChannelReserveSatoshis { get; set; }
+            public ulong HtlcMinimumMsat { get; set; }
+            public ulong ToSelfDelay { get; set; }
             public long MaxAcceptedHtlcs { get; set; }
             public string FundingPubKey { get; set; }
             public string RevocationBasepoint { get; set; }

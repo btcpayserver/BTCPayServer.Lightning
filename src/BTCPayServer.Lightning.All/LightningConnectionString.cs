@@ -120,7 +120,7 @@ namespace BTCPayServer.Lightning
                         }
 
                         var allowinsecureStr = Take(keyValues, "allowinsecure");
-                        
+
                         if (allowinsecureStr != null)
                         {
                             var allowedValues = new[] { "true", "false" };
@@ -133,7 +133,7 @@ namespace BTCPayServer.Lightning
                             bool allowInsecure = allowinsecureStr.Equals("true", StringComparison.OrdinalIgnoreCase);
                             result.AllowInsecure = allowInsecure;
                         }
-                        
+
                         if (!Uri.TryCreate(server, UriKind.Absolute, out var uri) || (uri.Scheme != "http" && uri.Scheme != "https"))
                         {
                             error = $"The key 'server' should be an URI starting by http:// or https://";
@@ -320,7 +320,7 @@ namespace BTCPayServer.Lightning
                     break;
                 case LightningConnectionType.Eclair:
                     var eclairserver = Take(keyValues, "server");
-                    
+
                     if (eclairserver == null)
                     {
                         error = $"The key 'server' is mandatory for lnd connection strings";
@@ -335,7 +335,7 @@ namespace BTCPayServer.Lightning
 
                     result.BaseUri = eclairuri;
                     result.Password = Take(keyValues, "password");
-                    result.BitcoinHost  = Take(keyValues, "bitcoin-host");
+                    result.BitcoinHost = Take(keyValues, "bitcoin-host");
 
                     if (result.BitcoinHost != null)
                     {
@@ -510,7 +510,7 @@ namespace BTCPayServer.Lightning
         public string BitcoinAuth { get; set; }
 
         public string ApiToken { get; set; }
-        
+
         public Uri ToUri(bool withCredentials)
         {
             if (withCredentials)
@@ -600,7 +600,7 @@ namespace BTCPayServer.Lightning
                     {
                         builder.Append($";bitcoin-auth={BitcoinAuth}");
                     }
-                    
+
                     break;
                 case LightningConnectionType.LNbank:
                     builder.Append($";server={BaseUri};api-token={ApiToken}");

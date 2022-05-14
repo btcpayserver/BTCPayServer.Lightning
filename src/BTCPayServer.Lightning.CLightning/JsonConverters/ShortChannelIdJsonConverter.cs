@@ -7,9 +7,9 @@ using Newtonsoft.Json;
 
 namespace BTCPayServer.Lightning.JsonConverters
 {
-    public class ShortChannelIdJsonConverter: JsonConverter
+    public class ShortChannelIdJsonConverter : JsonConverter
     {
-        
+
         public override bool CanConvert(Type objectType)
         {
             return typeof(ShortChannelIdJsonConverter).GetTypeInfo().IsAssignableFrom(objectType.GetTypeInfo());

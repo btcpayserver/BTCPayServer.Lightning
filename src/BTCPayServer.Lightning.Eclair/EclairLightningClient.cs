@@ -1,4 +1,4 @@
-﻿using System;
+using System;
 using System.Collections.Concurrent;
 using System.Collections.Generic;
 using System.Linq;
@@ -39,7 +39,7 @@ namespace BTCPayServer.Lightning.Eclair
         {
             InvoiceResponse result = null;
             try
-			{
+            {
                 result = await _eclairClient.GetInvoice(invoiceId, cancellation);
             }
             catch (EclairClient.EclairApiException ex) when (ex.Error.Error == "Not found" || ex.Error.Error.Contains("Invalid hexadecimal", StringComparison.OrdinalIgnoreCase))
@@ -191,10 +191,10 @@ namespace BTCPayServer.Lightning.Eclair
                     {
                         case "sent":
                             return new PayResponse(PayResult.Ok, new PayDetails
-                                {
-                                    TotalAmount = sentInfo.Amount,
-                                    FeeAmount = sentInfo.FeesPaid
-                                });
+                            {
+                                TotalAmount = sentInfo.Amount,
+                                FeeAmount = sentInfo.FeesPaid
+                            });
                         case "failed":
                             return new PayResponse(PayResult.CouldNotFindRoute);
                         case "pending":

@@ -1,8 +1,8 @@
-﻿namespace BTCPayServer.Lightning
+namespace BTCPayServer.Lightning
 {
-	public enum ConnectionResult
-	{
-		Ok,
-		CouldNotConnect
-	}
+    public enum ConnectionResult
+    {
+        Ok,
+        CouldNotConnect
+    }
 }

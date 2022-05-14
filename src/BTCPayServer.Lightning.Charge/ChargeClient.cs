@@ -1,4 +1,4 @@
-﻿using System;
+using System;
 using System.Collections.Generic;
 using System.Globalization;
 using System.Net;
@@ -74,7 +74,8 @@ namespace BTCPayServer.Lightning.Charge
 
             var handler = new HttpClientHandler();
 
-            if (allowInsecure) {
+            if (allowInsecure)
+            {
                 handler.ServerCertificateCustomValidationCallback = (request, cert, chain, errors) => true;
             }
             else
@@ -94,7 +95,7 @@ namespace BTCPayServer.Lightning.Charge
                 parameters.Add("msatoshi", request.Amount.MilliSatoshi.ToString(CultureInfo.InvariantCulture));
             }
             parameters.Add("expiry", ((int)request.Expiry.TotalSeconds).ToString(CultureInfo.InvariantCulture));
-            if(request.Description != null)
+            if (request.Description != null)
                 parameters.Add("description", request.Description);
             message.Content = new FormUrlEncodedContent(parameters);
             var result = await _Client.SendAsync(message, cancellation);

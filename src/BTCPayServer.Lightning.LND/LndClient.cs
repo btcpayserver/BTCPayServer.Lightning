@@ -49,7 +49,7 @@ namespace BTCPayServer.Lightning.LND
 
             private string WithTrailingSlash(string str)
             {
-                if(str.EndsWith("/", StringComparison.InvariantCulture))
+                if (str.EndsWith("/", StringComparison.InvariantCulture))
                     return str;
                 return str + "/";
             }
@@ -61,18 +61,18 @@ namespace BTCPayServer.Lightning.LND
                     _Response = await _Client.SendAsync(request, HttpCompletionOption.ResponseHeadersRead, _Cts.Token);
                     _Body = await _Response.Content.ReadAsStreamAsync();
                     _Reader = new StreamReader(_Body);
-                    while(!_Cts.IsCancellationRequested)
+                    while (!_Cts.IsCancellationRequested)
                     {
                         string line = await WithCancellation(_Reader.ReadLineAsync(), _Cts.Token);
-                        if(line != null)
+                        if (line != null)
                         {
-                            if(line.StartsWith("{\"result\":", StringComparison.OrdinalIgnoreCase))
+                            if (line.StartsWith("{\"result\":", StringComparison.OrdinalIgnoreCase))
                             {
                                 var invoiceString = JObject.Parse(line)["result"].ToString();
                                 LnrpcInvoice parsedInvoice = _Parent.Deserialize<LnrpcInvoice>(invoiceString);
                                 await _Invoices.Writer.WriteAsync(ConvertLndInvoice(parsedInvoice), _Cts.Token);
                             }
-                            else if(line.StartsWith("{\"error\":", StringComparison.OrdinalIgnoreCase))
+                            else if (line.StartsWith("{\"error\":", StringComparison.OrdinalIgnoreCase))
                             {
                                 var errorString = JObject.Parse(line)["error"].ToString();
                                 var error = _Parent.Deserialize<LndError>(errorString);
@@ -85,11 +85,11 @@ namespace BTCPayServer.Lightning.LND
                         }
                     }
                 }
-                catch when(_Cts.IsCancellationRequested)
+                catch when (_Cts.IsCancellationRequested)
                 {
 
                 }
-                catch(Exception ex)
+                catch (Exception ex)
                 {
                     _Invoices.Writer.TryComplete(ex);
                 }
@@ -101,15 +101,13 @@ namespace BTCPayServer.Lightning.LND
 
             public static async Task<T> WithCancellation<T>(Task<T> task, CancellationToken cancellationToken)
             {
-                using(var delayCTS = CancellationTokenSource.CreateLinkedTokenSource(cancellationToken))
-                {
-                    var waiting = Task.Delay(-1, delayCTS.Token);
-                    var doing = task;
-                    await Task.WhenAny(waiting, doing);
-                    delayCTS.Cancel();
-                    cancellationToken.ThrowIfCancellationRequested();
-                    return await doing;
-                }
+                using var delayCTS = CancellationTokenSource.CreateLinkedTokenSource(cancellationToken);
+                var waiting = Task.Delay(-1, delayCTS.Token);
+                var doing = task;
+                await Task.WhenAny(waiting, doing);
+                delayCTS.Cancel();
+                cancellationToken.ThrowIfCancellationRequested();
+                return await doing;
             }
 
             public async Task<LightningInvoice> WaitInvoice(CancellationToken cancellation)
@@ -118,11 +116,11 @@ namespace BTCPayServer.Lightning.LND
                 {
                     return await _Invoices.Reader.ReadAsync(cancellation);
                 }
-                catch(ChannelClosedException ex) when(ex.InnerException == null)
+                catch (ChannelClosedException ex) when (ex.InnerException == null)
                 {
                     throw new OperationCanceledException();
                 }
-                catch(ChannelClosedException ex)
+                catch (ChannelClosedException ex)
                 {
                     ExceptionDispatchInfo.Capture(ex.InnerException).Throw();
                     throw;
@@ -135,7 +133,7 @@ namespace BTCPayServer.Lightning.LND
             }
             void Dispose(bool waitLoop)
             {
-                if(_Cts.IsCancellationRequested)
+                if (_Cts.IsCancellationRequested)
                     return;
                 _Cts.Cancel();
                 _Reader?.Dispose();
@@ -146,7 +144,7 @@ namespace BTCPayServer.Lightning.LND
                 _Response = null;
                 _Client?.Dispose();
                 _Client = null;
-                if(waitLoop)
+                if (waitLoop)
                     _ListenLoop?.Wait();
                 _Invoices.Writer.TryComplete();
             }
@@ -190,7 +188,7 @@ namespace BTCPayServer.Lightning.LND
 
             private string WithTrailingSlash(string str)
             {
-                if(str.EndsWith("/", StringComparison.InvariantCulture))
+                if (str.EndsWith("/", StringComparison.InvariantCulture))
                     return str;
                 return str + "/";
             }
@@ -202,18 +200,18 @@ namespace BTCPayServer.Lightning.LND
                     _Response = await _Client.SendAsync(request, HttpCompletionOption.ResponseHeadersRead, _Cts.Token);
                     _Body = await _Response.Content.ReadAsStreamAsync();
                     _Reader = new StreamReader(_Body);
-                    while(!_Cts.IsCancellationRequested)
+                    while (!_Cts.IsCancellationRequested)
                     {
                         var line = await WithCancellation(_Reader.ReadLineAsync(), _Cts.Token);
                         if (line != null)
                         {
-                            if(line.StartsWith("{\"result\":", StringComparison.OrdinalIgnoreCase))
+                            if (line.StartsWith("{\"result\":", StringComparison.OrdinalIgnoreCase))
                             {
                                 var paymentString = JObject.Parse(line)["result"].ToString();
                                 LnrpcPayment parsed = _Parent.Deserialize<LnrpcPayment>(paymentString);
                                 await _Payments.Writer.WriteAsync(ConvertLndPayment(parsed), _Cts.Token);
                             }
-                            else if(line.StartsWith("{\"error\":", StringComparison.OrdinalIgnoreCase))
+                            else if (line.StartsWith("{\"error\":", StringComparison.OrdinalIgnoreCase))
                             {
                                 var errorString = JObject.Parse(line)["error"].ToString();
                                 var error = _Parent.Deserialize<LndError>(errorString);
@@ -226,11 +224,11 @@ namespace BTCPayServer.Lightning.LND
                         }
                     }
                 }
-                catch when(_Cts.IsCancellationRequested)
+                catch when (_Cts.IsCancellationRequested)
                 {
 
                 }
-                catch(Exception ex)
+                catch (Exception ex)
                 {
                     _Payments.Writer.TryComplete(ex);
                 }
@@ -257,11 +255,11 @@ namespace BTCPayServer.Lightning.LND
                 {
                     return await _Payments.Reader.ReadAsync(cancellation);
                 }
-                catch(ChannelClosedException ex) when(ex.InnerException == null)
+                catch (ChannelClosedException ex) when (ex.InnerException == null)
                 {
                     throw new OperationCanceledException();
                 }
-                catch(ChannelClosedException ex)
+                catch (ChannelClosedException ex)
                 {
                     ExceptionDispatchInfo.Capture(ex.InnerException).Throw();
                     throw;
@@ -274,7 +272,7 @@ namespace BTCPayServer.Lightning.LND
             }
             void Dispose(bool waitLoop)
             {
-                if(_Cts.IsCancellationRequested)
+                if (_Cts.IsCancellationRequested)
                     return;
                 _Cts.Cancel();
                 _Reader?.Dispose();
@@ -285,7 +283,7 @@ namespace BTCPayServer.Lightning.LND
                 _Response = null;
                 _Client?.Dispose();
                 _Client = null;
-                if(waitLoop)
+                if (waitLoop)
                     _ListenLoop?.Wait();
                 _Payments.Writer.TryComplete();
             }
@@ -293,9 +291,9 @@ namespace BTCPayServer.Lightning.LND
 
         public LndClient(LndSwaggerClient swaggerClient, Network network)
         {
-            if(swaggerClient == null)
+            if (swaggerClient == null)
                 throw new ArgumentNullException(nameof(swaggerClient));
-            if(network == null)
+            if (network == null)
                 throw new ArgumentNullException(nameof(network));
             SwaggerClient = swaggerClient;
             Network = network;
@@ -358,12 +356,13 @@ namespace BTCPayServer.Lightning.LND
         {
             var resp = await SwaggerClient.ListChannelsAsync(false, false, false, false, token);
             if (resp.Channels == null)
-                return new LightningChannel[] {};
+                return new LightningChannel[] { };
             return (from c in resp.Channels
                     let tmp = c.Channel_point.Split(':')
                     let txHash = new uint256(tmp[0])
                     let outIndex = int.Parse(tmp[1])
-                    select new LightningChannel {
+                    select new LightningChannel
+                    {
                         RemoteNode = new PubKey(c.Remote_pubkey),
                         IsPublic = !(c.Private ?? false),
                         IsActive = c.Active ?? false,
@@ -384,17 +383,17 @@ namespace BTCPayServer.Lightning.LND
 
             try
             {
-				if (resp.Uris != null)
-				{
-					foreach (var uri in resp.Uris)
-					{
-						if (NodeInfo.TryParse(uri, out var ni))
-							nodeInfo.NodeInfoList.Add(ni);
-					}
-				}
+                if (resp.Uris != null)
+                {
+                    foreach (var uri in resp.Uris)
+                    {
+                        if (NodeInfo.TryParse(uri, out var ni))
+                            nodeInfo.NodeInfoList.Add(ni);
+                    }
+                }
                 return nodeInfo;
             }
-            catch(SwaggerException ex) when(!string.IsNullOrEmpty(ex.Response))
+            catch (SwaggerException ex) when (!string.IsNullOrEmpty(ex.Response))
             {
                 throw new Exception("LND threw an error: " + ex.Response);
             }
@@ -411,7 +410,7 @@ namespace BTCPayServer.Lightning.LND
                 (ex.StatusCode == "404")
             {
                 return null;
-			}
+            }
             catch (SwaggerException ex) when
                (ex.StatusCode == "500" && ex.AsLNDError() is LndError2 err && err.Error.StartsWith("encoding/hex", StringComparison.OrdinalIgnoreCase))
             {
@@ -463,7 +462,7 @@ namespace BTCPayServer.Lightning.LND
             }
             else
             {
-                if(invoice.ExpiresAt < DateTimeOffset.UtcNow)
+                if (invoice.ExpiresAt < DateTimeOffset.UtcNow)
                 {
                     invoice.Status = LightningInvoiceStatus.Expired;
                 }
@@ -514,7 +513,7 @@ namespace BTCPayServer.Lightning.LND
 
         private async Task<PayResponse> PayAsync(string bolt11, PayInvoiceParams payParams, CancellationToken cancellation)
         {
-            retry:
+retry:
             var retryCount = 0;
             try
             {
@@ -569,7 +568,7 @@ namespace BTCPayServer.Lightning.LND
                         return new PayResponse(PayResult.Error, response.Payment_error);
                 }
             }
-            catch(SwaggerException ex) when
+            catch (SwaggerException ex) when
                 (ex.AsLNDError() is LndError2 lndError)
             {
                 if (lndError.Error.StartsWith("chain backend is still syncing"))
@@ -599,11 +598,11 @@ namespace BTCPayServer.Lightning.LND
             return await PayAsync(bolt11, null, cancellation);
         }
 
-//TODO: There is a bug here somewhere where we do not detect "requires funding channel message"
+        //TODO: There is a bug here somewhere where we do not detect "requires funding channel message"
         async Task<OpenChannelResponse> ILightningClient.OpenChannel(OpenChannelRequest openChannelRequest, CancellationToken cancellation)
         {
             OpenChannelRequest.AssertIsSane(openChannelRequest);
-            retry:
+retry:
             int retryCount = 0;
             cancellation.ThrowIfCancellationRequested();
             try
@@ -613,38 +612,38 @@ namespace BTCPayServer.Lightning.LND
                     Local_funding_amount = openChannelRequest.ChannelAmount.Satoshi.ToString(CultureInfo.InvariantCulture),
                     Node_pubkey_string = openChannelRequest.NodeInfo.NodeId.ToString(),
                 };
-                if(openChannelRequest.FeeRate != null)
+                if (openChannelRequest.FeeRate != null)
                 {
                     req.Sat_per_byte = ((int)openChannelRequest.FeeRate.SatoshiPerByte).ToString();
                 }
                 var result = await this.SwaggerClient.OpenChannelSyncAsync(req, cancellation);
                 return new OpenChannelResponse(OpenChannelResult.Ok);
             }
-            catch(SwaggerException ex) when
+            catch (SwaggerException ex) when
                 (ex.AsLNDError() is LndError2 lndError &&
                  (lndError.Error.StartsWith("peer is not connected") ||
                  lndError.Error.EndsWith("is not online")))
             {
                 return new OpenChannelResponse(OpenChannelResult.PeerNotConnected);
             }
-            catch(SwaggerException ex) when
+            catch (SwaggerException ex) when
                 (ex.AsLNDError() is LndError2 lndError &&
                  lndError.Error.StartsWith("not enough witness outputs"))
             {
                 return new OpenChannelResponse(OpenChannelResult.CannotAffordFunding);
             }
-            catch(SwaggerException ex) when
+            catch (SwaggerException ex) when
                 (ex.AsLNDError() is LndError2 lndError &&
                  lndError.Code == 177)
             {
                 var pendingChannels = await this.SwaggerClient.PendingChannelsAsync(cancellation);
                 var nodePub = openChannelRequest.NodeInfo.NodeId.ToHex();
-                if(pendingChannels.Pending_open_channels != null &&
+                if (pendingChannels.Pending_open_channels != null &&
                    pendingChannels.Pending_open_channels.Any(p => p.Channel.Remote_node_pub == nodePub))
                     return new OpenChannelResponse(OpenChannelResult.NeedMoreConf);
                 return new OpenChannelResponse(OpenChannelResult.AlreadyExists);
             }
-            catch(SwaggerException ex) when
+            catch (SwaggerException ex) when
                 (ex.AsLNDError() is LndError2 lndError &&
                  lndError.Error.StartsWith("channels cannot be created before"))
             {
@@ -654,7 +653,7 @@ namespace BTCPayServer.Lightning.LND
                 await Task.Delay(1000);
                 goto retry;
             }
-            catch(SwaggerException ex) when
+            catch (SwaggerException ex) when
                 (ex.AsLNDError() is LndError2 lndError &&
                  lndError.Error.StartsWith("chain backend is still syncing"))
             {
@@ -664,7 +663,7 @@ namespace BTCPayServer.Lightning.LND
                 await Task.Delay(1000);
                 goto retry;
             }
-            catch(SwaggerException ex) when
+            catch (SwaggerException ex) when
                 (ex.AsLNDError() is LndError2 lndError &&
                  lndError.Error.StartsWith("Number of pending channels exceed"))
             {

@@ -6,7 +6,7 @@ using Microsoft.AspNetCore.SignalR.Client;
 
 namespace BTCPayServer.Lightning.LNbank
 {
-    public class LNbankHubClient: ILightningInvoiceListener
+    public class LNbankHubClient : ILightningInvoiceListener
     {
         private readonly LNbankLightningClient _lightningClient;
         private readonly HubConnection _connection;
@@ -18,7 +18,8 @@ namespace BTCPayServer.Lightning.LNbank
             _lightningClient = lightningClient;
             _cancellationToken = cancellation;
             _connection = new HubConnectionBuilder()
-                .WithUrl($"{baseUri.AbsoluteUri}plugins/lnbank/hubs/transaction", options => {
+                .WithUrl($"{baseUri.AbsoluteUri}plugins/lnbank/hubs/transaction", options =>
+                {
                     options.AccessTokenProvider = () => Task.FromResult(apiToken);
                 })
                 .WithAutomaticReconnect()
@@ -42,7 +43,8 @@ namespace BTCPayServer.Lightning.LNbank
                 {
                     invoice = await _lightningClient.GetInvoice(data.InvoiceId, cancellation);
 
-                    if (invoice != null) tcs.SetResult(invoice);
+                    if (invoice != null)
+                        tcs.SetResult(invoice);
                 });
 
                 return await tcs.Task;

@@ -1,11 +1,11 @@
-﻿using System;
+using System;
 using System.Collections.Generic;
-using System.Linq;
-using System.Threading.Tasks;
-using Newtonsoft.Json;
-using System.Reflection;
-using NBitcoin.JsonConverters;
 using System.Globalization;
+using System.Linq;
+using System.Reflection;
+using System.Threading.Tasks;
+using NBitcoin.JsonConverters;
+using Newtonsoft.Json;
 
 namespace BTCPayServer.Lightning.JsonConverters
 {

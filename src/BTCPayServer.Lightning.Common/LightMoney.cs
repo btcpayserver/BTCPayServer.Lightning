@@ -1,4 +1,4 @@
-﻿using System;
+using System;
 using System.Collections.Generic;
 using System.Globalization;
 using System.Linq;
@@ -107,12 +107,12 @@ namespace BTCPayServer.Lightning
         {
             MilliSatoshi = msatoshis;
         }
-	
+
         public LightMoney(Money money)
         {
             MilliSatoshi = checked(money.Satoshi * 1000);
         }
-        
+
         public LightMoney(long msatoshis)
         {
             MilliSatoshi = msatoshis;

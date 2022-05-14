@@ -1,6 +1,6 @@
-﻿using Microsoft.Extensions.Logging;
 using System;
 using System.Text;
+using Microsoft.Extensions.Logging;
 using Xunit.Abstractions;
 
 namespace BTCPayServer.Lightning.Tests
@@ -59,7 +59,8 @@ namespace BTCPayServer.Lightning.Tests
 
         public void LogInformation(string msg)
         {
-            if (msg == null) return;
+            if (msg == null)
+                return;
             try
             {
                 _Helper.WriteLine(DateTimeOffset.UtcNow + " :" + Name + ":   " + msg);

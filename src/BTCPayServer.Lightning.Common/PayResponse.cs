@@ -1,4 +1,4 @@
-﻿namespace BTCPayServer.Lightning
+namespace BTCPayServer.Lightning
 {
     public enum PayResult
     {

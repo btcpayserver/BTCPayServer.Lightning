@@ -7,7 +7,7 @@ namespace BTCPayServer.Lightning.CLightning
     // clightning-specific representation of channel id
     public class ShortChannelId : IEquatable<ShortChannelId>, IComparable<ShortChannelId>
     {
-        ShortChannelId (int blockHeight, int blockIndex, int txOutIndex)
+        ShortChannelId(int blockHeight, int blockIndex, int txOutIndex)
         {
             if (blockHeight < 0)
                 throw new ArgumentOutOfRangeException(nameof(blockHeight), $"{nameof(blockHeight)} should be more than 0");
@@ -24,7 +24,7 @@ namespace BTCPayServer.Lightning.CLightning
             if (data == null)
                 throw new ArgumentNullException(nameof(data));
             result = null;
-            var datas = data.Split(new[] { ':','x' }).ToArray();
+            var datas = data.Split(new[] { ':', 'x' }).ToArray();
             if (datas.Length != 3)
                 return false;
 

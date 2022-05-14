@@ -1,7 +1,7 @@
-﻿using System;
-using System.Linq;
+using System;
 using System.Collections;
 using System.Collections.Generic;
+using System.Linq;
 using System.Text;
 
 namespace BTCPayServer.Lightning
@@ -68,7 +68,7 @@ namespace BTCPayServer.Lightning
         {
             get;
         }
-        
+
         public void Consume(int count)
         {
             Position += count;

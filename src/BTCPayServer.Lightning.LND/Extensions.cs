@@ -1,7 +1,7 @@
-﻿using Newtonsoft.Json;
 using System;
 using System.Collections.Generic;
 using System.Text;
+using Newtonsoft.Json;
 
 namespace BTCPayServer.Lightning.LND
 {
@@ -11,7 +11,7 @@ namespace BTCPayServer.Lightning.LND
         {
             var error = JsonConvert.DeserializeObject<LndError2>(swagger.Response);
             error.Error = error.Error ?? error.Message;
-            if(error.Error == null)
+            if (error.Error == null)
                 return null;
             return error;
         }

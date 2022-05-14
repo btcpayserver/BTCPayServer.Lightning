@@ -1,13 +1,13 @@
-using NBitcoin;
-using System.Linq;
-using NBitcoin.RPC;
 using System;
 using System.Collections.Generic;
+using System.Linq;
 using System.Text;
-using System.Threading.Tasks;
 using System.Threading;
+using System.Threading.Tasks;
 using Microsoft.Extensions.Logging;
+using NBitcoin;
 using NBitcoin.Logging;
+using NBitcoin.RPC;
 
 namespace BTCPayServer.Lightning.Tests
 {
@@ -34,15 +34,15 @@ namespace BTCPayServer.Lightning.Tests
         /// <returns></returns>
         public static async Task ConnectAll(RPCClient cashCow, IEnumerable<ILightningClient> senders, IEnumerable<ILightningClient> receivers)
         {
-            if(await cashCow.GetBlockCountAsync() <= cashCow.Network.Consensus.CoinbaseMaturity)
+            if (await cashCow.GetBlockCountAsync() <= cashCow.Network.Consensus.CoinbaseMaturity)
             {
                 await cashCow.GenerateAsync(cashCow.Network.Consensus.CoinbaseMaturity + 1);
             }
 
 
-            foreach(var sender in senders)
+            foreach (var sender in senders)
             {
-                foreach(var dest in receivers)
+                foreach (var dest in receivers)
                 {
                     await CreateChannel(cashCow, sender, dest);
                 }
@@ -56,7 +56,7 @@ namespace BTCPayServer.Lightning.Tests
             var destInvoice = await dest.CreateInvoice(amount, "EnsureConnectedToDestination", TimeSpan.FromSeconds(5000));
             var payErrors = 0;
 
-            while(true)
+            while (true)
             {
                 var result = await Pay(sender, destInvoice.BOLT11);
                 Logs.LogInformation($"Pay Result: {result.Result} {result.ErrorDetail}");
@@ -89,37 +89,37 @@ namespace BTCPayServer.Lightning.Tests
                         FeeRate = new FeeRate(1UL, 1)
                     });
                     Logs.LogInformation($"Channel opening result: {openChannel.Result}");
-                    if(openChannel.Result == OpenChannelResult.CannotAffordFunding)
+                    if (openChannel.Result == OpenChannelResult.CannotAffordFunding)
                     {
                         var address = await sender.GetDepositAddress();
-						try
-						{
-							await cashCow.SendToAddressAsync(address, Money.Coins(1.0m), new SendToAddressParameters() {  Replaceable = true });
-						}
-						catch (RPCException ex) when (ex.RPCCode == RPCErrorCode.RPC_WALLET_INSUFFICIENT_FUNDS || ex.RPCCode == RPCErrorCode.RPC_WALLET_ERROR)
-						{
-							await cashCow.GenerateAsync(1);
-							await cashCow.SendToAddressAsync(address, Money.Coins(1.0m), new SendToAddressParameters() { Replaceable = true });
-						}
+                        try
+                        {
+                            await cashCow.SendToAddressAsync(address, Money.Coins(1.0m), new SendToAddressParameters() { Replaceable = true });
+                        }
+                        catch (RPCException ex) when (ex.RPCCode == RPCErrorCode.RPC_WALLET_INSUFFICIENT_FUNDS || ex.RPCCode == RPCErrorCode.RPC_WALLET_ERROR)
+                        {
+                            await cashCow.GenerateAsync(1);
+                            await cashCow.SendToAddressAsync(address, Money.Coins(1.0m), new SendToAddressParameters() { Replaceable = true });
+                        }
                         await cashCow.GenerateAsync(10);
                         await WaitLNSynched(cashCow, sender);
                         await WaitLNSynched(cashCow, dest);
                     }
-                    if(openChannel.Result == OpenChannelResult.PeerNotConnected)
+                    if (openChannel.Result == OpenChannelResult.PeerNotConnected)
                     {
                         await sender.ConnectTo(destInfo.NodeInfoList[0]);
                     }
-                    if(openChannel.Result == OpenChannelResult.NeedMoreConf)
+                    if (openChannel.Result == OpenChannelResult.NeedMoreConf)
                     {
                         await cashCow.GenerateAsync(6);
                         await WaitLNSynched(cashCow, sender);
                         await WaitLNSynched(cashCow, dest);
                     }
-                    if(openChannel.Result == OpenChannelResult.AlreadyExists)
+                    if (openChannel.Result == OpenChannelResult.AlreadyExists)
                     {
                         await Task.Delay(1000);
                     }
-                    if(openChannel.Result == OpenChannelResult.Ok)
+                    if (openChannel.Result == OpenChannelResult.Ok)
                     {
                         // generate one block and a bit more time to confirm channel opening
                         await cashCow.GenerateAsync(1);
@@ -142,7 +142,7 @@ namespace BTCPayServer.Lightning.Tests
         {
             using (var cts = new CancellationTokenSource(5000))
             {
-            retry:
+retry:
                 try
                 {
                     return await sender.Pay(payreq);
@@ -158,11 +158,11 @@ namespace BTCPayServer.Lightning.Tests
 
         private static async Task<LightningNodeInformation> WaitLNSynched(RPCClient rpc, ILightningClient lightningClient)
         {
-            while(true)
+            while (true)
             {
                 var merchantInfo = await lightningClient.GetInfo();
                 var blockCount = await rpc.GetBlockCountAsync();
-                if(merchantInfo.BlockHeight != blockCount)
+                if (merchantInfo.BlockHeight != blockCount)
                 {
                     await Task.Delay(500);
                 }

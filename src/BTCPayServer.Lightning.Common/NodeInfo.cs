@@ -1,7 +1,7 @@
-﻿using NBitcoin;
 using System;
 using System.Collections.Generic;
 using System.Text;
+using NBitcoin;
 
 namespace BTCPayServer.Lightning
 {
@@ -9,9 +9,9 @@ namespace BTCPayServer.Lightning
     {
         public NodeInfo(PubKey nodeId, string host, int port)
         {
-            if(host == null)
+            if (host == null)
                 throw new ArgumentNullException(nameof(host));
-            if(nodeId == null)
+            if (nodeId == null)
                 throw new ArgumentNullException(nameof(nodeId));
             Port = port;
             Host = host;
@@ -26,12 +26,12 @@ namespace BTCPayServer.Lightning
         }
         public static bool TryParse(string str, out NodeInfo nodeInfo)
         {
-            if(str == null)
+            if (str == null)
                 throw new ArgumentNullException(nameof(str));
             str = str.Trim();
             nodeInfo = null;
             var atIndex = str.IndexOf('@');
-            if(atIndex == -1)
+            if (atIndex == -1)
                 return false;
 
             PubKey nodeId = null;
@@ -46,17 +46,17 @@ namespace BTCPayServer.Lightning
 
             var portIndex = str.IndexOf(':');
             int port = 9735;
-            if(portIndex != -1)
+            if (portIndex != -1)
             {
-                if(portIndex <= atIndex)
+                if (portIndex <= atIndex)
                     return false;
-                if(!int.TryParse(str.Substring(portIndex + 1), out port))
+                if (!int.TryParse(str.Substring(portIndex + 1), out port))
                     return false;
             }
 
 
             string host = str.Substring(atIndex + 1, portIndex - atIndex - 1);
-            if(host.Length == 0)
+            if (host.Length == 0)
                 return false;
             nodeInfo = new NodeInfo(nodeId, host, port);
             return true;

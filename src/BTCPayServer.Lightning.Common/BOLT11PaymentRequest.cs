@@ -1,13 +1,13 @@
 #nullable enable
 using System;
-using System.Linq;
+using System.Collections;
 using System.Collections.Generic;
+using System.Diagnostics.CodeAnalysis;
+using System.Linq;
 using System.Text;
 using NBitcoin;
 using NBitcoin.Crypto;
-using System.Collections;
 using NBitcoin.DataEncoders;
-using System.Diagnostics.CodeAnalysis;
 
 namespace BTCPayServer.Lightning
 {
@@ -17,7 +17,7 @@ namespace BTCPayServer.Lightning
         {
             var hops = new List<HopInformation>();
 
-            while(size >= HopInformation.Size)
+            while (size >= HopInformation.Size)
             {
                 size -= HopInformation.Size;
                 hops.Add(new HopInformation(reader));
@@ -105,11 +105,11 @@ namespace BTCPayServer.Lightning
                         unit = LightMoneyUnit.Nano;
                         break;
                     case 'p':
-						unit = LightMoneyUnit.MilliSatoshi;
-						if (amount % 10 != 0)
-							throw new FormatException("Pico BTC denomination which is not a multiple of 10 is not supported by BTCPayServer.Lightning");
-						amount = amount / 10UL;
-						break;
+                        unit = LightMoneyUnit.MilliSatoshi;
+                        if (amount % 10 != 0)
+                            throw new FormatException("Pico BTC denomination which is not a multiple of 10 is not supported by BTCPayServer.Lightning");
+                        amount = amount / 10UL;
+                        break;
                     default:
                         if (Array.IndexOf(digits, Prefix[Prefix.Length - 1]) == -1)
                             throw new FormatException("Invalid BOLT11: invalid amount multiplier");
@@ -399,11 +399,11 @@ namespace BTCPayServer.Lightning
 
         public static bool TryParse(string str, [MaybeNullWhen(false)] out BOLT11PaymentRequest? result, Network network)
         {
-			if (str is null)
-				throw new ArgumentNullException(nameof(str));
-			if (network is null)
-				throw new ArgumentNullException(nameof(network));
-			result = null;
+            if (str is null)
+                throw new ArgumentNullException(nameof(str));
+            if (network is null)
+                throw new ArgumentNullException(nameof(network));
+            result = null;
             try
             {
                 result = Parse(str, network);
@@ -434,9 +434,9 @@ namespace BTCPayServer.Lightning
             return new uint256(Hashes.SHA256(bytes), false) == DescriptionHash;
         }
 
-		public override string ToString()
-		{
+        public override string ToString()
+        {
             return _str;
-		}
-	}
+        }
+    }
 }

@@ -4,6 +4,6 @@ namespace BTCPayServer.Lightning.LNbank.Models
     {
         public string PaymentRequest { get; set; }
         public double? MaxFeePercent { get; set; }
-		public long? MaxFeeFlat { get; set; }
-	}
+        public long? MaxFeeFlat { get; set; }
+    }
 }

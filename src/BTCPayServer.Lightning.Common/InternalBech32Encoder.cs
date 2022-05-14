@@ -1,8 +1,8 @@
-﻿using NBitcoin.DataEncoders;
 using System;
 using System.Collections.Generic;
 using System.Linq;
 using System.Text;
+using NBitcoin.DataEncoders;
 
 namespace BTCPayServer.Lightning
 {
