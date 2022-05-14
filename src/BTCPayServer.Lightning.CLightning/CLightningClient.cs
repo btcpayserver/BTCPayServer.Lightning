@@ -9,8 +9,6 @@ using System.Threading;
 using System.Threading.Tasks;
 using Mono.Unix;
 using NBitcoin;
-using NBitcoin.DataEncoders;
-using NBitcoin.RPC;
 using Newtonsoft.Json;
 using Newtonsoft.Json.Linq;
 
@@ -49,7 +47,12 @@ namespace BTCPayServer.Lightning.CLightning
 		/*delinvoice errors */
 		DATABASE_ERROR = -1,
 		LABEL_DOES_NOT_EXIST = 905,
-		STATUS_NOT_MATCHED = 906
+		STATUS_NOT_MATCHED = 906,
+
+        /* general errors */
+        WRONG_PARAMETERS = -32602,
+        GENERAL_ERROR = -1
+
 	}
 	public class LightningRPCException : Exception
 	{
@@ -281,9 +284,20 @@ namespace BTCPayServer.Lightning.CLightning
                     FeeAmount = response.AmountSent - response.Amount
                 });
             }
-            catch (LightningRPCException ex) when (ex.Code == CLightningErrorCode.ROUTE_NOT_FOUND || ex.Code == CLightningErrorCode.STOPPED_RETRYING)
+            catch (LightningRPCException ex) when (
+                // specific payment errors
+                (ex.Code >= CLightningErrorCode.IN_PROGRESS && ex.Code <= CLightningErrorCode.STOPPED_RETRYING) ||
+                // general know error codes
+                ex.Code == CLightningErrorCode.WRONG_PARAMETERS || ex.Code == CLightningErrorCode.GENERAL_ERROR)
             {
-                return new PayResponse(PayResult.CouldNotFindRoute);
+                var routingError = ex.Code == CLightningErrorCode.ROUTE_NOT_FOUND ||
+                                   ex.Code == CLightningErrorCode.STOPPED_RETRYING ||
+                                   (ex.Code == CLightningErrorCode.WRONG_PARAMETERS && ex.Message.Contains("Self-payment"));
+                var result =
+                    routingError
+                        ? PayResult.CouldNotFindRoute
+                        : PayResult.Error;
+                return new PayResponse(result, ex.Message);
             }
         }
 

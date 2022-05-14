@@ -3,7 +3,6 @@ using System.Threading.Tasks;
 using Xunit;
 using System.Linq;
 using NBitcoin;
-using NBitcoin.RPC;
 using NBitcoin.DataEncoders;
 using System.Security.Cryptography.X509Certificates;
 using System.Security.Cryptography;
@@ -73,8 +72,8 @@ namespace BTCPayServer.Lightning.Tests
 			{
 				switch (client.Client)
 				{
-					case CLightningClient cLightningClient:
-					case LndClient lndClient:
+					case CLightningClient _:
+					case LndClient _:
 						Logs.Tester.LogInformation($"{client.Name}: {nameof(CanCreateInvoiceWithDescriptionHash)}");
 						var createdInvoice = await CreateWithHash(client.Client);
 						var retrievedInvoice = await client.Client.GetInvoice(createdInvoice.Id);
@@ -94,7 +93,6 @@ namespace BTCPayServer.Lightning.Tests
 						});
 						break;
 				}
-
 			}
 		}
 
@@ -118,9 +116,9 @@ namespace BTCPayServer.Lightning.Tests
 			{
 				switch (client.Client)
 				{
-					case ChargeClient  chargeClient:
-					case CLightningClient cLightningClient:
-					case LndClient lndClient:
+					case ChargeClient _:
+					case CLightningClient _:
+					case LndClient _:
 						Logs.Tester.LogInformation($"{client.Name}: {nameof(CanCancelInvoices)}");
 						await CreateAndCancel(client.Client);
 						break;
@@ -131,7 +129,6 @@ namespace BTCPayServer.Lightning.Tests
 						});
 						break;
 				}
-
 			}
 		}
 
@@ -159,7 +156,7 @@ namespace BTCPayServer.Lightning.Tests
 			var clientTypes = Tester.GetLightningClients().Select(l => l.Client.GetType()).ToArray();
 			foreach (var connectionString in connectionStrings)
 			{
-				ILightningClient client = factory.Create(connectionString);
+				var client = factory.Create(connectionString);
 				if (!clientTypes.Contains(client.GetType()))
 					continue;
 				var createdInvoice = await client.CreateInvoice(10000, "CanCreateInvoice", TimeSpan.FromMinutes(5));
@@ -173,7 +170,6 @@ namespace BTCPayServer.Lightning.Tests
 		public async Task CanGetInfo()
 		{
 			await WaitServersAreUp();
-			var blockHeight = Tester.CreateRPC().GetBlockCount();
 			foreach (var client in Tester.GetLightningClients())
 			{
 				Logs.Tester.LogInformation($"{client.Name}: {nameof(CanGetInfo)}");
@@ -183,6 +179,37 @@ namespace BTCPayServer.Lightning.Tests
 				Assert.NotEmpty(info.NodeInfoList);
 			}
 		}
+
+        [Fact(Timeout = Timeout)]
+		public async Task CanHandleSelfPayment()
+		{
+            await WaitServersAreUp();
+            foreach (var client in Tester.GetLightningClients())
+            {
+                Logs.Tester.LogInformation($"{client.Name}: {nameof(CanHandleSelfPayment)}");
+
+                var expiry = TimeSpan.FromSeconds(5000);
+                var amount = LightMoney.Satoshis(21);
+                var invoice = await client.Client.CreateInvoice(amount, "CanHandleSelfPayment", expiry);
+
+                switch (client.Client)
+                {
+                    case LndClient _:
+                    case CLightningClient _:
+                    case EclairLightningClient _:
+                        var response = await client.Client.Pay(invoice.BOLT11);
+                        Assert.Equal(PayResult.CouldNotFindRoute, response.Result);
+                        break;
+
+                    default:
+                        await Assert.ThrowsAsync<NotSupportedException>(async () =>
+                        {
+                            await client.Client.Pay(invoice.BOLT11);
+                        });
+                        break;
+                }
+            }
+        }
 
 		private async Task WaitServersAreUp()
 		{
@@ -198,24 +225,24 @@ namespace BTCPayServer.Lightning.Tests
 			Exception realException = null;
 			using (var cts = new CancellationTokenSource(TimeSpan.FromSeconds(Timeout - 5)))
 			{
-			retry:
-				try
-				{
-					if (realException != null)
-						await Task.Delay(1000, cts.Token);
-					await client.GetInfo(cts.Token);
-					Logs.Tester.LogInformation($"{name}: Server is up");
-				}
-				catch (Exception ex) when (!cts.IsCancellationRequested)
-				{
-					realException = ex;
-					goto retry;
-				}
-				catch (Exception)
-				{
-					Logs.Tester.LogInformation(realException.ToString());
-					Assert.False(true, $"{name}: The server could not be started");
-				}
+                retry:
+                try
+                {
+                    if (realException != null)
+                        await Task.Delay(1000, cts.Token);
+                    await client.GetInfo(cts.Token);
+                    Logs.Tester.LogInformation($"{name}: Server is up");
+                }
+                catch (Exception ex) when (!cts.IsCancellationRequested)
+                {
+                    realException = ex;
+                    goto retry;
+                }
+                catch (Exception)
+                {
+                    if (realException != null) Logs.Tester.LogInformation(realException.ToString());
+                    Assert.False(true, $"{name}: The server could not be started");
+                }
 			}
 		}
 
@@ -296,12 +323,32 @@ namespace BTCPayServer.Lightning.Tests
 
 				var info = await dest.GetInfo();
 				var node = info.NodeInfoList.First();
+
 				// Reconnecting to same node should be no op
 				Assert.Equal(ConnectionResult.Ok, await src.ConnectTo(node));
 				Assert.Equal(ConnectionResult.CouldNotConnect, await src.ConnectTo(new NodeInfo(new Key().PubKey, "127.0.0.2", node.Port)));
 				Assert.Equal(ConnectionResult.CouldNotConnect, await src.ConnectTo(new NodeInfo(new Key().PubKey, node.Host, node.Port)));
 			}
 		}
+
+        [Fact(Timeout = Timeout)]
+        public async Task CanGetDepositAddress()
+        {
+            await WaitServersAreUp();
+            foreach (var client in Tester.GetLightningClients())
+            {
+                Logs.Tester.LogInformation($"{client.Name}: {nameof(CanGetDepositAddress)}");
+                try
+                {
+                    var address = await client.Client.GetDepositAddress();
+                    Assert.NotNull(address);
+                }
+                catch (NotSupportedException)
+                {
+                    Logs.Tester.LogInformation($"{client.Name}: {nameof(CanGetDepositAddress)} not supported");
+                }
+            }
+        }
 
 		[Fact(Timeout = Timeout)]
 		public async Task CanWaitListenInvoice()
@@ -310,29 +357,33 @@ namespace BTCPayServer.Lightning.Tests
 			{
 				await EnsureConnectedToDestinations(test);
 
+                var amount1 = 6150;
+                var amount2 = 8251;
 				var src = test.Customer;
 				var dest = test.Merchant;
 				Logs.Tester.LogInformation($"{test.Name}: {nameof(CanWaitListenInvoice)}");
-				var merchantInvoice = await dest.CreateInvoice(10000, "Hello world", TimeSpan.FromSeconds(3600));
-				Logs.Tester.LogInformation($"{test.Name}: Created invoice {merchantInvoice.Id}");
-				var merchantInvoice2 = await dest.CreateInvoice(10000, "Hello world", TimeSpan.FromSeconds(3600));
+				var merchantInvoice1 = await dest.CreateInvoice(amount1, "Hello world", TimeSpan.FromSeconds(3600));
+				Logs.Tester.LogInformation($"{test.Name}: Created invoice {merchantInvoice1.Id}");
+				var merchantInvoice2 = await dest.CreateInvoice(amount2, "Hello world", TimeSpan.FromSeconds(3600));
 				Logs.Tester.LogInformation($"{test.Name}: Created invoice {merchantInvoice2.Id}");
 				var waitToken = default(CancellationToken);
 				var listener = await dest.Listen(waitToken);
 				var waitTask = listener.WaitInvoice(waitToken);
 
-				var payResponse = await src.Pay(merchantInvoice.BOLT11);
-				Logs.Tester.LogInformation($"{test.Name}: Paid invoice {merchantInvoice.Id}");
+				var payResponse = await src.Pay(merchantInvoice1.BOLT11, waitToken);
+                AssertEqual(amount1, payResponse.Details.TotalAmount);
+				Logs.Tester.LogInformation($"{test.Name}: Paid invoice {merchantInvoice1.Id}");
 
 				var invoice = await waitTask;
 				Logs.Tester.LogInformation($"{test.Name}: Notification received for {invoice.Id}");
-				Assert.Equal(invoice.Id, merchantInvoice.Id);
+				Assert.Equal(invoice.Id, merchantInvoice1.Id);
 				Assert.True(invoice.PaidAt.HasValue);
-				AssertEqual(new LightMoney(10000, LightMoneyUnit.MilliSatoshi), invoice.AmountReceived);
+                AssertEqual(amount1, invoice.AmountReceived);
 
 				var waitTask2 = listener.WaitInvoice(waitToken);
 
-				payResponse = await src.Pay(merchantInvoice2.BOLT11);
+				payResponse = await src.Pay(merchantInvoice2.BOLT11, waitToken);
+                AssertEqual(amount2, payResponse.Details.TotalAmount);
 				Logs.Tester.LogInformation($"{test.Name}: Paid invoice {merchantInvoice2.Id}");
 				invoice = await waitTask2;
 				Logs.Tester.LogInformation($"{test.Name}: Notification received for {invoice.Id}");
@@ -340,18 +391,18 @@ namespace BTCPayServer.Lightning.Tests
 
 				AssertEqual(invoice.Amount, invoice.AmountReceived);
 				Assert.Equal(invoice.Id, merchantInvoice2.Id);
-				AssertEqual(new LightMoney(10000, LightMoneyUnit.MilliSatoshi), invoice.AmountReceived);
+				AssertEqual(amount2, invoice.AmountReceived);
 				var waitTask3 = listener.WaitInvoice(waitToken);
-				await Task.Delay(100);
+				await Task.Delay(100, waitToken);
 				listener.Dispose();
 				Logs.Tester.LogInformation($"{test.Name}: Listener disposed, should throw exception");
 				Assert.Throws<OperationCanceledException>(() => waitTask3.GetAwaiter().GetResult());
 			}
 		}
 
-		private void AssertEqual(LightMoney a, LightMoney b)
+		private static void AssertEqual(LightMoney a, LightMoney b)
 		{
-			Assert.Equal(a.ToDecimal(LightMoneyUnit.Satoshi), a.ToDecimal(LightMoneyUnit.Satoshi), 2);
+			Assert.Equal(a.ToDecimal(LightMoneyUnit.Satoshi), b.ToDecimal(LightMoneyUnit.Satoshi), 2);
 		}
 
 		[Fact]
@@ -407,8 +458,8 @@ namespace BTCPayServer.Lightning.Tests
                     Assert.InRange(c.Capacity, lowerBound, upperBound);
                     Assert.InRange(c.LocalBalance, lowerBound, upperBound);
 				}
-				Assert.Contains(senderChannels, c => c.RemoteNode.Equals(destInfo.NodeInfo.NodeId));
-				Assert.Contains(destChannels, c => c.RemoteNode.Equals(senderInfo.NodeInfo.NodeId));
+				Assert.Contains(senderChannels, c => c.RemoteNode.Equals(destInfo.NodeInfoList.FirstOrDefault()?.NodeId));
+				Assert.Contains(destChannels, c => c.RemoteNode.Equals(senderInfo.NodeInfoList.FirstOrDefault()?.NodeId));
 			}
 		}
 
@@ -610,13 +661,11 @@ namespace BTCPayServer.Lightning.Tests
 			Assert.Equal(LightMoney.MilliSatoshis(4109727), splitted[2]);
 		}
 
-
 		[Fact]
 		public void CanParseLightningURL()
 		{
-			LightningConnectionString conn = null;
-			Assert.True(LightningConnectionString.TryParse("/test/a", true, out conn));
-			for (int i = 0; i < 2; i++)
+            Assert.True(LightningConnectionString.TryParse("/test/a", true, out var conn));
+			for (var i = 0; i < 2; i++)
 			{
 				if (i == 1)
 					Assert.True(LightningConnectionString.TryParse(conn.ToString(), false, out conn));
@@ -628,7 +677,7 @@ namespace BTCPayServer.Lightning.Tests
 			}
 
 			Assert.True(LightningConnectionString.TryParse("unix://test/a", true, out conn));
-			for (int i = 0; i < 2; i++)
+			for (var i = 0; i < 2; i++)
 			{
 				if (i == 1)
 					Assert.True(LightningConnectionString.TryParse(conn.ToString(), false, out conn));
@@ -639,7 +688,7 @@ namespace BTCPayServer.Lightning.Tests
 			}
 
 			Assert.True(LightningConnectionString.TryParse("unix://test/a", true, out conn));
-			for (int i = 0; i < 2; i++)
+			for (var i = 0; i < 2; i++)
 			{
 				if (i == 1)
 					Assert.True(LightningConnectionString.TryParse(conn.ToString(), false, out conn));
@@ -650,7 +699,7 @@ namespace BTCPayServer.Lightning.Tests
 			}
 
 			Assert.True(LightningConnectionString.TryParse("tcp://test/a", true, out conn));
-			for (int i = 0; i < 2; i++)
+			for (var i = 0; i < 2; i++)
 			{
 				if (i == 1)
 					Assert.True(LightningConnectionString.TryParse(conn.ToString(), false, out conn));
@@ -661,7 +710,7 @@ namespace BTCPayServer.Lightning.Tests
 			}
 
 			Assert.True(LightningConnectionString.TryParse("http://aaa:bbb@test/a", true, out conn));
-			for (int i = 0; i < 2; i++)
+			for (var i = 0; i < 2; i++)
 			{
 				if (i == 1)
 					Assert.True(LightningConnectionString.TryParse(conn.ToString(), false, out conn));
@@ -674,7 +723,7 @@ namespace BTCPayServer.Lightning.Tests
 			}
 
 			Assert.True(LightningConnectionString.TryParse("http://api-token:bbb@test/a", true, out conn));
-			for (int i = 0; i < 2; i++)
+			for (var i = 0; i < 2; i++)
 			{
 				if (i == 1)
 					Assert.True(LightningConnectionString.TryParse(conn.ToString(), false, out conn));
@@ -708,7 +757,7 @@ namespace BTCPayServer.Lightning.Tests
 			var lndUri4 = $"type=lnd-rest;server=https://lnd:lnd@127.0.0.1:53280/;macaroon={macaroon};macaroondirectorypath=path";
 
 			var certificateHash = new X509Certificate2(Encoders.Hex.DecodeData("2d2d2d2d2d424547494e2043455254494649434154452d2d2d2d2d0a4d494942396a4343415a7967417749424167495156397a62474252724e54716b4e4b55676d72524d377a414b42676771686b6a4f50515144416a41784d5238770a485159445651514b45785a73626d5167595856306232646c626d56795958526c5a43426a5a584a304d51347744415944565151444577564754304e56557a41650a467730784f4441304d6a55794d7a517a4d6a4261467730784f5441324d6a41794d7a517a4d6a42614d444578487a416442674e5642416f54466d78755a4342680a645852765a3256755a584a686447566b49474e6c636e5178446a414d42674e5642414d5442555a50513156544d466b77457759484b6f5a497a6a3043415159490a4b6f5a497a6a304441516344516741454b7557424568564f75707965434157476130766e713262712f59396b41755a78616865646d454553482b753936436d450a397577486b4b2b4a7667547a66385141783550513741357254637155374b57595170303175364f426c5443426b6a414f42674e56485138424166384542414d430a4171517744775944565230544151482f42415577417745422f7a427642674e56485245456144426d6767564754304e565534494a6247396a5957786f62334e300a6877522f4141414268784141414141414141414141414141414141414141414268775373474f69786877514b41457342687753702f717473687754417141724c0a687753702f6d4a72687753702f754f77687753702f714e59687753702f6874436877514b70514157687753702f6c42514d416f4743437147534d343942414d430a413067414d45554349464866716d595a5043647a4a5178386b47586859473834394c31766541364c784d6f7a4f5774356d726835416945413662756e51556c710a6558553070474168776c3041654d726a4d4974394c7652736179756162565a593278343d0a2d2d2d2d2d454e442043455254494649434154452d2d2d2d2d0a"))
-							.GetCertHash(System.Security.Cryptography.HashAlgorithmName.SHA256);
+							.GetCertHash(HashAlgorithmName.SHA256);
 
 			Assert.True(LightningConnectionString.TryParse(lndUri, false, out conn));
 			Assert.True(LightningConnectionString.TryParse(lndUri2, false, out var conn2));
@@ -726,19 +775,17 @@ namespace BTCPayServer.Lightning.Tests
 			Assert.False(LightningConnectionString.TryParse($"type=lnd-rest;server=http://127.0.0.1:53280/;macaroon={macaroon};allowinsecure=false", false, out conn2));
 			Assert.True(LightningConnectionString.TryParse($"type=lnd-rest;server=http://127.0.0.1:53280/;macaroon={macaroon};allowinsecure=true", false, out conn2));
 			Assert.True(LightningConnectionString.TryParse($"type=lnd-rest;server=http://127.0.0.1:53280/;macaroon={macaroon};allowinsecure=true", false, out conn2));
-
-
 			Assert.True(LightningConnectionString.TryParse("type=charge;server=http://test/a;cookiefilepath=path;allowinsecure=true", false, out conn));
 			Assert.Equal("path", conn.CookieFilePath);
 			Assert.Equal("type=charge;server=http://test/a;cookiefilepath=path;allowinsecure=true", conn.ToString());
-			// Should not have cookiefilepath and api-token at once
-			Assert.False(LightningConnectionString.TryParse("type=charge;server=http://test/a;cookiefilepath=path;api-token=abc", false, out conn));
-			// Should not have cookiefilepath and api-token at once
-			Assert.False(LightningConnectionString.TryParse("type=charge;server=http://api-token:blah@test/a;cookiefilepath=path", false, out conn));
 
+            // Should not have cookiefilepath and api-token at once
+			Assert.False(LightningConnectionString.TryParse("type=charge;server=http://test/a;cookiefilepath=path;api-token=abc", false, out conn));
+
+            // Should not have cookiefilepath and api-token at once
+			Assert.False(LightningConnectionString.TryParse("type=charge;server=http://api-token:blah@test/a;cookiefilepath=path", false, out conn));
 			Assert.True(LightningConnectionString.TryParse("type=charge;server=http://api-token:foiewnccewuify@127.0.0.1:54938/;allowinsecure=true", out conn));
 			Assert.Equal("type=charge;server=http://127.0.0.1:54938/;api-token=foiewnccewuify;allowinsecure=true", conn.ToString());
-
 			Assert.True(LightningConnectionString.TryParse("type=lnbank;server=https://mybtcpay.com/;api-token=myapitoken", false, out conn));
 		}
 

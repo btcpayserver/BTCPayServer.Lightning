@@ -580,6 +580,10 @@ namespace BTCPayServer.Lightning.LND
                     await Task.Delay(1000, cancellation);
                     goto retry;
                 }
+                if (lndError.Error.StartsWith("self-payments not allowed"))
+                {
+                    return new PayResponse(PayResult.CouldNotFindRoute, ex.Response);
+                }
 
                 throw new LndException(lndError.Error);
             }

@@ -89,7 +89,10 @@ namespace BTCPayServer.Lightning.Charge
         {
             var message = CreateMessage(HttpMethod.Post, "invoice");
             Dictionary<string, string> parameters = new Dictionary<string, string>();
-            parameters.Add("msatoshi", request.Amount.MilliSatoshi.ToString(CultureInfo.InvariantCulture));
+            if (request.Amount != null && request.Amount != LightMoney.Zero)
+            {
+                parameters.Add("msatoshi", request.Amount.MilliSatoshi.ToString(CultureInfo.InvariantCulture));
+            }
             parameters.Add("expiry", ((int)request.Expiry.TotalSeconds).ToString(CultureInfo.InvariantCulture));
             if(request.Description != null)
                 parameters.Add("description", request.Description);

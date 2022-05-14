@@ -191,7 +191,7 @@ namespace BTCPayServer.Lightning.Eclair
 
 		public Task<BitcoinAddress> GetNewAddress(CancellationToken cancellationToken = default)
 		{
-			return SendCommandAsync<NoRequestModel, BitcoinAddress>("POST", new NoRequestModel(), cancellationToken);
+			return SendCommandAsync<NoRequestModel, BitcoinAddress>("getnewaddress", new NoRequestModel(), cancellationToken);
 		}
 
 		public async Task<List<GetSentInfoResponse>> GetSentInfo(string paymentHash, string id = null,

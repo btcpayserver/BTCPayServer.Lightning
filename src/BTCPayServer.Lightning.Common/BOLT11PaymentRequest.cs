@@ -358,7 +358,7 @@ namespace BTCPayServer.Lightning
         public IReadOnlyList<BitcoinAddress> FallbackAddresses { get; }
         public IReadOnlyList<RouteInformation> Routes { get; }
         /// <summary>
-        /// The payee pubkey exposed by the 'n' field. 
+        /// The payee pubkey exposed by the 'n' field.
         /// In most case, you want to use GetPayeePubKey instead, as this will also try to recover the public key from the signature
         /// </summary>
         public PubKey? ExplicitPayeePubKey { get; }
@@ -397,7 +397,7 @@ namespace BTCPayServer.Lightning
         public DateTimeOffset ExpiryDate { get; }
         public FeatureBits FeatureBits { get; }
 
-        public static bool TryParse(string str, [MaybeNullWhen(false)] out BOLT11PaymentRequest result, Network network)
+        public static bool TryParse(string str, [MaybeNullWhen(false)] out BOLT11PaymentRequest? result, Network network)
         {
 			if (str is null)
 				throw new ArgumentNullException(nameof(str));
