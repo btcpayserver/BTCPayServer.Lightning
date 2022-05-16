@@ -301,7 +301,6 @@ services:
       LND_ADMIN_MACAROON_FILE: "/data/fake/admin.macaroon"
       CONFIG: '{ "rateLimit": 10000, "postRateLimit": 10000, "redis": { "port": 6379, "host": "lndhub_dest_redis", "family": 4, "password": "redispassword", "db": 0 }, "lnd": { "url": "lnd_dest:10009", "password": ""}}'
 
-
   dev:
     image: coscale/docker-sleep
     depends_on:

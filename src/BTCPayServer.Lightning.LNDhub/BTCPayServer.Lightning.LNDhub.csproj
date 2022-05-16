@@ -7,10 +7,15 @@
         <RepositoryUrl>https://github.com/btcpayserver/BTCPayServer.Lightning</RepositoryUrl>
         <PackageTags>lightning;bitcoin;lndhub;lapps</PackageTags>
         <OutputType>Library</OutputType>
+        <LangVersion>8</LangVersion>
     </PropertyGroup>
 
     <ItemGroup>
       <ProjectReference Include="..\BTCPayServer.Lightning.Common\BTCPayServer.Lightning.Common.csproj" />
+    </ItemGroup>
+
+    <ItemGroup>
+      <PackageReference Include="System.Threading.Channels" Version="4.5.0" />
     </ItemGroup>
 
 </Project>

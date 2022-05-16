@@ -1,5 +1,3 @@
-using Newtonsoft.Json;
-
 namespace BTCPayServer.Lightning.LNDhub.Models
 {
     public class ErrorData

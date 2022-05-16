@@ -1,4 +1,5 @@
 using System;
+using System.Linq;
 using System.Net.Http;
 using System.Threading;
 using System.Threading.Tasks;
@@ -10,12 +11,12 @@ namespace BTCPayServer.Lightning.LndHub
     public class LndHubLightningClient : ILightningClient
     {
         private readonly LndHubClient _client;
-        private readonly Uri _baseUri;
+        private readonly Network _network;
 
         public LndHubLightningClient(Uri baseUri, string loginToken, Network network, HttpClient httpClient = null)
         {
             var parts = loginToken.Split(':');
-            _baseUri = baseUri;
+            _network = network;
             _client = new LndHubClient(baseUri, parts[0], parts[1], network, httpClient);
         }
 
@@ -40,64 +41,92 @@ namespace BTCPayServer.Lightning.LndHub
 
             return nodeInfo;
         }
-        public Task<LightningInvoice> GetInvoice(string invoiceId, CancellationToken cancellation = default)
+
+        public async Task<BitcoinAddress> GetDepositAddress()
         {
-            throw new NotImplementedException();
+            return await _client.GetDepositAddress();
         }
 
-        public Task<LightningPayment> GetPayment(string paymentHash, CancellationToken cancellation = default)
+        public async Task<LightningInvoice> GetInvoice(string invoiceId, CancellationToken cancellation = default)
         {
-            throw new NotImplementedException();
+            var invoices = await _client.GetInvoices(cancellation);
+            var data = invoices.FirstOrDefault(i => i.Id == invoiceId);
+            return data == null ? null : LndHubUtil.ToLightningInvoice(data);
         }
 
-        public Task<LightningInvoice> CreateInvoice(LightMoney amount, string description, TimeSpan expiry, CancellationToken cancellation = default)
+        public async Task<LightningPayment> GetPayment(string paymentHash, CancellationToken cancellation = default)
         {
-            throw new NotImplementedException();
+            var payments = await _client.GetTransactions(cancellation);
+            var data = payments.FirstOrDefault(i => i.PaymentHash == paymentHash);
+            return data == null ? null : LndHubUtil.ToLightningPayment(data);
         }
 
-        public Task<LightningInvoice> CreateInvoice(CreateInvoiceParams createInvoiceRequest, CancellationToken cancellation = default)
+        public async Task<LightningInvoice> CreateInvoice(LightMoney amount, string description, TimeSpan expiry, CancellationToken cancellation = default)
         {
-            throw new NotImplementedException();
+            return await (this as ILightningClient).CreateInvoice(new CreateInvoiceParams(amount, description, expiry), cancellation);
         }
 
-        public Task<ILightningInvoiceListener> Listen(CancellationToken cancellation = default)
+        public async Task<LightningInvoice> CreateInvoice(CreateInvoiceParams req, CancellationToken cancellation = default)
         {
-            throw new NotImplementedException();
+            var invoice = await _client.CreateInvoice(req, cancellation);
+
+            // the response to addinvoice is incomplete, fetch the invoice to return that data
+            return await GetInvoice(invoice.Id, cancellation);
         }
 
-        public Task<PayResponse> Pay(string bolt11, PayInvoiceParams payParams, CancellationToken cancellation = default)
+        public async Task<PayResponse> Pay(string bolt11, CancellationToken cancellation = default)
         {
-            throw new NotImplementedException();
+            return await Pay(bolt11, null, cancellation);
         }
 
-        public Task<PayResponse> Pay(string bolt11, CancellationToken cancellation = default)
+        public async Task<PayResponse> Pay(string bolt11, PayInvoiceParams payParams, CancellationToken cancellation = default)
         {
-            throw new NotImplementedException();
+            try
+            {
+                var pr = BOLT11PaymentRequest.Parse(bolt11, _network);
+                var payAmount = payParams?.Amount ?? pr.MinimumAmount;
+                var data = await _client.Pay(bolt11, payParams, cancellation);
+                var totalAmount = data.Decoded?.AmountMsat ?? data.AmountMsat;
+                var feeAmount = data.PaymentRoute?.FeeMsat ?? totalAmount - payAmount;
+                var response = new PayResponse(PayResult.Ok, new PayDetails
+                {
+                    TotalAmount = totalAmount,
+                    FeeAmount = feeAmount
+                });
+
+                return response;
+            }
+            catch (LndHubClient.LndHubApiException exception)
+            {
+                // https://github.com/BlueWallet/LndHub/blob/master/doc/Send-requirements.md#general-error-response
+                var result = exception.ErrorCode == 5 ? PayResult.CouldNotFindRoute : PayResult.Error;
+                return new PayResponse(result, exception.Message);
+            }
+        }
+
+        async Task<ILightningInvoiceListener> ILightningClient.Listen(CancellationToken cancellation)
+        {
+            return await _client.CreateInvoiceSession(cancellation);
         }
 
         public Task<OpenChannelResponse> OpenChannel(OpenChannelRequest openChannelRequest, CancellationToken cancellation = default)
         {
-            throw new NotImplementedException();
-        }
-
-        public Task<BitcoinAddress> GetDepositAddress()
-        {
-            throw new NotImplementedException();
+            throw new NotSupportedException();
         }
 
         public Task<ConnectionResult> ConnectTo(NodeInfo nodeInfo)
         {
-            throw new NotImplementedException();
+            throw new NotSupportedException();
         }
 
         public Task CancelInvoice(string invoiceId)
         {
-            throw new NotImplementedException();
+            throw new NotSupportedException();
         }
 
         public Task<LightningChannel[]> ListChannels(CancellationToken cancellation = default)
         {
-            throw new NotImplementedException();
+            throw new NotSupportedException();
         }
     }
 }

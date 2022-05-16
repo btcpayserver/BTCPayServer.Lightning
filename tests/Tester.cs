@@ -28,13 +28,13 @@ namespace BTCPayServer.Lightning.Tests
             return new ChargeClient(uri, Network, allowInsecure: true);
         }
 
-        private static LndClient CreateLndClient()
+        internal static LndClient CreateLndClient()
         {
             var host = CommonTests.Docker ? "http://lnd:8080" : "http://127.0.0.1:32736";
             return new LndClient(new LndRestSettings { AllowInsecure = true, Uri = new Uri(host) }, Network.RegTest);
         }
 
-        private static LndClient CreateLndClientDest()
+        internal static LndClient CreateLndClientDest()
         {
             var host = CommonTests.Docker ? "http://lnd_dest:8080" : "http://127.0.0.1:42802";
             return new LndClient(new LndRestSettings { AllowInsecure = true, Uri = new Uri(host) }, Network.RegTest);
@@ -63,8 +63,8 @@ namespace BTCPayServer.Lightning.Tests
             var host = CommonTests.Docker ? "http://eclair_dest:8080" : "http://127.0.0.1:4571";
             return new EclairLightningClient(new Uri(host), "bukkake", Network);
         }
-        
-        public static async Task<LndHubLightningClient> CreateLndHubClient()
+
+        private static async Task<LndHubLightningClient> CreateLndHubClient()
         {
             var uri = new Uri(CommonTests.Docker ? "http://lndhub:3000" : "http://127.0.0.1:42923");
             var client = new LndHubLightningClient(uri, "_:_", Network.RegTest);
@@ -72,7 +72,7 @@ namespace BTCPayServer.Lightning.Tests
             return new LndHubLightningClient(uri, $"{data.Login}:{data.Password}", Network.RegTest);
         }
 
-        public static async Task<LndHubLightningClient> CreateLndHubClientDest()
+        private static async Task<LndHubLightningClient> CreateLndHubClientDest()
         {
             var uri = new Uri(CommonTests.Docker ? "http://lndhub_dest:3000" : "http://127.0.0.1:42924");
             var client = new LndHubLightningClient(uri, "_:_", Network.RegTest);
@@ -92,8 +92,9 @@ namespace BTCPayServer.Lightning.Tests
 		public static IEnumerable<(string Name, ILightningClient Customer, ILightningClient Merchant)> GetTestedPairs()
 		{
 			yield return ("C-Lightning", CreateCLightningClient(), CreateCLightningClientDest());
-			yield return ("LND", CreateLndClient(), CreateLndClientDest());
+            yield return ("LND", CreateLndClient(), CreateLndClientDest());
             yield return ("Eclair", CreateEclairClient(), CreateEclairClientDest());
+            yield return ("LNDhub", CreateLndHubClient().Result, CreateLndHubClientDest().Result);
 		}
 	}
 }
