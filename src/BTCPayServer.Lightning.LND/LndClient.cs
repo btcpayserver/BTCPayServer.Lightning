@@ -317,7 +317,7 @@ namespace BTCPayServer.Lightning.LND
         {
             return CreateInvoice(new CreateInvoiceParams(amount, description, expiry), cancellation);
         }
-        public async Task<LightningInvoice> CreateInvoice(CreateInvoiceParams req, CancellationToken cancellation = default(CancellationToken))
+        public async Task<LightningInvoice> CreateInvoice(CreateInvoiceParams req, CancellationToken cancellation = default)
         {
             var strAmount = ConvertInv.ToString(req.Amount.ToUnit(LightMoneyUnit.MilliSatoshi));
             var strExpiry = ConvertInv.ToString(Math.Round(req.Expiry.TotalSeconds, 0));
@@ -343,18 +343,18 @@ namespace BTCPayServer.Lightning.LND
             return invoice;
         }
 
-        public async Task CancelInvoice(string invoiceId)
+        public async Task CancelInvoice(string invoiceId, CancellationToken cancellation = default)
         {
-            var resp = await SwaggerClient.LookupInvoiceAsync(invoiceId, null, CancellationToken.None);
-            await this.SwaggerClient.CancelInvoiceAsync(new InvoicesrpcCancelInvoiceMsg()
+            var resp = await SwaggerClient.LookupInvoiceAsync(invoiceId, null, cancellation);
+            await SwaggerClient.CancelInvoiceAsync(new InvoicesrpcCancelInvoiceMsg
             {
                 Payment_hash = resp.R_hash
-            }, CancellationToken.None);
+            }, cancellation);
         }
 
-        async Task<LightningChannel[]> ILightningClient.ListChannels(CancellationToken token)
+        async Task<LightningChannel[]> ILightningClient.ListChannels(CancellationToken cancellation)
         {
-            var resp = await SwaggerClient.ListChannelsAsync(false, false, false, false, token);
+            var resp = await SwaggerClient.ListChannelsAsync(false, false, false, false, cancellation);
             if (resp.Channels == null)
                 return new LightningChannel[] { };
             return (from c in resp.Channels
@@ -671,21 +671,21 @@ retry:
             }
         }
 
-        async Task<BitcoinAddress> ILightningClient.GetDepositAddress()
+        async Task<BitcoinAddress> ILightningClient.GetDepositAddress(CancellationToken cancellation)
         {
-            return BitcoinAddress.Create((await SwaggerClient.NewWitnessAddressAsync()).Address, Network);
+            return BitcoinAddress.Create((await SwaggerClient.NewWitnessAddressAsync(cancellation)).Address, Network);
         }
 
-        async Task<ConnectionResult> ILightningClient.ConnectTo(NodeInfo nodeInfo)
+        async Task<ConnectionResult> ILightningClient.ConnectTo(NodeInfo nodeInfo, CancellationToken cancellation)
         {
-            return await SwaggerClient.ConnectPeerAsync(new LnrpcConnectPeerRequest()
+            return await SwaggerClient.ConnectPeer(new LnrpcConnectPeerRequest
             {
                 Addr = new LnrpcLightningAddress()
                 {
                     Host = $"{nodeInfo.Host}:{nodeInfo.Port}",
                     Pubkey = nodeInfo.NodeId.ToString()
                 }
-            });
+            }, cancellation);
         }
 
         // Invariant culture conversion

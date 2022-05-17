@@ -22,7 +22,7 @@ namespace BTCPayServer.Lightning
             return uri;
         }
 
-        public static async Task<ClientWebSocket> CreateClientWebSocket(string url, string authorizationValue, CancellationToken cancellation = default(CancellationToken))
+        public static async Task<ClientWebSocket> CreateClientWebSocket(string url, string authorizationValue, CancellationToken cancellation = default)
         {
             var socket = new ClientWebSocket();
             socket.Options.SetRequestHeader("Authorization", authorizationValue);
@@ -36,7 +36,7 @@ namespace BTCPayServer.Lightning
             return socket;
         }
 
-        public static async Task CloseSocket(WebSocket webSocket, WebSocketCloseStatus status = WebSocketCloseStatus.NormalClosure, string description = null, CancellationToken cancellationToken = default(CancellationToken))
+        public static async Task CloseSocket(WebSocket webSocket, WebSocketCloseStatus status = WebSocketCloseStatus.NormalClosure, string description = null, CancellationToken cancellationToken = default)
         {
             try
             {

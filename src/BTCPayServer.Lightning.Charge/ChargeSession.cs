@@ -37,7 +37,7 @@ namespace BTCPayServer.Lightning.Charge
         {
         }
 
-        public async Task<ChargeInvoice> WaitInvoice(CancellationToken cancellation = default(CancellationToken))
+        public async Task<ChargeInvoice> WaitInvoice(CancellationToken cancellation = default)
         {
             var message = await WaitMessage(cancellation);
             return JsonConvert.DeserializeObject<ChargeInvoice>(message, new JsonSerializerSettings());

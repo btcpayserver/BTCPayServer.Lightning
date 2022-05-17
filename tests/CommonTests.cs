@@ -108,9 +108,8 @@ namespace BTCPayServer.Lightning.Tests
                 await lightningClient.CancelInvoice(i.Id);
                 i = await lightningClient.GetInvoice(i.Id);
                 Assert.Null(i);
-
-
             }
+            
             await WaitServersAreUp();
             foreach (var client in Tester.GetLightningClients())
             {

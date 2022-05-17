@@ -2259,11 +2259,11 @@ namespace BTCPayServer.Lightning.LND
         /// the networking level, and is used for communication between nodes. This is
         /// distinct from establishing a channel with a peer.</summary>
         /// <exception cref="SwaggerException">A server side error occurred.</exception>
-        public async System.Threading.Tasks.Task<ConnectionResult> ConnectPeerAsync(LnrpcConnectPeerRequest body)
+        public async System.Threading.Tasks.Task<ConnectionResult> ConnectPeer(LnrpcConnectPeerRequest body, System.Threading.CancellationToken cancellationToken)
         {
             try
             {
-                await ConnectPeerAsync(body, System.Threading.CancellationToken.None);
+                await ConnectPeerAsync(body, cancellationToken);
                 return ConnectionResult.Ok;
             }
             catch (SwaggerException ex) when (ex.AsLNDError() is LndError2 err && err.Error.Contains("already connected"))

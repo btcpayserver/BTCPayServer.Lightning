@@ -35,12 +35,12 @@ namespace BTCPayServer.Lightning.Eclair
             _httpClient = httpClient ?? SharedClient;
         }
 
-        public async Task<GetInfoResponse> GetInfo(CancellationToken cts = default(CancellationToken))
+        public async Task<GetInfoResponse> GetInfo(CancellationToken cts = default)
         {
             return await SendCommandAsync<NoRequestModel, GetInfoResponse>("getinfo", NoRequestModel.Instance, cts);
         }
 
-        public async Task<string> Connect(string uri, CancellationToken cts = default(CancellationToken))
+        public async Task<string> Connect(string uri, CancellationToken cts = default)
         {
             return await SendCommandAsync<ConnectUriRequest, string>("connect", new ConnectUriRequest()
             {
@@ -49,7 +49,7 @@ namespace BTCPayServer.Lightning.Eclair
         }
 
         public async Task<string> Connect(PubKey nodeId, string host, int? port = null,
-            CancellationToken cts = default(CancellationToken))
+            CancellationToken cts = default)
         {
             return await SendCommandAsync<ConnectManualRequest, string>("connect", new ConnectManualRequest()
             {
@@ -61,7 +61,7 @@ namespace BTCPayServer.Lightning.Eclair
 
         public async Task<string> Open(PubKey nodeId, long fundingSatoshis, int? pushMsat = null,
             long? fundingFeerateSatByte = null, ChannelFlags? channelFlags = null,
-            CancellationToken cts = default(CancellationToken))
+            CancellationToken cts = default)
         {
             return await SendCommandAsync<OpenRequest, string>("open", new OpenRequest()
             {
@@ -75,7 +75,7 @@ namespace BTCPayServer.Lightning.Eclair
         }
 
         public async Task<string> Close(string channelId, string shortChannelId = null, Script scriptPubKey = null,
-            CancellationToken cts = default(CancellationToken))
+            CancellationToken cts = default)
         {
             return await SendCommandAsync<CloseRequest, string>("close", new CloseRequest()
             {
@@ -87,7 +87,7 @@ namespace BTCPayServer.Lightning.Eclair
         }
 
         public async Task<string> ForceClose(string channelId, string shortChannelId = null,
-            CancellationToken cts = default(CancellationToken))
+            CancellationToken cts = default)
         {
             return await SendCommandAsync<ForceCloseRequest, string>("forceclose", new ForceCloseRequest()
             {
@@ -97,7 +97,7 @@ namespace BTCPayServer.Lightning.Eclair
         }
 
         public async Task<string> UpdateRelayFee(string channelId, int feeBaseMsat, int feeProportionalMillionths,
-            CancellationToken cts = default(CancellationToken))
+            CancellationToken cts = default)
         {
             return await SendCommandAsync<UpdateRelayFeeRequest, string>("updaterelayfee", new UpdateRelayFeeRequest()
             {
@@ -107,13 +107,13 @@ namespace BTCPayServer.Lightning.Eclair
             }, cts);
         }
 
-        public async Task<List<PeersResponse>> Peers(CancellationToken cts = default(CancellationToken))
+        public async Task<List<PeersResponse>> Peers(CancellationToken cts = default)
         {
             return await SendCommandAsync<NoRequestModel, List<PeersResponse>>("peers", NoRequestModel.Instance, cts);
         }
 
         public async Task<List<ChannelResponse>> Channels(PubKey nodeId = null,
-            CancellationToken cts = default(CancellationToken))
+            CancellationToken cts = default)
         {
             return await SendCommandAsync<ChannelsRequest, List<ChannelResponse>>("channels", new ChannelsRequest()
             {
@@ -121,7 +121,7 @@ namespace BTCPayServer.Lightning.Eclair
             }, cts);
         }
 
-        public async Task<ChannelResponse> Channel(string channelId, CancellationToken cts = default(CancellationToken))
+        public async Task<ChannelResponse> Channel(string channelId, CancellationToken cts = default)
         {
             return await SendCommandAsync<ChannelRequest, ChannelResponse>("channel", new ChannelRequest()
             {
@@ -129,19 +129,19 @@ namespace BTCPayServer.Lightning.Eclair
             }, cts);
         }
 
-        public async Task<List<AllNodesResponse>> AllNodes(CancellationToken cts = default(CancellationToken))
+        public async Task<List<AllNodesResponse>> AllNodes(CancellationToken cts = default)
         {
             return await SendCommandAsync<NoRequestModel, List<AllNodesResponse>>("allnodes", NoRequestModel.Instance,
                 cts);
         }
 
-        public async Task<List<AllChannelsResponse>> AllChannels(CancellationToken cts = default(CancellationToken))
+        public async Task<List<AllChannelsResponse>> AllChannels(CancellationToken cts = default)
         {
             return await SendCommandAsync<NoRequestModel, List<AllChannelsResponse>>("allchannels",
                 NoRequestModel.Instance, cts);
         }
 
-        public async Task<List<AllUpdatesResponse>> AllUpdates(CancellationToken cts = default(CancellationToken))
+        public async Task<List<AllUpdatesResponse>> AllUpdates(CancellationToken cts = default)
         {
             return await SendCommandAsync<NoRequestModel, List<AllUpdatesResponse>>("allupdates",
                 NoRequestModel.Instance, cts);
@@ -162,7 +162,7 @@ namespace BTCPayServer.Lightning.Eclair
         }
 
         public async Task<InvoiceResponse> ParseInvoice(string invoice,
-            CancellationToken cts = default(CancellationToken))
+            CancellationToken cts = default)
         {
             return await SendCommandAsync<ParseInvoiceRequest, InvoiceResponse>("parseinvoice",
                 new ParseInvoiceRequest()
@@ -171,13 +171,13 @@ namespace BTCPayServer.Lightning.Eclair
                 }, cts);
         }
 
-        public async Task<string> PayInvoice(PayInvoiceRequest payInvoiceRequest, CancellationToken cts = default(CancellationToken))
+        public async Task<string> PayInvoice(PayInvoiceRequest payInvoiceRequest, CancellationToken cts = default)
         {
             return await SendCommandAsync<PayInvoiceRequest, string>("payinvoice", payInvoiceRequest, cts);
         }
 
         public async Task<string> SendToNode(PubKey nodeId, int amountMsat, string paymentHash, int? maxAttempts = null,
-            CancellationToken cts = default(CancellationToken))
+            CancellationToken cts = default)
         {
             return await SendCommandAsync<SendToNodeRequest, string>("sendtonode",
                 new SendToNodeRequest()
@@ -195,7 +195,7 @@ namespace BTCPayServer.Lightning.Eclair
         }
 
         public async Task<List<GetSentInfoResponse>> GetSentInfo(string paymentHash, string id = null,
-            CancellationToken cts = default(CancellationToken))
+            CancellationToken cts = default)
         {
             return await SendCommandAsync<GetSentInfoRequest, List<GetSentInfoResponse>>("getsentinfo",
                 new GetSentInfoRequest()
@@ -206,7 +206,7 @@ namespace BTCPayServer.Lightning.Eclair
         }
 
         public async Task<GetReceivedInfoResponse> GetReceivedInfo(string paymentHash, string invoice = null,
-            CancellationToken cts = default(CancellationToken))
+            CancellationToken cts = default)
         {
             return await SendCommandAsync<GetReceivedInfoRequest, GetReceivedInfoResponse>("getreceivedinfo",
                 new GetReceivedInfoRequest()
@@ -217,7 +217,7 @@ namespace BTCPayServer.Lightning.Eclair
         }
 
         public async Task<InvoiceResponse> GetInvoice(string paymentHash,
-            CancellationToken cts = default(CancellationToken))
+            CancellationToken cts = default)
         {
             return await SendCommandAsync<GetReceivedInfoRequest, InvoiceResponse>("getinvoice",
                 new GetReceivedInfoRequest()
@@ -227,7 +227,7 @@ namespace BTCPayServer.Lightning.Eclair
         }
 
         public async Task<List<InvoiceResponse>> ListInvoices(DateTime? from = null, DateTime? to = null,
-            CancellationToken cts = default(CancellationToken))
+            CancellationToken cts = default)
         {
             return await SendCommandAsync<ListInvoicesRequest, List<InvoiceResponse>>("listinvoices",
                 new ListInvoicesRequest()
@@ -238,7 +238,7 @@ namespace BTCPayServer.Lightning.Eclair
         }
 
         public async Task<List<InvoiceResponse>> ListPendingInvoices(DateTime? from = null, DateTime? to = null,
-            CancellationToken cts = default(CancellationToken))
+            CancellationToken cts = default)
         {
             return await SendCommandAsync<ListInvoicesRequest, List<InvoiceResponse>>("listpendinginvoices",
                 new ListInvoicesRequest()
@@ -249,7 +249,7 @@ namespace BTCPayServer.Lightning.Eclair
         }
 
         public async Task<List<string>> FindRoute(string invoice, int? amountMsat = null,
-            CancellationToken cts = default(CancellationToken))
+            CancellationToken cts = default)
         {
             return await SendCommandAsync<FindRouteRequest, List<string>>("findroute",
                 new FindRouteRequest()
@@ -260,7 +260,7 @@ namespace BTCPayServer.Lightning.Eclair
         }
 
         public async Task<List<string>> FindRouteToNode(PubKey nodeId, int amountMsat,
-            CancellationToken cts = default(CancellationToken))
+            CancellationToken cts = default)
         {
             return await SendCommandAsync<FindRouteToNodeRequest, List<string>>("findroutetonode",
                 new FindRouteToNodeRequest()
@@ -271,7 +271,7 @@ namespace BTCPayServer.Lightning.Eclair
         }
 
         public async Task<AuditResponse> Audit(DateTime? from = null, DateTime? to = null,
-            CancellationToken cts = default(CancellationToken))
+            CancellationToken cts = default)
         {
             return await SendCommandAsync<AuditRequest, AuditResponse>("audit",
                 new AuditRequest()
@@ -282,7 +282,7 @@ namespace BTCPayServer.Lightning.Eclair
         }
 
         public async Task<List<NetworkFeesResponse>> NetworkFees(DateTime? from = null, DateTime? to = null,
-            CancellationToken cts = default(CancellationToken))
+            CancellationToken cts = default)
         {
             return await SendCommandAsync<NetworkFeesRequest, List<NetworkFeesResponse>>("networkfees",
                 new NetworkFeesRequest()
@@ -293,7 +293,7 @@ namespace BTCPayServer.Lightning.Eclair
         }
 
         public async Task<List<ChannelStatsResponse>> ChannelStats(DateTime? from = null, DateTime? to = null,
-            CancellationToken cts = default(CancellationToken))
+            CancellationToken cts = default)
         {
             return await SendCommandAsync<NoRequestModel, List<ChannelStatsResponse>>("channelstats", NoRequestModel.Instance, cts);
         }

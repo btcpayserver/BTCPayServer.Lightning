@@ -35,7 +35,7 @@ namespace BTCPayServer.Lightning.Eclair
 
 
         public async Task<LightningInvoice> GetInvoice(string invoiceId,
-            CancellationToken cancellation = default(CancellationToken))
+            CancellationToken cancellation = default)
         {
             InvoiceResponse result = null;
             try
@@ -140,7 +140,7 @@ namespace BTCPayServer.Lightning.Eclair
             return (this as ILightningClient).CreateInvoice(req.Amount, req.Description, req.Expiry, cancellation);
         }
 
-        public async Task<ILightningInvoiceListener> Listen(CancellationToken cancellation = default(CancellationToken))
+        public async Task<ILightningInvoiceListener> Listen(CancellationToken cancellation = default)
         {
             return new EclairSession(
                await WebsocketHelper.CreateClientWebSocket(_address.AbsoluteUri,
@@ -148,7 +148,7 @@ namespace BTCPayServer.Lightning.Eclair
                         Convert.ToBase64String(Encoding.Default.GetBytes($":{_password}"))).ToString(), cancellation), this);
         }
 
-        public async Task<LightningNodeInformation> GetInfo(CancellationToken cancellation = default(CancellationToken))
+        public async Task<LightningNodeInformation> GetInfo(CancellationToken cancellation = default)
         {
             var info = await _eclairClient.GetInfo(cancellation);
             var nodeInfo = new LightningNodeInformation()
@@ -217,7 +217,7 @@ namespace BTCPayServer.Lightning.Eclair
         }
 
         public async Task<OpenChannelResponse> OpenChannel(OpenChannelRequest openChannelRequest,
-            CancellationToken cancellation = default(CancellationToken))
+            CancellationToken cancellation = default)
         {
             try
             {
@@ -259,33 +259,33 @@ namespace BTCPayServer.Lightning.Eclair
             }
         }
 
-        public Task<BitcoinAddress> GetDepositAddress()
+        public Task<BitcoinAddress> GetDepositAddress(CancellationToken cancellation = default)
         {
-            return _eclairClient.GetNewAddress();
+            return _eclairClient.GetNewAddress(cancellation);
         }
 
-        public async Task<ConnectionResult> ConnectTo(NodeInfo nodeInfo)
+        public async Task<ConnectionResult> ConnectTo(NodeInfo nodeInfo, CancellationToken cancellation = default)
         {
             try
             {
-                var result = await _eclairClient.Connect(nodeInfo.NodeId, nodeInfo.Host, nodeInfo.Port);
+                var result = await _eclairClient.Connect(nodeInfo.NodeId, nodeInfo.Host, nodeInfo.Port, cancellation);
                 if (result.StartsWith("already connected", StringComparison.OrdinalIgnoreCase) ||
                     result.StartsWith("connected", StringComparison.OrdinalIgnoreCase))
                     return ConnectionResult.Ok;
                 return ConnectionResult.CouldNotConnect;
             }
-            catch (Eclair.EclairClient.EclairApiException)
+            catch (EclairClient.EclairApiException)
             {
                 return ConnectionResult.CouldNotConnect;
             }
         }
 
-        public Task CancelInvoice(string invoiceId)
+        public Task CancelInvoice(string invoiceId, CancellationToken cancellation = default)
         {
             throw new NotSupportedException();
         }
 
-        public async Task<LightningChannel[]> ListChannels(CancellationToken cancellation = default(CancellationToken))
+        public async Task<LightningChannel[]> ListChannels(CancellationToken cancellation = default)
         {
             var channels = await _eclairClient.Channels(null, cancellation);
             return channels.Select(response =>
