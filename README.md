@@ -5,7 +5,15 @@
 ## Introduction
 
 This library is meant to facilitate the development of Lightning Network based apps written in C#.
-It is composed of the following packages:
+Its main goal isn't to perfectly implement client API of all lightning node implementation, but to provide a common abstraction that can be used to support many implementations at once.
+
+The most important packages are:
+* `BTCPayServer.Lightning.Common` contains the common abstractions shared between those implementation.
+* `BTCPayServer.Lightning.All` contains `LightningClientFactory` which can convert a connection string to an instance of `ILightningClient`.
+
+If your app depends on `ILightningClient` directly, you will be able to support those different lightning implementations out of the box.
+
+Here is a description of all packages:
 
 * `BTCPayServer.Lightning.All` super package which reference all the others [![NuGet](https://img.shields.io/nuget/v/BTCPayServer.Lightning.All.svg)](https://www.nuget.org/packages/BTCPayServer.Lightning.All)
 * `BTCPayServer.Lightning.Common` exposes common classes and `ILightningClient` [![NuGet](https://img.shields.io/nuget/v/BTCPayServer.Lightning.Common.svg)](https://www.nuget.org/packages/BTCPayServer.Lightning.Common)
@@ -14,7 +22,6 @@ It is composed of the following packages:
 * `BTCPayServer.Lightning.Charge` exposes easy to use Charge clients [![NuGet](https://img.shields.io/nuget/v/BTCPayServer.Lightning.Charge.svg)](https://www.nuget.org/packages/BTCPayServer.Lightning.Charge)
 * `BTCPayServer.Lightning.Eclair` exposes easy to use Eclair clients [![NuGet](https://img.shields.io/nuget/v/BTCPayServer.Lightning.Eclair.svg)](https://www.nuget.org/packages/
 BTCPayServer.Lightning.Eclair)
-* `BTCPayServer.Lightning.LNbank` exposes easy to use LNbank clients [![NuGet](https://img.shields.io/nuget/v/BTCPayServer.Lightning.LNbank.svg)](https://www.nuget.org/packages/BTCPayServer.Lightning.LNbank)
 * `BTCPayServer.Lightning.LNbank` exposes easy to use LNbank clients [![NuGet](https://img.shields.io/nuget/v/BTCPayServer.Lightning.LNbank.svg)](https://www.nuget.org/packages/BTCPayServer.Lightning.LNbank)
 
 If you develop an app, we advise you to reference `BTCPayServer.Lightning.All` [![NuGet](https://img.shields.io/nuget/v/BTCPayServer.Lightning.All.svg)](https://www.nuget.org/packages/BTCPayServer.Lightning.All).
