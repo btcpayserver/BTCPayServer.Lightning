@@ -42,9 +42,9 @@ namespace BTCPayServer.Lightning.LndHub
             return nodeInfo;
         }
 
-        public async Task<BitcoinAddress> GetDepositAddress()
+        public async Task<BitcoinAddress> GetDepositAddress(CancellationToken cancellation = default)
         {
-            return await _client.GetDepositAddress();
+            return await _client.GetDepositAddress(cancellation);
         }
 
         public async Task<LightningInvoice> GetInvoice(string invoiceId, CancellationToken cancellation = default)
@@ -114,12 +114,12 @@ namespace BTCPayServer.Lightning.LndHub
             throw new NotSupportedException();
         }
 
-        public Task<ConnectionResult> ConnectTo(NodeInfo nodeInfo)
+        public Task<ConnectionResult> ConnectTo(NodeInfo nodeInfo, CancellationToken cancellation = default)
         {
             throw new NotSupportedException();
         }
 
-        public Task CancelInvoice(string invoiceId)
+        public Task CancelInvoice(string invoiceId, CancellationToken cancellation = default)
         {
             throw new NotSupportedException();
         }
