@@ -19,7 +19,7 @@ namespace BTCPayServer.Lightning
         }
 
         ArraySegment<byte> _Buffer;
-        protected async Task<string> WaitMessage(CancellationToken cancellation = default(CancellationToken))
+        protected async Task<string> WaitMessage(CancellationToken cancellation = default)
         {
             var buffer = _Buffer;
             var array = _Buffer.Array;

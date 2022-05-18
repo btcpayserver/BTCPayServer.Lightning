@@ -70,14 +70,14 @@ namespace BTCPayServer.Lightning.LNbank
             };
         }
 
-        public async Task<BitcoinAddress> GetDepositAddress()
+        public async Task<BitcoinAddress> GetDepositAddress(CancellationToken cancellation = default)
         {
-            return await _client.GetDepositAddress();
+            return await _client.GetDepositAddress(cancellation);
         }
 
-        public async Task CancelInvoice(string invoiceId)
+        public async Task CancelInvoice(string invoiceId, CancellationToken cancellation = default)
         {
-            await _client.CancelInvoice(invoiceId, CancellationToken.None);
+            await _client.CancelInvoice(invoiceId, cancellation);
         }
 
         public async Task<LightningChannel[]> ListChannels(CancellationToken cancellation = default)
@@ -158,11 +158,11 @@ namespace BTCPayServer.Lightning.LNbank
             return new OpenChannelResponse(result);
         }
 
-        public async Task<ConnectionResult> ConnectTo(NodeInfo nodeInfo)
+        public async Task<ConnectionResult> ConnectTo(NodeInfo nodeInfo, CancellationToken cancellation = default)
         {
             try
             {
-                await _client.ConnectTo(nodeInfo);
+                await _client.ConnectTo(nodeInfo, cancellation);
                 return ConnectionResult.Ok;
             }
             catch (LNbankClient.LNbankApiException ex)

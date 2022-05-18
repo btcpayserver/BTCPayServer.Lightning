@@ -86,7 +86,7 @@ namespace BTCPayServer.Lightning.Charge
             return new HttpClient(handler);
         }
 
-        public async Task<CreateInvoiceResponse> CreateInvoiceAsync(CreateInvoiceRequest request, CancellationToken cancellation = default(CancellationToken))
+        public async Task<CreateInvoiceResponse> CreateInvoiceAsync(CreateInvoiceRequest request, CancellationToken cancellation = default)
         {
             var message = CreateMessage(HttpMethod.Post, "invoice");
             Dictionary<string, string> parameters = new Dictionary<string, string>();
@@ -104,7 +104,7 @@ namespace BTCPayServer.Lightning.Charge
             return JsonConvert.DeserializeObject<CreateInvoiceResponse>(content);
         }
 
-        public async Task<ChargeSession> Listen(CancellationToken cancellation = default(CancellationToken))
+        public async Task<ChargeSession> Listen(CancellationToken cancellation = default)
         {
             return new ChargeSession(
                 await WebsocketHelper.CreateClientWebSocket(Uri.ToString(),
@@ -118,7 +118,7 @@ namespace BTCPayServer.Lightning.Charge
             return GetInfoAsync().GetAwaiter().GetResult();
         }
 
-        public async Task<ChargeInvoice> GetInvoice(string invoiceId, CancellationToken cancellation = default(CancellationToken))
+        public async Task<ChargeInvoice> GetInvoice(string invoiceId, CancellationToken cancellation = default)
         {
             var request = CreateMessage(HttpMethod.Get, $"invoice/{invoiceId}");
             var message = await _Client.SendAsync(request, cancellation);
@@ -129,7 +129,7 @@ namespace BTCPayServer.Lightning.Charge
             return JsonConvert.DeserializeObject<ChargeInvoice>(content);
         }
 
-        public async Task<GetInfoResponse> GetInfoAsync(CancellationToken cancellation = default(CancellationToken))
+        public async Task<GetInfoResponse> GetInfoAsync(CancellationToken cancellation = default)
         {
             var request = CreateMessage(HttpMethod.Get, "info");
             var message = await _Client.SendAsync(request, cancellation);
@@ -216,23 +216,23 @@ namespace BTCPayServer.Lightning.Charge
             throw new NotSupportedException();
         }
 
-        Task<BitcoinAddress> ILightningClient.GetDepositAddress()
+        Task<BitcoinAddress> ILightningClient.GetDepositAddress(CancellationToken cancellation)
         {
             throw new NotSupportedException();
         }
 
-        Task<ConnectionResult> ILightningClient.ConnectTo(NodeInfo nodeInfo)
+        Task<ConnectionResult> ILightningClient.ConnectTo(NodeInfo nodeInfo, CancellationToken cancellation)
         {
             throw new NotSupportedException();
         }
 
-        public async Task CancelInvoice(string invoiceId)
+        public async Task CancelInvoice(string invoiceId, CancellationToken cancellation = default)
         {
             var message = CreateMessage(HttpMethod.Delete, $"invoice/{invoiceId}");
             Dictionary<string, string> parameters = new Dictionary<string, string>();
             parameters.Add("status", "unpaid");
             message.Content = new FormUrlEncodedContent(parameters);
-            var result = await _Client.SendAsync(message);
+            var result = await _Client.SendAsync(message, cancellation);
             result.EnsureSuccessStatusCode();
         }
 

@@ -97,12 +97,12 @@ namespace BTCPayServer.Lightning.CLightning
             Network = network;
         }
 
-        public Task<GetInfoResponse> GetInfoAsync(CancellationToken cancellation = default(CancellationToken))
+        public Task<GetInfoResponse> GetInfoAsync(CancellationToken cancellation = default)
         {
             return SendCommandAsync<GetInfoResponse>("getinfo", cancellation: cancellation);
         }
 
-        public async Task<PeerInfo[]> ListPeersAsync(CancellationToken cancellation = default(CancellationToken))
+        public async Task<PeerInfo[]> ListPeersAsync(CancellationToken cancellation = default)
         {
             var peers = await SendCommandAsync<PeerInfo[]>("listpeers", isArray: true, cancellation: cancellation);
             foreach (var peer in peers)
@@ -123,13 +123,13 @@ namespace BTCPayServer.Lightning.CLightning
             return SendCommandAsync<object>("fundchannel", parameters.ToArray(), true, cancellation: cancellation);
         }
 
-        public Task ConnectAsync(NodeInfo nodeInfo)
+        public Task ConnectAsync(NodeInfo nodeInfo, CancellationToken cancellation = default)
         {
-            return SendCommandAsync<object>("connect", new[] { $"{nodeInfo.NodeId}@{nodeInfo.Host}:{nodeInfo.Port}" }, true);
+            return SendCommandAsync<object>("connect", new[] { $"{nodeInfo.NodeId}@{nodeInfo.Host}:{nodeInfo.Port}" }, true, cancellation: cancellation);
         }
 
         static Encoding UTF8 = new UTF8Encoding(false);
-        internal async Task<T> SendCommandAsync<T>(string command, object[] parameters = null, bool noReturn = false, bool isArray = false, CancellationToken cancellation = default(CancellationToken))
+        internal async Task<T> SendCommandAsync<T>(string command, object[] parameters = null, bool noReturn = false, bool isArray = false, CancellationToken cancellation = default)
         {
             parameters = parameters ?? Array.Empty<string>();
             using (Socket socket = await Connect())
@@ -227,14 +227,14 @@ namespace BTCPayServer.Lightning.CLightning
             return socket;
         }
 
-        public async Task<BitcoinAddress> NewAddressAsync()
+        public async Task<BitcoinAddress> NewAddressAsync(CancellationToken cancellation = default)
         {
-            var obj = await SendCommandAsync<JObject>("newaddr");
+            var obj = await SendCommandAsync<JObject>("newaddr", cancellation: cancellation);
             var addr = obj.ContainsKey("address") ? "address" : "bech32";
             return BitcoinAddress.Create(obj.Property(addr).Value.Value<string>(), Network);
         }
 
-        public async Task<CLightningChannel[]> ListChannelsAsync(ShortChannelId ShortChannelId = null, CancellationToken cancellation = default(CancellationToken))
+        public async Task<CLightningChannel[]> ListChannelsAsync(ShortChannelId ShortChannelId = null, CancellationToken cancellation = default)
         {
             var resp =
                 ShortChannelId == null
@@ -260,7 +260,7 @@ namespace BTCPayServer.Lightning.CLightning
             return ToLightningInvoice(invoices[0]);
         }
 
-        private async Task<PayResponse> PayAsync(string bolt11, PayInvoiceParams payParams, CancellationToken cancellation)
+        private async Task<PayResponse> PayAsync(string bolt11, PayInvoiceParams payParams, CancellationToken cancellation = default)
         {
             try
             {
@@ -338,11 +338,11 @@ namespace BTCPayServer.Lightning.CLightning
             return req.DescriptionHash != null ? CreateInvoice(req.Amount, req.DescriptionHash, req.Expiry, cancellation) : (this as ILightningClient).CreateInvoice(req.Amount, req.Description, req.Expiry, cancellation);
         }
 
-        async Task<ConnectionResult> ILightningClient.ConnectTo(NodeInfo nodeInfo)
+        async Task<ConnectionResult> ILightningClient.ConnectTo(NodeInfo nodeInfo, CancellationToken cancellation)
         {
             try
             {
-                await ConnectAsync(nodeInfo);
+                await ConnectAsync(nodeInfo, cancellation);
             }
             catch (LightningRPCException ex) when (ex.Code == CLightningErrorCode.CONNECT_ALL_ADDRESSES_FAILED || ex.Code == CLightningErrorCode.CONNECT_NO_KNOWN_ADDRESS)
             {
@@ -351,9 +351,9 @@ namespace BTCPayServer.Lightning.CLightning
             return ConnectionResult.Ok;
         }
 
-        public async Task CancelInvoice(string invoiceId)
+        public async Task CancelInvoice(string invoiceId, CancellationToken cancellation = default)
         {
-            await SendCommandAsync<CLightningInvoice>("delinvoice", new object[] { invoiceId, "unpaid" }, cancellation: CancellationToken.None);
+            await SendCommandAsync<CLightningInvoice>("delinvoice", new object[] { invoiceId, "unpaid" }, cancellation: cancellation);
         }
 
         async Task<LightningChannel[]> ILightningClient.ListChannels(CancellationToken cancellation)
@@ -487,9 +487,9 @@ retry:
             return new OpenChannelResponse(OpenChannelResult.Ok);
         }
 
-        async Task<BitcoinAddress> ILightningClient.GetDepositAddress()
+        async Task<BitcoinAddress> ILightningClient.GetDepositAddress(CancellationToken cancellation)
         {
-            return await this.NewAddressAsync();
+            return await NewAddressAsync();
         }
 
         public static LightningNodeInformation ToLightningNodeInformation(GetInfoResponse info)
