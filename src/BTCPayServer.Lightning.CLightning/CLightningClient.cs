@@ -401,7 +401,7 @@ namespace BTCPayServer.Lightning.CLightning
                 Status = ToPaymentStatus(payment.Status),
                 CreatedAt = payment.CreatedAt,
                 PaymentHash = payment.PaymentHash.ToString(),
-                Preimage = payment.Preimage.ToString()
+                Preimage = payment.Preimage?.ToString()
             };
 
         public static LightningInvoiceStatus ToInvoiceStatus(string status)
