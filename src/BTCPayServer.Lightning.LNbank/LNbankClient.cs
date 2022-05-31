@@ -1,4 +1,5 @@
 using System;
+using System.Linq;
 using System.Net.Http;
 using System.Net.Http.Headers;
 using System.Text;
@@ -78,11 +79,6 @@ namespace BTCPayServer.Lightning.LNbank
             return await Post<CreateInvoiceRequest, InvoiceData>("invoice", payload, cancellation);
         }
 
-        public async Task<PayResponse> Pay(string bolt11, CancellationToken cancellation)
-        {
-            return await Pay(bolt11, null, cancellation);
-        }
-
         public async Task<PayResponse> Pay(string bolt11, PayInvoiceParams payParams, CancellationToken cancellation)
         {
 
@@ -150,7 +146,16 @@ namespace BTCPayServer.Lightning.LNbank
 
             if (!res.IsSuccessStatusCode)
             {
-                throw new LNbankApiException(str);
+                if (res.StatusCode.Equals(422))
+                {
+                    var validationErrors = JsonConvert.DeserializeObject<GreenfieldValidationErrorData[]>(str);
+                    var message = string.Join(", ", validationErrors.Select(ve => $"{ve.Path}: {ve.Message}"));
+                    var err = new GreenfieldApiErrorData("validation-failed", message);
+                    throw new LNbankApiException(err);
+                } else {
+                    var err = JsonConvert.DeserializeObject<GreenfieldApiErrorData>(str);
+                    throw new LNbankApiException(err);
+                }
             }
 
             if (typeof(TResponse) == typeof(EmptyRequestModel))
@@ -162,19 +167,20 @@ namespace BTCPayServer.Lightning.LNbank
             return data;
         }
 
-        internal class EmptyRequestModel
+        private class EmptyRequestModel
         {
         }
-
+        
         internal class LNbankApiException : Exception
         {
-            private ErrorData Error { get; set; }
+            private readonly GreenfieldApiErrorData _error;
 
-            public override string Message => Error?.Detail;
-            public string ErrorCode => Error?.Code;
-            public LNbankApiException(string json)
+            public override string Message => _error?.Message;
+            public string ErrorCode => _error?.Code;
+            
+            public LNbankApiException(GreenfieldApiErrorData error)
             {
-                Error = JsonConvert.DeserializeObject<ErrorData>(json);
+                _error = error;
             }
         }
     }

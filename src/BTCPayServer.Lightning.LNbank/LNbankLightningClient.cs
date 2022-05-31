@@ -44,35 +44,47 @@ namespace BTCPayServer.Lightning.LNbank
 
         public async Task<LightningInvoice> GetInvoice(string invoiceId, CancellationToken cancellation = default)
         {
-            var invoice = await _client.GetInvoice(invoiceId, cancellation);
-
-            return new LightningInvoice
+            try
             {
-                Id = invoice.Id,
-                Amount = invoice.Amount,
-                PaidAt = invoice.PaidAt,
-                ExpiresAt = invoice.ExpiresAt,
-                BOLT11 = invoice.BOLT11,
-                Status = invoice.Status,
-                AmountReceived = invoice.AmountReceived
-            };
+                var invoice = await _client.GetInvoice(invoiceId, cancellation);
+                return new LightningInvoice
+                {
+                    Id = invoice.Id,
+                    Amount = invoice.Amount,
+                    PaidAt = invoice.PaidAt,
+                    ExpiresAt = invoice.ExpiresAt,
+                    BOLT11 = invoice.BOLT11,
+                    Status = invoice.Status,
+                    AmountReceived = invoice.AmountReceived
+                };
+            }
+            catch (LNbankClient.LNbankApiException)
+            {
+                return null;
+            }
         }
 
         public async Task<LightningPayment> GetPayment(string paymentHash, CancellationToken cancellation = default)
         {
-            var payment = await _client.GetPayment(paymentHash, cancellation);
-
-            return new LightningPayment
+            try
             {
-                Id = payment.Id,
-                Amount = payment.TotalAmount != null && payment.FeeAmount != null ? payment.TotalAmount - payment.FeeAmount : null,
-                AmountSent = payment.TotalAmount,
-                CreatedAt = payment.CreatedAt,
-                BOLT11 = payment.BOLT11,
-                Preimage = payment.Preimage,
-                PaymentHash = payment.PaymentHash,
-                Status = payment.Status
-            };
+                var payment = await _client.GetPayment(paymentHash, cancellation);
+                return new LightningPayment
+                {
+                    Id = payment.Id,
+                    Amount = payment.TotalAmount != null && payment.FeeAmount != null ? payment.TotalAmount - payment.FeeAmount : null,
+                    AmountSent = payment.TotalAmount,
+                    CreatedAt = payment.CreatedAt,
+                    BOLT11 = payment.BOLT11,
+                    Preimage = payment.Preimage,
+                    PaymentHash = payment.PaymentHash,
+                    Status = payment.Status
+                };
+            }
+            catch (LNbankClient.LNbankApiException)
+            {
+                return null;
+            }
         }
 
         public async Task<BitcoinAddress> GetDepositAddress(CancellationToken cancellation = default)
@@ -108,7 +120,6 @@ namespace BTCPayServer.Lightning.LNbank
         public async Task<LightningInvoice> CreateInvoice(CreateInvoiceParams req, CancellationToken cancellation = default)
         {
             var invoice = await _client.CreateInvoice(req, cancellation);
-
             return new LightningInvoice
             {
                 Id = invoice.Id,
@@ -123,12 +134,25 @@ namespace BTCPayServer.Lightning.LNbank
 
         public async Task<PayResponse> Pay(string bolt11, CancellationToken cancellation = default)
         {
-            return await _client.Pay(bolt11, cancellation);
+            return await Pay(bolt11, null, cancellation);
         }
 
         public async Task<PayResponse> Pay(string bolt11, PayInvoiceParams payParams, CancellationToken cancellation = default)
         {
-            return await _client.Pay(bolt11, payParams, cancellation);
+            try
+            {
+                return await _client.Pay(bolt11, payParams, cancellation);
+            }
+            catch (LNbankClient.LNbankApiException exception)
+            {
+                switch (exception.ErrorCode)
+                {
+                    case "could-not-find-route":
+                        return new PayResponse(PayResult.CouldNotFindRoute, exception.Message);
+                    default:                        
+                        return new PayResponse(PayResult.Error, exception.Message);
+                }
+            }
         }
 
         public async Task<OpenChannelResponse> OpenChannel(OpenChannelRequest req, CancellationToken cancellation = default)
