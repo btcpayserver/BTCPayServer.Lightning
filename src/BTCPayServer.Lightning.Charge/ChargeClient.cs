@@ -198,7 +198,12 @@ namespace BTCPayServer.Lightning.Charge
         async Task<LightningNodeInformation> ILightningClient.GetInfo(CancellationToken cancellation)
         {
             var info = await GetInfoAsync(cancellation);
-            return CLightning.CLightningClient.ToLightningNodeInformation(info);
+            return CLightningClient.ToLightningNodeInformation(info);
+        }
+
+        Task<LightningNodeBalance> ILightningClient.GetBalance(CancellationToken cancellation)
+        {
+            throw new NotSupportedException();
         }
 
         Task<PayResponse> ILightningClient.Pay(string bolt11, CancellationToken cancellation)

@@ -1,8 +1,3 @@
-using System;
-using System.Collections.Generic;
-using System.Linq;
-using System.Threading.Tasks;
-
 namespace BTCPayServer.Lightning.CLightning
 {
     //[{"type":"ipv4","address":"52.166.90.122","port":9735}]

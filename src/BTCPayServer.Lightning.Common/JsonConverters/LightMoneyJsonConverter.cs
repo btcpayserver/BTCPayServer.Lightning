@@ -1,11 +1,9 @@
 using System;
-using System.Collections.Generic;
 using System.Globalization;
-using System.Linq;
 using System.Reflection;
-using System.Threading.Tasks;
 using NBitcoin.JsonConverters;
 using Newtonsoft.Json;
+using Newtonsoft.Json.Linq;
 
 namespace BTCPayServer.Lightning.JsonConverters
 {
@@ -30,6 +28,10 @@ namespace BTCPayServer.Lightning.JsonConverters
                     JsonToken.String =>
                         // some of the c-lightning values have a trailing "msat" that we need to remove before parsing
                         new LightMoney(long.Parse(((string)reader.Value).Replace("msat", ""), CultureInfo.InvariantCulture)),
+                    // Fix for Eclair having empty objects for zero amount cases, see https://acinq.github.io/eclair/#globalbalance
+                    JsonToken.StartObject => JObject.Load(reader) != null ? LightMoney.Zero : null,
+                    // Eclair denominates global balance amounts in BTC, see https://acinq.github.io/eclair/#globalbalance
+                    JsonToken.Float => new LightMoney(Convert.ToDecimal(reader.Value), LightMoneyUnit.BTC),
                     _ => null
                 };
             }

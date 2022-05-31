@@ -180,6 +180,46 @@ namespace BTCPayServer.Lightning.Tests
         }
 
         [Fact(Timeout = Timeout)]
+        public async Task CanGetBalance()
+        {
+            // for channel values to be in reasonable bounds
+            var lowerBound = LightMoney.Zero;
+            var upperBound = LightMoney.Satoshis(16777215);
+            
+            await WaitServersAreUp();
+            foreach (var test in Tester.GetTestedPairs())
+            {
+                await EnsureConnectedToDestinations(test);
+                var client = test.Customer;
+                Logs.Tester.LogInformation($"{test.Name}: {nameof(CanGetBalance)}");
+                switch (client)
+                {
+                    case LndClient _:
+                    case CLightningClient _:
+                    case EclairLightningClient _:
+                        var balance = await client.GetBalance();
+                        Assert.NotNull(balance.OnchainBalance);
+                        Assert.True(balance.OnchainBalance.Confirmed > upperBound);
+                        Assert.Equal(LightMoney.Zero,balance.OnchainBalance.Unconfirmed);
+                        Assert.Equal(LightMoney.Zero,balance.OnchainBalance.Reserved);
+                        Assert.NotNull(balance.OffchainBalance);
+                        Assert.Equal(LightMoney.Zero, balance.OffchainBalance.Opening);
+                        Assert.InRange(balance.OffchainBalance.Local, lowerBound, upperBound);
+                        Assert.InRange(balance.OffchainBalance.Remote, lowerBound, upperBound);
+                        Assert.Equal(LightMoney.Zero, balance.OffchainBalance.Closing);
+                        break;
+
+                    default:
+                        await Assert.ThrowsAsync<NotSupportedException>(async () =>
+                        {
+                            await client.GetBalance();
+                        });
+                        break;
+                }
+            }
+        }
+
+        [Fact(Timeout = Timeout)]
         public async Task CanHandleSelfPayment()
         {
             await WaitServersAreUp();

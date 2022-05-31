@@ -3,7 +3,9 @@ using System.Collections.Generic;
 using System.IO;
 using System.Linq;
 using System.Net;
+using System.Net.Security;
 using System.Net.Sockets;
+using System.Runtime.InteropServices;
 using System.Text;
 using System.Threading;
 using System.Threading.Tasks;
@@ -100,6 +102,11 @@ namespace BTCPayServer.Lightning.CLightning
         public Task<GetInfoResponse> GetInfoAsync(CancellationToken cancellation = default)
         {
             return SendCommandAsync<GetInfoResponse>("getinfo", cancellation: cancellation);
+        }
+
+        public Task<ListFundsResponse> ListFundsAsync(CancellationToken cancellation = default)
+        {
+            return SendCommandAsync<ListFundsResponse>("listfunds", cancellation: cancellation);
         }
 
         public async Task<PeerInfo[]> ListPeersAsync(CancellationToken cancellation = default)
@@ -444,6 +451,12 @@ namespace BTCPayServer.Lightning.CLightning
             var info = await GetInfoAsync(cancellation);
             return ToLightningNodeInformation(info);
         }
+        
+        async Task<LightningNodeBalance> ILightningClient.GetBalance(CancellationToken cancellation)
+        {
+            var response = await ListFundsAsync(cancellation);
+            return ToLightningNodeBalance(response);
+        }
 
         async Task<OpenChannelResponse> ILightningClient.OpenChannel(OpenChannelRequest openChannelRequest, CancellationToken cancellation)
         {
@@ -504,6 +517,64 @@ retry:
                 nodeInfo.NodeInfoList.AddRange(info.Address.Select(addr => new NodeInfo(pubkey, addr.Address, addr.Port == 0 ? 9735 : addr.Port)));
             }
             return nodeInfo;
+        }
+
+        private LightningNodeBalance ToLightningNodeBalance(ListFundsResponse response)
+        {
+            var confirmed = new LightMoney(0);
+            var reserved = new LightMoney(0);
+            var unconfirmed = new LightMoney(0);
+            var opening = new LightMoney(0);
+            var local = new LightMoney(0);
+            var remote = new LightMoney(0);
+            var closing = new LightMoney(0);
+
+            foreach (var output in response.Outputs)
+            {
+                if (output.Reserved)
+                {
+                    reserved += output.Amount;
+                }
+                else switch (output.Status)
+                {
+                    case "confirmed":
+                        confirmed += output.Amount;
+                        break;
+                    case "unconfirmed":
+                        unconfirmed += output.Amount;
+                        break;
+                }
+            }
+            
+            foreach (var channel in response.Channels)
+            {
+                switch (channel.State)
+                {
+                    case "OPENINGD":
+                    case "CHANNELD_AWAITING_LOCKIN":
+                    case "DUALOPEND_OPEN_INIT":
+                    case "DUALOPEND_AWAITING_LOCKIN":
+                        opening += channel.LocalAmount;
+                        break;
+                    case "CHANNELD_SHUTTING_DOWN":
+                    case "CLOSINGD_SIGEXCHANGE":
+                    case "CLOSINGD_COMPLETE":
+                    case "AWAITING_UNILATERAL":
+                    case "FUNDING_SPEND_SEEN":
+                    case "ONCHAIN":
+                        closing += channel.LocalAmount;
+                        break;
+                    case "CHANNELD_NORMAL":
+                        local += channel.LocalAmount;
+                        remote += channel.TotalAmount - channel.LocalAmount;
+                        break;
+                }
+            }
+
+            var onchain = new OnchainBalance { Confirmed = confirmed, Reserved = reserved, Unconfirmed = unconfirmed };
+            var offchain = new OffchainBalance { Opening = opening, Local = local, Remote = remote, Closing = closing };
+
+            return new LightningNodeBalance(onchain, offchain);
         }
     }
 
