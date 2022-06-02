@@ -37,6 +37,11 @@ namespace BTCPayServer.Lightning.LNbank
             return nodeInfo;
         }
 
+        public Task<LightningNodeBalance> GetBalance(CancellationToken cancellation = default)
+        {
+            throw new NotSupportedException();
+        }
+
         public async Task<LightningInvoice> GetInvoice(string invoiceId, CancellationToken cancellation = default)
         {
             var invoice = await _client.GetInvoice(invoiceId, cancellation);

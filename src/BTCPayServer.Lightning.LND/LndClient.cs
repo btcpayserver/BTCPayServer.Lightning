@@ -399,6 +399,39 @@ namespace BTCPayServer.Lightning.LND
             }
         }
 
+        async Task<LightningNodeBalance> ILightningClient.GetBalance(CancellationToken cancellation)
+        {
+            var walletBalance = SwaggerClient.WalletBalanceAsync(cancellation);
+            var channelBalance = SwaggerClient.ChannelBalanceAsync(cancellation);
+            var pendingChannels = SwaggerClient.PendingChannelsAsync(cancellation);
+            await Task.WhenAll(walletBalance, channelBalance, pendingChannels);
+
+            var onchainResponse = walletBalance.Result;
+            var offchainResponse = channelBalance.Result;
+            var pendingResponse = pendingChannels.Result;
+            
+            var closing = new LightMoney(0);
+            closing += pendingResponse.Pending_closing_channels.Sum(c => c.Channel.Local_balance);
+            closing += pendingResponse.Pending_force_closing_channels.Sum(c => c.Channel.Local_balance);
+            closing += pendingResponse.Waiting_close_channels.Sum(c => c.Channel.Local_balance);
+
+            var onchain = new OnchainBalance
+            { 
+                Confirmed = onchainResponse.Confirmed_balance,
+                Unconfirmed = onchainResponse.Unconfirmed_balance,
+                Reserved = onchainResponse.Locked_balance ?? LightMoney.Zero
+            };
+            var offchain = new OffchainBalance
+            {
+                Opening = new LightMoney(offchainResponse.Pending_open_local_balance.Msat),
+                Local = new LightMoney(offchainResponse.Local_balance.Msat),
+                Remote = new LightMoney(offchainResponse.Remote_balance.Msat),
+                Closing = closing
+            };
+            
+            return new LightningNodeBalance(onchain, offchain);
+        }
+
         async Task<LightningInvoice> ILightningClient.GetInvoice(string invoiceId, CancellationToken cancellation)
         {
             try

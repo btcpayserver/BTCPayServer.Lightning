@@ -151,7 +151,7 @@ namespace BTCPayServer.Lightning.Eclair
         public async Task<LightningNodeInformation> GetInfo(CancellationToken cancellation = default)
         {
             var info = await _eclairClient.GetInfo(cancellation);
-            var nodeInfo = new LightningNodeInformation()
+            var nodeInfo = new LightningNodeInformation
             {
                 BlockHeight = info.BlockHeight
             };
@@ -164,6 +164,39 @@ namespace BTCPayServer.Lightning.Eclair
                 }));
             }
             return nodeInfo;
+        }
+
+        public async Task<LightningNodeBalance> GetBalance(CancellationToken cancellation = default)
+        {
+            var globalBalance = _eclairClient.GlobalBalance(cancellation);
+            var usableBalances = _eclairClient.UsableBalances(cancellation);
+            await Task.WhenAll(globalBalance, usableBalances);
+
+            var global = globalBalance.Result;
+            var usable = usableBalances.Result;
+            
+            var onchain = new OnchainBalance
+            { 
+                Confirmed = global.Onchain.Confirmed,
+                Unconfirmed = global.Onchain.Unconfirmed,
+                Reserved = LightMoney.Zero // Not supported by Eclair
+            };
+            var offchain = new OffchainBalance
+            {
+                Opening = 
+                    global.Offchain.WaitForFundingConfirmed + 
+                    global.Offchain.WaitForFundingLocked + 
+                    global.Offchain.WaitForPublishFutureCommitment,
+                Local = global.Offchain.Normal.ToLocal,
+                Remote = usable.Sum(channel => channel.CanReceive),
+                Closing = 
+                    global.Offchain.Closing.LocalCloseBalance.ToLocal +
+                    global.Offchain.Closing.RemoteCloseBalance.ToLocal +
+                    global.Offchain.Closing.MutualCloseBalance.ToLocal + 
+                    global.Offchain.Closing.UnknownCloseBalance.ToLocal
+            };
+            
+            return new LightningNodeBalance(onchain, offchain);
         }
 
         public async Task<PayResponse> Pay(string bolt11, PayInvoiceParams payParams, CancellationToken cancellation = default)

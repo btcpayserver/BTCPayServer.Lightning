@@ -40,6 +40,16 @@ namespace BTCPayServer.Lightning.Eclair
             return await SendCommandAsync<NoRequestModel, GetInfoResponse>("getinfo", NoRequestModel.Instance, cts);
         }
 
+        public async Task<GlobalBalanceResponse> GlobalBalance(CancellationToken cts = default)
+        {
+            return await SendCommandAsync<NoRequestModel, GlobalBalanceResponse>("globalbalance", NoRequestModel.Instance, cts);
+        }
+
+        public async Task<UsableBalance[]> UsableBalances(CancellationToken cts = default)
+        {
+            return await SendCommandAsync<NoRequestModel, UsableBalance[]>("usablebalances", NoRequestModel.Instance, cts);
+        }
+
         public async Task<string> Connect(string uri, CancellationToken cts = default)
         {
             return await SendCommandAsync<ConnectUriRequest, string>("connect", new ConnectUriRequest()
@@ -358,7 +368,7 @@ namespace BTCPayServer.Lightning.Eclair
             var rawJson = await rawResult.Content.ReadAsStringAsync();
             if (!rawResult.IsSuccessStatusCode)
             {
-                throw new EclairApiException()
+                throw new EclairApiException
                 {
                     Error = JsonConvert.DeserializeObject<EclairApiError>(rawJson, SerializerSettings)
                 };
@@ -383,7 +393,5 @@ namespace BTCPayServer.Lightning.Eclair
         {
             public string Error { get; set; }
         }
-
-
     }
 }

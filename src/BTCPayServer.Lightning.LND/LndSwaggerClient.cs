@@ -2954,9 +2954,9 @@ namespace BTCPayServer.Lightning.LND
     {
         private string _remote_node_pub;
         private string _channel_point;
-        private string _capacity;
-        private string _local_balance;
-        private string _remote_balance;
+        private long _capacity;
+        private long _local_balance;
+        private long _remote_balance;
 
         [Newtonsoft.Json.JsonProperty("remote_node_pub", Required = Newtonsoft.Json.Required.Default, NullValueHandling = Newtonsoft.Json.NullValueHandling.Ignore)]
         public string Remote_node_pub
@@ -2987,7 +2987,7 @@ namespace BTCPayServer.Lightning.LND
         }
 
         [Newtonsoft.Json.JsonProperty("capacity", Required = Newtonsoft.Json.Required.Default, NullValueHandling = Newtonsoft.Json.NullValueHandling.Ignore)]
-        public string Capacity
+        public long Capacity
         {
             get { return _capacity; }
             set
@@ -3001,7 +3001,7 @@ namespace BTCPayServer.Lightning.LND
         }
 
         [Newtonsoft.Json.JsonProperty("local_balance", Required = Newtonsoft.Json.Required.Default, NullValueHandling = Newtonsoft.Json.NullValueHandling.Ignore)]
-        public string Local_balance
+        public long Local_balance
         {
             get { return _local_balance; }
             set
@@ -3015,7 +3015,7 @@ namespace BTCPayServer.Lightning.LND
         }
 
         [Newtonsoft.Json.JsonProperty("remote_balance", Required = Newtonsoft.Json.Required.Default, NullValueHandling = Newtonsoft.Json.NullValueHandling.Ignore)]
-        public string Remote_balance
+        public long Remote_balance
         {
             get { return _remote_balance; }
             set
@@ -3580,8 +3580,16 @@ namespace BTCPayServer.Lightning.LND
     [System.CodeDom.Compiler.GeneratedCode("NJsonSchema", "9.9.11.0 (Newtonsoft.Json v9.0.0.0)")]
     public partial class LnrpcChannelBalanceResponse : System.ComponentModel.INotifyPropertyChanged
     {
+        // deprecated
         private string _balance;
         private string _pending_open_balance;
+        
+        private LnrpcAmount _local_balance;
+        private LnrpcAmount _remote_balance;
+        private LnrpcAmount _unsettled_local_balance;
+        private LnrpcAmount _unsettled_remote_balance;
+        private LnrpcAmount _pending_open_local_balance;
+        private LnrpcAmount _pending_open_remote_balance;
 
         [Newtonsoft.Json.JsonProperty("balance", Required = Newtonsoft.Json.Required.Default, NullValueHandling = Newtonsoft.Json.NullValueHandling.Ignore)]
         public string Balance
@@ -3606,6 +3614,90 @@ namespace BTCPayServer.Lightning.LND
                 if (_pending_open_balance != value)
                 {
                     _pending_open_balance = value;
+                    RaisePropertyChanged();
+                }
+            }
+        }
+
+        [Newtonsoft.Json.JsonProperty("local_balance", Required = Newtonsoft.Json.Required.Default, NullValueHandling = Newtonsoft.Json.NullValueHandling.Ignore)]
+        public LnrpcAmount Local_balance
+        {
+            get { return _local_balance; }
+            set
+            {
+                if (_local_balance != value)
+                {
+                    _local_balance = value;
+                    RaisePropertyChanged();
+                }
+            }
+        }
+
+        [Newtonsoft.Json.JsonProperty("remote_balance", Required = Newtonsoft.Json.Required.Default, NullValueHandling = Newtonsoft.Json.NullValueHandling.Ignore)]
+        public LnrpcAmount Remote_balance
+        {
+            get { return _remote_balance; }
+            set
+            {
+                if (_remote_balance != value)
+                {
+                    _remote_balance = value;
+                    RaisePropertyChanged();
+                }
+            }
+        }
+
+        [Newtonsoft.Json.JsonProperty("unsettled_local_balance", Required = Newtonsoft.Json.Required.Default, NullValueHandling = Newtonsoft.Json.NullValueHandling.Ignore)]
+        public LnrpcAmount Unsettled_local_balance
+        {
+            get { return _unsettled_local_balance; }
+            set
+            {
+                if (_unsettled_local_balance != value)
+                {
+                    _unsettled_local_balance = value;
+                    RaisePropertyChanged();
+                }
+            }
+        }
+
+        [Newtonsoft.Json.JsonProperty("unsettled_remote_balance", Required = Newtonsoft.Json.Required.Default, NullValueHandling = Newtonsoft.Json.NullValueHandling.Ignore)]
+        public LnrpcAmount Unsettled_remote_balance
+        {
+            get { return _unsettled_remote_balance; }
+            set
+            {
+                if (_unsettled_remote_balance != value)
+                {
+                    _unsettled_remote_balance = value;
+                    RaisePropertyChanged();
+                }
+            }
+        }
+
+        [Newtonsoft.Json.JsonProperty("pending_open_local_balance", Required = Newtonsoft.Json.Required.Default, NullValueHandling = Newtonsoft.Json.NullValueHandling.Ignore)]
+        public LnrpcAmount Pending_open_local_balance
+        {
+            get { return _pending_open_local_balance; }
+            set
+            {
+                if (_pending_open_local_balance != value)
+                {
+                    _pending_open_local_balance = value;
+                    RaisePropertyChanged();
+                }
+            }
+        }
+
+        [Newtonsoft.Json.JsonProperty("pending_open_remote_balance", Required = Newtonsoft.Json.Required.Default, NullValueHandling = Newtonsoft.Json.NullValueHandling.Ignore)]
+        public LnrpcAmount Pending_open_remote_balance
+        {
+            get { return _pending_open_remote_balance; }
+            set
+            {
+                if (_pending_open_remote_balance != value)
+                {
+                    _pending_open_remote_balance = value;
                     RaisePropertyChanged();
                 }
             }
@@ -8937,6 +9029,7 @@ namespace BTCPayServer.Lightning.LND
         private string _total_balance;
         private string _confirmed_balance;
         private string _unconfirmed_balance;
+        private string? _locked_balance;
 
         [Newtonsoft.Json.JsonProperty("total_balance", Required = Newtonsoft.Json.Required.Default, NullValueHandling = Newtonsoft.Json.NullValueHandling.Ignore)]
         public string Total_balance
@@ -8980,6 +9073,20 @@ namespace BTCPayServer.Lightning.LND
             }
         }
 
+        [Newtonsoft.Json.JsonProperty("locked_balance", Required = Newtonsoft.Json.Required.Default, NullValueHandling = Newtonsoft.Json.NullValueHandling.Ignore)]
+        public string Locked_balance
+        {
+            get { return _locked_balance; }
+            set
+            {
+                if (_locked_balance != value)
+                {
+                    _locked_balance = value;
+                    RaisePropertyChanged();
+                }
+            }
+        }
+
         public event System.ComponentModel.PropertyChangedEventHandler PropertyChanged;
 
         public string ToJson()
@@ -8990,6 +9097,60 @@ namespace BTCPayServer.Lightning.LND
         public static LnrpcWalletBalanceResponse FromJson(string data)
         {
             return Newtonsoft.Json.JsonConvert.DeserializeObject<LnrpcWalletBalanceResponse>(data);
+        }
+
+        protected virtual void RaisePropertyChanged([System.Runtime.CompilerServices.CallerMemberName] string propertyName = null)
+        {
+            var handler = PropertyChanged;
+            if (handler != null)
+                handler(this, new System.ComponentModel.PropertyChangedEventArgs(propertyName));
+        }
+    }
+
+    [System.CodeDom.Compiler.GeneratedCode("NJsonSchema", "9.9.11.0 (Newtonsoft.Json v9.0.0.0)")]
+    public partial class LnrpcAmount : System.ComponentModel.INotifyPropertyChanged
+    {
+        private long _sat;
+        private long _msat;
+
+        [Newtonsoft.Json.JsonProperty("sat", Required = Newtonsoft.Json.Required.Default, NullValueHandling = Newtonsoft.Json.NullValueHandling.Ignore)]
+        public long Sat
+        {
+            get { return _sat; }
+            set
+            {
+                if (_sat != value)
+                {
+                    _sat = value;
+                    RaisePropertyChanged();
+                }
+            }
+        }
+
+        [Newtonsoft.Json.JsonProperty("msat", Required = Newtonsoft.Json.Required.Default, NullValueHandling = Newtonsoft.Json.NullValueHandling.Ignore)]
+        public long Msat
+        {
+            get { return _msat; }
+            set
+            {
+                if (_msat != value)
+                {
+                    _msat = value;
+                    RaisePropertyChanged();
+                }
+            }
+        }
+
+        public event System.ComponentModel.PropertyChangedEventHandler PropertyChanged;
+
+        public string ToJson()
+        {
+            return Newtonsoft.Json.JsonConvert.SerializeObject(this);
+        }
+
+        public static LnrpcHop FromJson(string data)
+        {
+            return Newtonsoft.Json.JsonConvert.DeserializeObject<LnrpcHop>(data);
         }
 
         protected virtual void RaisePropertyChanged([System.Runtime.CompilerServices.CallerMemberName] string propertyName = null)
