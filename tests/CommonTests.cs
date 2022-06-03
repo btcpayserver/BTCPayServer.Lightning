@@ -892,6 +892,11 @@ retry:
             Assert.True(LightningConnectionString.TryParse("type=lndhub;server=https://mylndhub:password@lndhub.io/", false, out conn));
             Assert.Equal("mylndhub", conn.Username);
             Assert.Equal("password", conn.Password);
+            
+            // Allow insecure checks
+            Assert.False(LightningConnectionString.TryParse("type=lndhub;server=http://mylndhub:password@lndhub.io/", false, out conn));
+            Assert.True(LightningConnectionString.TryParse("type=lndhub;server=http://mylndhub:password@lndhub.io/;allowinsecure=true", false, out conn));
+            Assert.True(LightningConnectionString.TryParse("type=lndhub;server=http://mylndhub:password@lndhubviator.onion/", false, out conn));
         }
 
         private static async Task<RPCClient> GetRPCClient()

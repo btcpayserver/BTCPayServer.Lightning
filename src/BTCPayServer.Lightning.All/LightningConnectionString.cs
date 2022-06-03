@@ -432,7 +432,7 @@ namespace BTCPayServer.Lightning
                             result.AllowInsecure = allowinsecureStr.Equals("true", StringComparison.OrdinalIgnoreCase);
                         }
 
-                        if (!result.AllowInsecure && uri.Scheme == "http")
+                        if (!result.AllowInsecure && uri.Scheme == "http" && !uri.Host.EndsWith(".onion"))
                         {
                             error = "The key 'allowinsecure' is false, but server's Uri is not using https";
                             return false;
