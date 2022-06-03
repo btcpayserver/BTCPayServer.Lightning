@@ -81,7 +81,6 @@ namespace BTCPayServer.Lightning.LNbank
 
         public async Task<PayResponse> Pay(string bolt11, PayInvoiceParams payParams, CancellationToken cancellation)
         {
-
             var payload = new PayInvoiceRequest
             {
                 PaymentRequest = bolt11,

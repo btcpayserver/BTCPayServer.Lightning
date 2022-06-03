@@ -11,7 +11,9 @@ namespace BTCPayServer.Lightning
 
     public class PayResponse
     {
-        [JsonConstructor]
+        // parameterless constructor for JSON serialization
+        public PayResponse() {}
+
         public PayResponse(PayResult result)
         {
             Result = result;
