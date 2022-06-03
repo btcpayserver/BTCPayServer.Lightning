@@ -166,10 +166,10 @@ namespace BTCPayServer.Lightning.Tests
             
             // LNDhub needs an account first
             var lndhubServer = Docker ? "http://lndhub:3000" : "http://127.0.0.1:42923";
-            var lndhubClient = new LndHubLightningClient(new Uri(lndhubServer), "_:_", network);
+            var lndhubClient = new LndHubLightningClient(new Uri(lndhubServer), "login", "password", network);
             var data = await lndhubClient.CreateAccount();
-            var lndhubToken = $"{data.Login}:{data.Password}";
-            connectionStrings.Add($"type=lndhub;server={lndhubServer};api-token={lndhubToken};allowinsecure=true");
+            lndhubServer = lndhubServer.Replace("://", $"://{data.Login}:{data.Password}@");
+            connectionStrings.Add($"type=lndhub;server={lndhubServer};allowinsecure=true");
 
             var clientTypes = Tester.GetLightningClients().Select(l => l.Client.GetType()).ToArray();
             foreach (var connectionString in connectionStrings)
@@ -888,7 +888,10 @@ retry:
             Assert.True(LightningConnectionString.TryParse("type=charge;server=http://api-token:foiewnccewuify@127.0.0.1:54938/;allowinsecure=true", out conn));
             Assert.Equal("type=charge;server=http://127.0.0.1:54938/;api-token=foiewnccewuify;allowinsecure=true", conn.ToString());
             Assert.True(LightningConnectionString.TryParse("type=lnbank;server=https://mybtcpay.com/;api-token=myapitoken", false, out conn));
-            Assert.True(LightningConnectionString.TryParse("type=lndhub;server=https://lndhub.io/;api-token=mylndhub:apitoken", false, out conn));
+            
+            Assert.True(LightningConnectionString.TryParse("type=lndhub;server=https://mylndhub:password@lndhub.io/", false, out conn));
+            Assert.Equal("mylndhub", conn.Username);
+            Assert.Equal("password", conn.Password);
         }
 
         private static async Task<RPCClient> GetRPCClient()

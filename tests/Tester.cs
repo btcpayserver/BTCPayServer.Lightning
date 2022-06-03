@@ -67,17 +67,17 @@ namespace BTCPayServer.Lightning.Tests
         private static async Task<LndHubLightningClient> CreateLndHubClient()
         {
             var uri = new Uri(CommonTests.Docker ? "http://lndhub:3000" : "http://127.0.0.1:42923");
-            var client = new LndHubLightningClient(uri, "_:_", Network.RegTest);
+            var client = new LndHubLightningClient(uri, "login", "password", Network.RegTest);
             var data = await client.CreateAccount();
-            return new LndHubLightningClient(uri, $"{data.Login}:{data.Password}", Network.RegTest);
+            return new LndHubLightningClient(uri, data.Login, data.Password, Network.RegTest);
         }
 
         private static async Task<LndHubLightningClient> CreateLndHubClientDest()
         {
             var uri = new Uri(CommonTests.Docker ? "http://lndhub_dest:3000" : "http://127.0.0.1:42924");
-            var client = new LndHubLightningClient(uri, "_:_", Network.RegTest);
+            var client = new LndHubLightningClient(uri, "login", "password", Network.RegTest);
             var data = await client.CreateAccount();
-            return new LndHubLightningClient(uri, $"{data.Login}:{data.Password}", Network.RegTest);
+            return new LndHubLightningClient(uri, data.Login, data.Password, Network.RegTest);
         }
 
 		public static IEnumerable<(string Name, ILightningClient Client)> GetLightningClients()

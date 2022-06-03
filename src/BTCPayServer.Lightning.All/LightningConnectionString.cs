@@ -412,6 +412,12 @@ namespace BTCPayServer.Lightning
                             error = "The key 'server' should be an URI starting by http:// or https://";
                             return false;
                         }
+                        parts = uri.UserInfo.Split(':');
+                        if (!string.IsNullOrEmpty(uri.UserInfo) && parts.Length == 2)
+                        {
+                            result.Username = parts[0];
+                            result.Password = parts[1];
+                        }
 
                         var allowinsecureStr = Take(keyValues, "allowinsecure");
                         if (allowinsecureStr != null)
@@ -432,15 +438,7 @@ namespace BTCPayServer.Lightning
                             return false;
                         }
 
-                        var apiToken = Take(keyValues, "api-token");
-                        if (apiToken == null)
-                        {
-                            error = "The key 'api-token' is not found";
-                            return false;
-                        }
-
                         result.BaseUri = uri;
-                        result.ApiToken = apiToken;
                     }
                     break;
                 default:

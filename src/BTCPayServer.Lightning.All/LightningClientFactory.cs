@@ -80,7 +80,7 @@ namespace BTCPayServer.Lightning
 
             if (connectionString.ConnectionType == LightningConnectionType.LNDhub)
             {
-                return new LndHubLightningClient(connectionString.BaseUri, connectionString.ApiToken, Network, HttpClient);
+                return new LndHubLightningClient(connectionString.BaseUri, connectionString.Username, connectionString.Password, Network, HttpClient);
             }
 
             throw new NotSupportedException(

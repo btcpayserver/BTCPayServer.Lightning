@@ -13,11 +13,10 @@ namespace BTCPayServer.Lightning.LndHub
         private readonly LndHubClient _client;
         private readonly Network _network;
 
-        public LndHubLightningClient(Uri baseUri, string loginToken, Network network, HttpClient httpClient = null)
+        public LndHubLightningClient(Uri baseUri, string login, string password, Network network, HttpClient httpClient = null)
         {
-            var parts = loginToken.Split(':');
             _network = network;
-            _client = new LndHubClient(baseUri, parts[0], parts[1], network, httpClient);
+            _client = new LndHubClient(baseUri, login, password, network, httpClient);
         }
 
         public async Task<CreateAccountResponse> CreateAccount(CancellationToken cancellation = default)
