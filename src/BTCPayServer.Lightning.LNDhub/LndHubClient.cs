@@ -53,6 +53,11 @@ namespace BTCPayServer.Lightning.LndHub
             return await Get<NodeInfoData>("getinfo", cancellation);
         }
 
+        public async Task<BalanceData> GetBalance(CancellationToken cancellation)
+        {
+            return await Get<BalanceData>("balance", cancellation);
+        }
+
         public async Task<BitcoinAddress> GetDepositAddress(CancellationToken cancellation = default)
         {
             var list = await Get<JObject[]>("getbtc", cancellation);

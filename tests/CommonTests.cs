@@ -216,9 +216,11 @@ namespace BTCPayServer.Lightning.Tests
                     case LndClient _:
                     case CLightningClient _:
                     case EclairLightningClient _:
+                    case LndHubLightningClient _:
                         var balance = await client.GetBalance();
                         Assert.NotNull(balance.OnchainBalance);
-                        Assert.True(balance.OnchainBalance.Confirmed > upperBound);
+                        if (!(client is LndHubLightningClient))
+                            Assert.True(balance.OnchainBalance.Confirmed > upperBound);
                         Assert.Equal(LightMoney.Zero,balance.OnchainBalance.Unconfirmed);
                         Assert.Equal(LightMoney.Zero,balance.OnchainBalance.Reserved);
                         Assert.NotNull(balance.OffchainBalance);
