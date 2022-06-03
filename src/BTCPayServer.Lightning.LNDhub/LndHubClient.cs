@@ -28,6 +28,9 @@ namespace BTCPayServer.Lightning.LndHub
         private readonly Network _network;
         private static readonly HttpClient _sharedClient = new HttpClient();
 
+        private string AccessToken { get; set; }
+        private string RefreshToken { get; set; }
+
         public LndHubClient(Uri baseUri, string login, string password, Network network, HttpClient httpClient)
         {
             _login = login;
@@ -114,6 +117,11 @@ namespace BTCPayServer.Lightning.LndHub
 
         private async Task<TResponse> Send<TRequest, TResponse>(HttpMethod method, string path, TRequest payload, CancellationToken cancellation)
         {
+            return await Send<TRequest, TResponse>(method, path, payload, false, cancellation);;
+        }
+        
+        private async Task<TResponse> Send<TRequest, TResponse>(HttpMethod method, string path, TRequest payload, bool isAuthRetry, CancellationToken cancellation)
+        {
             HttpContent content = null;
             if (payload != null)
             {
@@ -133,8 +141,11 @@ namespace BTCPayServer.Lightning.LndHub
 
             if (path != "auth" && path != "create")
             {
-                var accessToken = await GetAccessToken(cancellation);
-                req.Headers.Authorization = new AuthenticationHeaderValue("Bearer", accessToken);
+                if (string.IsNullOrEmpty(AccessToken))
+                {
+                    await Authorize(cancellation);
+                }
+                req.Headers.Authorization = new AuthenticationHeaderValue("Bearer", AccessToken);
             }
 
             var res = await _httpClient.SendAsync(req, cancellation);
@@ -142,7 +153,12 @@ namespace BTCPayServer.Lightning.LndHub
 
             if (!res.IsSuccessStatusCode || str.StartsWith("{\"error\":true,"))
             {
-                throw new LndHubApiException(str);
+                var exception = new LndHubApiException(str);
+                if (!exception.AuthenticationFailed || isAuthRetry) throw exception;
+                
+                // unset auth tokens and retry
+                AccessToken = RefreshToken = null;
+                return await Send<TRequest, TResponse>(method, path, payload, true, cancellation);
             }
 
             if (typeof(TResponse) == typeof(EmptyRequestModel))
@@ -156,23 +172,26 @@ namespace BTCPayServer.Lightning.LndHub
 
         public async Task<ILightningInvoiceListener> CreateInvoiceSession(CancellationToken cancellation = default)
         {
-            var accessToken = await GetAccessToken(cancellation);
-            var streamUrl = WithTrailingSlash(_baseUri.ToString()) + "invoices/stream";
-            var session = new LndHubInvoiceListener(this);
-            await session.StartListening(streamUrl, accessToken, cancellation);
-            return session;
+            if (await Authorize(cancellation))
+            {
+                var streamUrl = WithTrailingSlash(_baseUri.ToString()) + "invoices/stream";
+                var session = new LndHubInvoiceListener(this);
+                await session.StartListening(streamUrl, AccessToken, cancellation);
+                return session;
+            }
+
+            return null;
         }
 
-        private async Task<string> GetAccessToken(CancellationToken cancellation = default)
+        private async Task<bool> Authorize(CancellationToken cancellation = default)
         {
-            var payload = new AuthRequest
-            {
-                Login = _login,
-                Password = _password
-            };
+            var payload = new AuthRequest { Login = _login, Password = _password };
             var response = await Post<AuthRequest, AuthResponse>("auth", payload, cancellation);
 
-            return response.AccessToken;
+            AccessToken = response.AccessToken;
+            RefreshToken = response.RefreshToken;
+
+            return !string.IsNullOrEmpty(AccessToken);
         }
 
         private static string WithTrailingSlash(string str) =>
@@ -184,10 +203,23 @@ namespace BTCPayServer.Lightning.LndHub
 
         public class LndHubApiException : Exception
         {
+            // https://github.com/BlueWallet/LndHub/blob/master/doc/Send-requirements.md#general-error-response
+            private enum ErrorCodes : int
+            {
+                BAD_AUTH = 1,
+                NOT_ENOUGH_BALANCE = 2,
+                BAD_PARTNER = 3,
+                INVALID_INVOICE = 4,
+                ROUTE_NOT_FOUND = 5,
+                GENERAL_SERVER_ERROR = 7,
+                LND_FAILURE = 7
+            }
+
             private ErrorData Error { get; set; }
 
             public override string Message => Error?.Message;
             public int ErrorCode => Error.Code;
+            public bool AuthenticationFailed => Error.Code == (int)ErrorCodes.BAD_AUTH;
             public LndHubApiException(string json)
             {
                 Error = JsonConvert.DeserializeObject<ErrorData>(json);
