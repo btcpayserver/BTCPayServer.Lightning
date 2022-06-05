@@ -7,7 +7,6 @@ using System.Threading;
 using System.Threading.Tasks;
 using BTCPayServer.Lightning.LNbank.Models;
 using NBitcoin;
-using NBitcoin.JsonConverters;
 using Newtonsoft.Json;
 
 namespace BTCPayServer.Lightning.LNbank
@@ -17,21 +16,15 @@ namespace BTCPayServer.Lightning.LNbank
         private readonly string _apiToken;
         private readonly Uri _baseUri;
         private readonly HttpClient _httpClient;
-        private readonly JsonSerializer _serializer;
         private readonly Network _network;
-        private static readonly HttpClient SharedClient = new HttpClient();
+        private static readonly HttpClient _sharedClient = new HttpClient();
 
         public LNbankClient(Uri baseUri, string apiToken, Network network, HttpClient httpClient)
         {
             _baseUri = baseUri;
             _apiToken = apiToken;
             _network = network;
-            _httpClient = httpClient ?? SharedClient;
-
-            // JSON
-            var serializerSettings = new JsonSerializerSettings();
-            Serializer.RegisterFrontConverters(serializerSettings, network);
-            _serializer = JsonSerializer.Create(serializerSettings);
+            _httpClient = httpClient ?? _sharedClient;
         }
 
         public async Task<NodeInfoData> GetInfo(CancellationToken cancellation)
