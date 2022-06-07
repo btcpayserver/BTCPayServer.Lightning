@@ -616,9 +616,24 @@ namespace BTCPayServer.Lightning.LND
         /// specified, then a default lax, block confirmation target is used.</summary>
         /// <returns>(streaming responses)</returns>
         /// <exception cref="SwaggerException">A server side error occurred.</exception>
-        public System.Threading.Tasks.Task<LnrpcCloseStatusUpdate> CloseChannelAsync(string channel_point_funding_txid_str, long channel_point_output_index)
+        public System.Threading.Tasks.Task<LnrpcCloseStatusUpdate> CloseChannelAsync(string channel_point_funding_txid_str, long channel_point_output_index, bool force = false)
         {
-            return CloseChannelAsync(channel_point_funding_txid_str, channel_point_output_index, System.Threading.CancellationToken.None);
+            return CloseChannelAsync(channel_point_funding_txid_str, channel_point_output_index, force, System.Threading.CancellationToken.None);
+        }
+
+        /// <summary>* lncli: `closechannel`
+        /// CloseChannel attempts to close an active channel identified by its channel
+        /// outpoint (ChannelPoint). The actions of this method can additionally be
+        /// augmented to attempt a force close after a timeout period in the case of an
+        /// inactive peer. If a non-force close (cooperative closure) is requested,
+        /// then the user can specify either a target number of blocks until the
+        /// closure transaction is confirmed, or a manual fee rate. If neither are
+        /// specified, then a default lax, block confirmation target is used.</summary>
+        /// <returns>(streaming responses)</returns>
+        /// <exception cref="SwaggerException">A server side error occurred.</exception>
+        public System.Threading.Tasks.Task<LnrpcCloseStatusUpdate> CloseChannelAsync(string channel_point_funding_txid_str, long channel_point_output_index, System.Threading.CancellationToken cancellationToken)
+        {
+            return CloseChannelAsync(channel_point_funding_txid_str, channel_point_output_index, false, cancellationToken);
         }
 
         /// <summary>* lncli: `closechannel`
@@ -632,7 +647,7 @@ namespace BTCPayServer.Lightning.LND
         /// <param name="cancellationToken">A cancellation token that can be used by other objects or threads to receive notice of cancellation.</param>
         /// <returns>(streaming responses)</returns>
         /// <exception cref="SwaggerException">A server side error occurred.</exception>
-        public async System.Threading.Tasks.Task<LnrpcCloseStatusUpdate> CloseChannelAsync(string channel_point_funding_txid_str, long channel_point_output_index, System.Threading.CancellationToken cancellationToken)
+        public async System.Threading.Tasks.Task<LnrpcCloseStatusUpdate> CloseChannelAsync(string channel_point_funding_txid_str, long channel_point_output_index, bool force, System.Threading.CancellationToken cancellationToken)
         {
             if (channel_point_funding_txid_str == null)
                 throw new System.ArgumentNullException("channel_point_funding_txid_str");
@@ -641,9 +656,10 @@ namespace BTCPayServer.Lightning.LND
                 throw new System.ArgumentNullException("channel_point_output_index");
 
             var urlBuilder_ = new System.Text.StringBuilder();
-            urlBuilder_.Append(BaseUrl).Append("/v1/channels/{channel_point.funding_txid_str}/{channel_point.output_index}");
+            urlBuilder_.Append(BaseUrl).Append("/v1/channels/{channel_point.funding_txid_str}/{channel_point.output_index}?force={force_close}");
             urlBuilder_.Replace("{channel_point.funding_txid_str}", System.Uri.EscapeDataString(System.Convert.ToString(channel_point_funding_txid_str, System.Globalization.CultureInfo.InvariantCulture)));
             urlBuilder_.Replace("{channel_point.output_index}", System.Uri.EscapeDataString(System.Convert.ToString(channel_point_output_index, System.Globalization.CultureInfo.InvariantCulture)));
+            urlBuilder_.Replace("{force_close}", System.Uri.EscapeDataString(System.Convert.ToString(force, System.Globalization.CultureInfo.InvariantCulture)));
 
             var client_ = _httpClient;
             try
