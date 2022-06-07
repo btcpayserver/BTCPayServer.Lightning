@@ -1,36 +1,31 @@
-using System;
 using System.Collections;
-using System.Collections.Generic;
-using System.Linq;
 using System.Text;
 
 namespace BTCPayServer.Lightning
 {
     class BitReader
     {
-        BitArray array;
+        readonly BitArray _array;
         public BitReader(BitArray array)
         {
-            this.array = array;
-            this.Count = array.Count;
+            _array = array;
+            Count = array.Count;
         }
         public BitReader(BitArray array, int bitCount)
         {
-            this.array = array;
-            this.Count = bitCount;
+            _array = array;
+            Count = bitCount;
         }
+
+        public int Position { get; set; }
+
+        public int Count { get; }
 
         public bool Read()
         {
-            var v = array.Get(Position);
+            var v = _array.Get(Position);
             Position++;
             return v;
-        }
-
-        public int Position
-        {
-            get;
-            set;
         }
 
         public ulong ReadULongBE(int bitCount)
@@ -64,11 +59,6 @@ namespace BTCPayServer.Lightning
             return bytes;
         }
 
-        public int Count
-        {
-            get;
-        }
-
         public void Consume(int count)
         {
             Position += count;
@@ -81,12 +71,12 @@ namespace BTCPayServer.Lightning
 
         public override string ToString()
         {
-            StringBuilder builder = new StringBuilder(array.Length);
+            StringBuilder builder = new StringBuilder(_array.Length);
             for (int i = 0; i < Count; i++)
             {
                 if (i != 0 && i % 8 == 0)
                     builder.Append(' ');
-                builder.Append(array.Get(i) ? "1" : "0");
+                builder.Append(_array.Get(i) ? "1" : "0");
             }
             return builder.ToString();
         }

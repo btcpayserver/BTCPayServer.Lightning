@@ -39,7 +39,6 @@ namespace BTCPayServer.Lightning.Tests
                 await cashCow.GenerateAsync(cashCow.Network.Consensus.CoinbaseMaturity + 1);
             }
 
-
             foreach (var sender in senders)
             {
                 foreach (var dest in receivers)
@@ -51,7 +50,8 @@ namespace BTCPayServer.Lightning.Tests
 
         private static async Task CreateChannel(RPCClient cashCow, ILightningClient sender, ILightningClient dest)
         {
-            var amount = new LightMoney(1234); // use arbitrary amount to check if channel exists
+            // use arbitrary amount to check if channel exists and also push some funds over to the other side
+            var amount = new LightMoney(123456789);
             var destInfo = await dest.GetInfo();
             var destInvoice = await dest.CreateInvoice(amount, "EnsureConnectedToDestination", TimeSpan.FromSeconds(5000));
             var payErrors = 0;
@@ -64,7 +64,7 @@ namespace BTCPayServer.Lightning.Tests
                 {
                     break;
                 }
-                else if (result.Result == PayResult.CouldNotFindRoute)
+                if (result.Result == PayResult.CouldNotFindRoute || result.Result == PayResult.Error && result.ErrorDetail.StartsWith("not enough balance"))
                 {
                     // check channels that are in process of opening, to prevent double channel open
                     await Task.Delay(100);
@@ -72,7 +72,6 @@ namespace BTCPayServer.Lightning.Tests
                     if (pendingChannels.Any(a => a.RemoteNode == destInfo.NodeInfoList[0].NodeId))
                     {
                         Logs.LogInformation($"Channel to {destInfo.NodeInfoList[0]} is already open(ing)");
-
                         Logs.LogInformation($"Attempting to reconnect Result: {await sender.ConnectTo(destInfo.NodeInfoList.First())}");
 
                         await cashCow.GenerateAsync(1);
@@ -145,12 +144,12 @@ namespace BTCPayServer.Lightning.Tests
 retry:
                 try
                 {
-                    return await sender.Pay(payreq);
+                    return await sender.Pay(payreq, cts.Token);
                 }
                 catch (CLightning.LightningRPCException ex) when (ex.Message.Contains("WIRE_INCORRECT_OR_UNKNOWN_PAYMENT_DETAILS") &&
                                                                   !cts.IsCancellationRequested)
                 {
-                    await Task.Delay(500);
+                    await Task.Delay(500, cts.Token);
                     goto retry;
                 }
             }

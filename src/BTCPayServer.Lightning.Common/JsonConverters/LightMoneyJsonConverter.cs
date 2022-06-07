@@ -14,7 +14,7 @@ namespace BTCPayServer.Lightning.JsonConverters
             return typeof(LightMoney).GetTypeInfo().IsAssignableFrom(objectType.GetTypeInfo());
         }
 
-        Type longType = typeof(long).GetTypeInfo();
+        readonly Type _longType = typeof(long).GetTypeInfo();
         public override object ReadJson(JsonReader reader, Type objectType, object existingValue, JsonSerializer serializer)
         {
             try
@@ -22,7 +22,7 @@ namespace BTCPayServer.Lightning.JsonConverters
                 return reader.TokenType switch
                 {
                     JsonToken.Null => null,
-                    JsonToken.Integer => longType.IsAssignableFrom(reader.ValueType)
+                    JsonToken.Integer => _longType.IsAssignableFrom(reader.ValueType)
                         ? new LightMoney((long)reader.Value)
                         : new LightMoney(long.MaxValue),
                     JsonToken.String =>
