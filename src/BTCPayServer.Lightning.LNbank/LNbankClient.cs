@@ -1,4 +1,5 @@
 using System;
+using System.Linq;
 using System.Net.Http;
 using System.Net.Http.Headers;
 using System.Text;
@@ -6,7 +7,6 @@ using System.Threading;
 using System.Threading.Tasks;
 using BTCPayServer.Lightning.LNbank.Models;
 using NBitcoin;
-using NBitcoin.JsonConverters;
 using Newtonsoft.Json;
 
 namespace BTCPayServer.Lightning.LNbank
@@ -16,21 +16,15 @@ namespace BTCPayServer.Lightning.LNbank
         private readonly string _apiToken;
         private readonly Uri _baseUri;
         private readonly HttpClient _httpClient;
-        private readonly JsonSerializer _serializer;
         private readonly Network _network;
-        private static readonly HttpClient SharedClient = new HttpClient();
+        private static readonly HttpClient _sharedClient = new HttpClient();
 
         public LNbankClient(Uri baseUri, string apiToken, Network network, HttpClient httpClient)
         {
             _baseUri = baseUri;
             _apiToken = apiToken;
             _network = network;
-            _httpClient = httpClient ?? SharedClient;
-
-            // JSON
-            var serializerSettings = new JsonSerializerSettings();
-            Serializer.RegisterFrontConverters(serializerSettings, network);
-            _serializer = JsonSerializer.Create(serializerSettings);
+            _httpClient = httpClient ?? _sharedClient;
         }
 
         public async Task<NodeInfoData> GetInfo(CancellationToken cancellation)
@@ -78,14 +72,8 @@ namespace BTCPayServer.Lightning.LNbank
             return await Post<CreateInvoiceRequest, InvoiceData>("invoice", payload, cancellation);
         }
 
-        public async Task<PayResponse> Pay(string bolt11, CancellationToken cancellation)
-        {
-            return await Pay(bolt11, null, cancellation);
-        }
-
         public async Task<PayResponse> Pay(string bolt11, PayInvoiceParams payParams, CancellationToken cancellation)
         {
-
             var payload = new PayInvoiceRequest
             {
                 PaymentRequest = bolt11,
@@ -150,7 +138,16 @@ namespace BTCPayServer.Lightning.LNbank
 
             if (!res.IsSuccessStatusCode)
             {
-                throw new LNbankApiException(str);
+                if (res.StatusCode.Equals(422))
+                {
+                    var validationErrors = JsonConvert.DeserializeObject<GreenfieldValidationErrorData[]>(str);
+                    var message = string.Join(", ", validationErrors.Select(ve => $"{ve.Path}: {ve.Message}"));
+                    var err = new GreenfieldApiErrorData("validation-failed", message);
+                    throw new LNbankApiException(err);
+                } else {
+                    var err = JsonConvert.DeserializeObject<GreenfieldApiErrorData>(str);
+                    throw new LNbankApiException(err);
+                }
             }
 
             if (typeof(TResponse) == typeof(EmptyRequestModel))
@@ -162,19 +159,20 @@ namespace BTCPayServer.Lightning.LNbank
             return data;
         }
 
-        internal class EmptyRequestModel
+        private class EmptyRequestModel
         {
         }
-
+        
         internal class LNbankApiException : Exception
         {
-            private ErrorData Error { get; set; }
+            private readonly GreenfieldApiErrorData _error;
 
-            public override string Message => Error?.Detail;
-            public string ErrorCode => Error?.Code;
-            public LNbankApiException(string json)
+            public override string Message => _error?.Message;
+            public string ErrorCode => _error?.Code;
+            
+            public LNbankApiException(GreenfieldApiErrorData error)
             {
-                Error = JsonConvert.DeserializeObject<ErrorData>(json);
+                _error = error;
             }
         }
     }

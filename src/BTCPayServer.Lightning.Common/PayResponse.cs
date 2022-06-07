@@ -1,3 +1,5 @@
+using Newtonsoft.Json;
+
 namespace BTCPayServer.Lightning
 {
     public enum PayResult
@@ -9,6 +11,9 @@ namespace BTCPayServer.Lightning
 
     public class PayResponse
     {
+        // parameterless constructor for JSON serialization
+        public PayResponse() {}
+
         public PayResponse(PayResult result)
         {
             Result = result;
@@ -33,7 +38,10 @@ namespace BTCPayServer.Lightning
 
     public class PayDetails
     {
+        [JsonConverter(typeof(JsonConverters.LightMoneyJsonConverter))]
         public LightMoney TotalAmount { get; set; }
+        
+        [JsonConverter(typeof(JsonConverters.LightMoneyJsonConverter))]
         public LightMoney FeeAmount { get; set; }
     }
 }
