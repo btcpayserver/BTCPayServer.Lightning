@@ -24,7 +24,7 @@ Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "BTCPayServer.Lightning.Ecla
 EndProject
 Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "BTCPayServer.Lightning.LNbank", "src\BTCPayServer.Lightning.LNbank\BTCPayServer.Lightning.LNbank.csproj", "{4057015B-9D8A-411A-B7C2-3342D9F53BD0}"
 EndProject
-Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "BTCPayServer.Lightning.LNDhub", "src\BTCPayServer.Lightning.LNDhub\BTCPayServer.Lightning.LNDhub.csproj", "{B024DBD2-FCF4-4C48-9EBE-09AA7AAF36FB}"
+Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "BTCPayServer.Lightning.LNDhub", "src\BTCPayServer.Lightning.LNDhub\BTCPayServer.Lightning.LNDhub.csproj", "{B024DBD2-FCF4-4C48-9EBE-09AA7AAF36FB}"
 EndProject
 Global
 	GlobalSection(SolutionConfigurationPlatforms) = preSolution
