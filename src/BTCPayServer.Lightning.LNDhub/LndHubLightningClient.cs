@@ -44,18 +44,11 @@ namespace BTCPayServer.Lightning.LndHub
         public async Task<LightningNodeBalance> GetBalance(CancellationToken cancellation = default)
         {
             var balance = await _client.GetBalance(cancellation);
-            var onchain = new OnchainBalance
-            {
-                Confirmed = LightMoney.Zero, Unconfirmed = LightMoney.Zero, Reserved = LightMoney.Zero
-            };
             var offchain = new OffchainBalance
             {
-                Opening = LightMoney.Zero,
-                Local = balance.BtcBalance.AvailableBalance,
-                Remote = LightMoney.Zero,
-                Closing = LightMoney.Zero
+                Local = balance.BtcBalance.AvailableBalance
             };
-            return new LightningNodeBalance(onchain, offchain);
+            return new LightningNodeBalance(null, offchain);
         }
 
         public async Task<BitcoinAddress> GetDepositAddress(CancellationToken cancellation = default)
