@@ -179,7 +179,7 @@ namespace BTCPayServer.Lightning.Eclair
             { 
                 Confirmed = global.Onchain.Confirmed,
                 Unconfirmed = global.Onchain.Unconfirmed,
-                Reserved = LightMoney.Zero // Not supported by Eclair
+                Reserved = null // Not supported by Eclair
             };
             var offchain = new OffchainBalance
             {

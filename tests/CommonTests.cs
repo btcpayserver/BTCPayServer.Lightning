@@ -210,24 +210,35 @@ namespace BTCPayServer.Lightning.Tests
             {
                 await EnsureConnectedToDestinations(test);
                 var client = test.Customer;
+                LightningNodeBalance balance;
                 Logs.Tester.LogInformation($"{test.Name}: {nameof(CanGetBalance)}");
                 switch (client)
                 {
                     case LndClient _:
                     case CLightningClient _:
                     case EclairLightningClient _:
-                    case LndHubLightningClient _:
-                        var balance = await client.GetBalance();
-                        Assert.NotNull(balance.OnchainBalance);
-                        if (!(client is LndHubLightningClient))
-                            Assert.True(balance.OnchainBalance.Confirmed > upperBound);
+                        balance = await client.GetBalance();
+                        // onchain
+                        Assert.True(balance.OnchainBalance.Confirmed > 0);
                         Assert.Equal(LightMoney.Zero,balance.OnchainBalance.Unconfirmed);
-                        Assert.Equal(LightMoney.Zero,balance.OnchainBalance.Reserved);
+                        // offchain
                         Assert.NotNull(balance.OffchainBalance);
                         Assert.Equal(LightMoney.Zero, balance.OffchainBalance.Opening);
                         Assert.InRange(balance.OffchainBalance.Local, lowerBound, upperBound);
                         Assert.InRange(balance.OffchainBalance.Remote, lowerBound, upperBound);
                         Assert.Equal(LightMoney.Zero, balance.OffchainBalance.Closing);
+                        break;
+                    
+                    case LndHubLightningClient _:
+                        balance = await client.GetBalance();
+                        // onchain
+                        Assert.Null(balance.OnchainBalance);
+                        // offchain
+                        Assert.NotNull(balance.OffchainBalance);
+                        Assert.Null(balance.OffchainBalance.Opening);
+                        Assert.InRange(balance.OffchainBalance.Local, lowerBound, upperBound);
+                        Assert.Null(balance.OffchainBalance.Remote);
+                        Assert.Null(balance.OffchainBalance.Closing);
                         break;
 
                     default:

@@ -419,7 +419,7 @@ namespace BTCPayServer.Lightning.LND
             { 
                 Confirmed = onchainResponse.Confirmed_balance,
                 Unconfirmed = onchainResponse.Unconfirmed_balance,
-                Reserved = onchainResponse.Locked_balance ?? LightMoney.Zero
+                Reserved = onchainResponse.Locked_balance 
             };
             var offchain = new OffchainBalance
             {
