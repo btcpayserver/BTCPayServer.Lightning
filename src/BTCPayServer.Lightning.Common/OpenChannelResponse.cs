@@ -19,5 +19,7 @@ namespace BTCPayServer.Lightning
         {
             get; set;
         }
+
+        public string ChannelId { get; set; }
     }
 }
