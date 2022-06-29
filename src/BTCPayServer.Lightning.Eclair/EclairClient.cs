@@ -8,6 +8,7 @@ using System.Threading;
 using System.Threading.Tasks;
 using BTCPayServer.Lightning.Eclair.Models;
 using NBitcoin;
+using NBitcoin.Protocol;
 using Newtonsoft.Json;
 using Newtonsoft.Json.Linq;
 using Newtonsoft.Json.Serialization;
@@ -17,19 +18,22 @@ namespace BTCPayServer.Lightning.Eclair
     public class EclairClient
     {
         private readonly Uri _address;
+        private readonly string _username;
         private readonly string _password;
         private readonly HttpClient _httpClient;
         private static readonly HttpClient SharedClient = new HttpClient();
 
         public Network Network { get; }
 
-        public EclairClient(Uri address, string password, Network network, HttpClient httpClient = null)
+        public EclairClient(Uri address, string password, Network network, HttpClient httpClient = null):this(address,null, password,network, httpClient){}
+        public EclairClient(Uri address, string username, string password, Network network, HttpClient httpClient = null)
         {
             if (address == null)
                 throw new ArgumentNullException(nameof(address));
             if (network == null)
                 throw new ArgumentNullException(nameof(network));
             _address = address;
+            _username = username;
             _password = password;
             Network = network;
             _httpClient = httpClient ?? SharedClient;
@@ -362,7 +366,7 @@ namespace BTCPayServer.Lightning.Eclair
             };
             httpRequest.Headers.Accept.Clear();
             httpRequest.Headers.Accept.Add(new MediaTypeWithQualityHeaderValue("application/json"));
-            httpRequest.Headers.Authorization = new AuthenticationHeaderValue("Basic", Convert.ToBase64String(Encoding.Default.GetBytes($":{_password}")));
+            httpRequest.Headers.Authorization = new AuthenticationHeaderValue("Basic", Convert.ToBase64String(Encoding.Default.GetBytes($"{_username??string.Empty}:{_password}")));
 
             var rawResult = await _httpClient.SendAsync(httpRequest, cts);
             var rawJson = await rawResult.Content.ReadAsStringAsync();

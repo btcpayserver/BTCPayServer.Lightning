@@ -17,20 +17,27 @@ namespace BTCPayServer.Lightning.Eclair
     public class EclairLightningClient : ILightningClient
     {
         private readonly Uri _address;
+        private readonly string _username;
         private readonly string _password;
         private readonly Network _network;
         private readonly EclairClient _eclairClient;
 
-        public EclairLightningClient(Uri address, string password, Network network, HttpClient httpClient = null)
+        public EclairLightningClient(Uri address, string password, Network network, HttpClient httpClient = null) :
+            this(address, null, password, network, httpClient)
+        {
+        }
+
+        public EclairLightningClient(Uri address, string username, string password, Network network, HttpClient httpClient = null)
         {
             if (address == null)
                 throw new ArgumentNullException(nameof(address));
             if (network == null)
                 throw new ArgumentNullException(nameof(network));
             _address = address;
+            _username = username;
             _password = password;
             _network = network;
-            _eclairClient = new EclairClient(address, password, network, httpClient);
+            _eclairClient = new EclairClient(address, username, password, network, httpClient);
         }
 
 
@@ -145,7 +152,7 @@ namespace BTCPayServer.Lightning.Eclair
             return new EclairSession(
                await WebsocketHelper.CreateClientWebSocket(_address.AbsoluteUri,
                   new AuthenticationHeaderValue("Basic",
-                        Convert.ToBase64String(Encoding.Default.GetBytes($":{_password}"))).ToString(), cancellation), this);
+                        Convert.ToBase64String(Encoding.Default.GetBytes($"{_username??string.Empty}:{_password}"))).ToString(), cancellation), this);
         }
 
         public async Task<LightningNodeInformation> GetInfo(CancellationToken cancellation = default)
