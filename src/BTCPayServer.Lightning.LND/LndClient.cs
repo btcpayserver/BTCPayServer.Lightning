@@ -417,9 +417,9 @@ namespace BTCPayServer.Lightning.LND
 
             var onchain = new OnchainBalance
             { 
-                Confirmed = onchainResponse.Confirmed_balance,
-                Unconfirmed = onchainResponse.Unconfirmed_balance,
-                Reserved = onchainResponse.Locked_balance 
+                Confirmed = string.IsNullOrEmpty(onchainResponse.Confirmed_balance) ? null : LightMoney.Satoshis(long.Parse(onchainResponse.Confirmed_balance)),
+                Unconfirmed = string.IsNullOrEmpty(onchainResponse.Unconfirmed_balance) ? null : LightMoney.Satoshis(long.Parse(onchainResponse.Unconfirmed_balance)),
+                Reserved = string.IsNullOrEmpty(onchainResponse.Locked_balance) ? null : LightMoney.Satoshis(long.Parse(onchainResponse.Locked_balance))
             };
             var offchain = new OffchainBalance
             {
