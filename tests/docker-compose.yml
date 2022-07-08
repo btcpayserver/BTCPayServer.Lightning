@@ -275,7 +275,7 @@ services:
     volumes:
       - "lndhub_dir:/data"
       - "lnd_dir:/lnd:ro"
-      - "$PWD/fake:/data/fake:ro"
+      - "./fake:/data/fake:ro"
     ports:
       - "42923:3000"
     environment:
@@ -292,7 +292,7 @@ services:
     volumes:
       - "lndhub_dest_dir:/data"
       - "lnd_dest_dir:/lnd:ro"
-      - "$PWD/fake:/data/fake:ro"
+      - "./fake:/data/fake:ro"
     ports:
       - "42924:3000"
     environment:

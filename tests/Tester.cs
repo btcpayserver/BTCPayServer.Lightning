@@ -86,7 +86,7 @@ namespace BTCPayServer.Lightning.Tests
 			yield return ("C-Lightning (Client)", CreateCLightningClient());
 			yield return ("LND (Client)", CreateLndClient());
 			yield return ("Eclair (Client)", CreateEclairClient());
-            //yield return ("LNDhub (Client)", CreateLndHubClient().Result);
+            yield return ("LNDhub (Client)", CreateLndHubClient().Result);
         }
 
 		public static IEnumerable<(string Name, ILightningClient Customer, ILightningClient Merchant)> GetTestedPairs()
@@ -94,7 +94,7 @@ namespace BTCPayServer.Lightning.Tests
 			yield return ("C-Lightning", CreateCLightningClient(), CreateCLightningClientDest());
             yield return ("LND", CreateLndClient(), CreateLndClientDest());
             yield return ("Eclair", CreateEclairClient(), CreateEclairClientDest());
-            //yield return ("LNDhub", CreateLndHubClient().Result, CreateLndHubClientDest().Result);
+            yield return ("LNDhub", CreateLndHubClient().Result, CreateLndHubClientDest().Result);
 		}
 	}
 }
