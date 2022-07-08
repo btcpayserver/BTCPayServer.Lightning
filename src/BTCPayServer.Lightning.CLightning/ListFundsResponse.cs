@@ -1,3 +1,4 @@
+using NBitcoin;
 using Newtonsoft.Json;
 
 namespace BTCPayServer.Lightning.CLightning
@@ -19,9 +20,8 @@ namespace BTCPayServer.Lightning.CLightning
         public int Blockheight { get; set; }
         public int? ReservedToBlock { get; set; }
 
-        [JsonProperty("amount_msat")]
-        [JsonConverter(typeof(JsonConverters.LightMoneyJsonConverter))]
-        public LightMoney Amount { get; set; }
+        [JsonConverter(typeof(NBitcoin.JsonConverters.MoneyJsonConverter))]
+        public Money Value { get; set; }
     }
 
     public class FundsChannel
