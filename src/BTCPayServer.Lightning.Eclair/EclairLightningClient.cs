@@ -177,8 +177,8 @@ namespace BTCPayServer.Lightning.Eclair
             
             var onchain = new OnchainBalance
             { 
-                Confirmed = global.Onchain.Confirmed,
-                Unconfirmed = global.Onchain.Unconfirmed,
+                Confirmed = new Money(global.Onchain.Confirmed, MoneyUnit.BTC),
+                Unconfirmed = new Money(global.Onchain.Unconfirmed, MoneyUnit.BTC),
                 Reserved = null // Not supported by Eclair
             };
             var offchain = new OffchainBalance

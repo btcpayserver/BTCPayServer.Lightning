@@ -18,6 +18,7 @@ using NBitcoin.RPC;
 using Newtonsoft.Json.Linq;
 using Xunit;
 using Xunit.Abstractions;
+using Newtonsoft.Json;
 
 namespace BTCPayServer.Lightning.Tests
 {
@@ -220,15 +221,23 @@ namespace BTCPayServer.Lightning.Tests
                         balance = await client.GetBalance();
                         // onchain
                         Assert.True(balance.OnchainBalance.Confirmed > 0);
-                        Assert.Equal(LightMoney.Zero,balance.OnchainBalance.Unconfirmed);
+                        Assert.Equal(Money.Zero,balance.OnchainBalance.Unconfirmed);
                         // offchain
                         Assert.NotNull(balance.OffchainBalance);
                         Assert.Equal(LightMoney.Zero, balance.OffchainBalance.Opening);
                         Assert.InRange(balance.OffchainBalance.Local, lowerBound, upperBound);
                         Assert.InRange(balance.OffchainBalance.Remote, lowerBound, upperBound);
                         Assert.Equal(LightMoney.Zero, balance.OffchainBalance.Closing);
+                        Logs.Tester.LogInformation($"{test.Name}: {Pretty(balance)}");
+                        if (!(client is EclairLightningClient))
+                        {
+                            // make sure we catch msat/sat bugs
+                            // Eclair can't check this, because it uses the same wallet as bitcoin core
+                            // thus it get all the coinbases.
+                            Assert.True(balance.OnchainBalance.Confirmed < Money.Coins(10m));
+                            Assert.True(balance.OnchainBalance.Confirmed > Money.Coins(0.010m));
+                        }
                         break;
-                    
                     case LndHubLightningClient _:
                         balance = await client.GetBalance();
                         // onchain
@@ -249,6 +258,11 @@ namespace BTCPayServer.Lightning.Tests
                         break;
                 }
             }
+        }
+
+        private string Pretty(LightningNodeBalance balance)
+        {
+            return $"Confirmed:{balance.OnchainBalance.Confirmed}, Local:{balance.OffchainBalance.Local}";
         }
 
         [Fact(Timeout = Timeout)]

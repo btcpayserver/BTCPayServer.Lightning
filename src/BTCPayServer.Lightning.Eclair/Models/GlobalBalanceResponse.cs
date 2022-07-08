@@ -1,4 +1,5 @@
 using BTCPayServer.Lightning.JsonConverters;
+using NBitcoin;
 using Newtonsoft.Json;
 
 namespace BTCPayServer.Lightning.Eclair.Models
@@ -6,8 +7,7 @@ namespace BTCPayServer.Lightning.Eclair.Models
     public class GlobalBalanceResponse
     {
         [JsonProperty("total")]
-        [JsonConverter(typeof(LightMoneyJsonConverter))]
-        public LightMoney Total { get; set; }
+        public decimal Total { get; set; }
 
         [JsonProperty("onChain")]
         public GlobalOnchainBalance Onchain { get; set; }
@@ -19,12 +19,10 @@ namespace BTCPayServer.Lightning.Eclair.Models
     public class GlobalOnchainBalance
     {
         [JsonProperty("confirmed")]
-        [JsonConverter(typeof(LightMoneyJsonConverter))]
-        public LightMoney Confirmed { get; set; }
+        public decimal Confirmed { get; set; }
         
         [JsonProperty("unconfirmed")]
-        [JsonConverter(typeof(LightMoneyJsonConverter))]
-        public LightMoney Unconfirmed { get; set; }
+        public decimal Unconfirmed { get; set; }
     }
 
     public class GlobalOffchainBalance

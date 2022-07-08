@@ -521,27 +521,27 @@ retry:
 
         private LightningNodeBalance ToLightningNodeBalance(ListFundsResponse response)
         {
-            var confirmed = new LightMoney(0);
-            var reserved = new LightMoney(0);
-            var unconfirmed = new LightMoney(0);
-            var opening = new LightMoney(0);
-            var local = new LightMoney(0);
-            var remote = new LightMoney(0);
-            var closing = new LightMoney(0);
+            var confirmed = Money.Zero;
+            var reserved = Money.Zero;
+            var unconfirmed = Money.Zero;
+            var opening = LightMoney.Zero;
+            var local = LightMoney.Zero;
+            var remote = LightMoney.Zero;
+            var closing = LightMoney.Zero;
 
             foreach (var output in response.Outputs)
             {
                 if (output.Reserved)
                 {
-                    reserved += output.Amount;
+                    reserved += output.Value;
                 }
                 else switch (output.Status)
                 {
                     case "confirmed":
-                        confirmed += output.Amount;
+                        confirmed += output.Value;
                         break;
                     case "unconfirmed":
-                        unconfirmed += output.Amount;
+                        unconfirmed += output.Value;
                         break;
                 }
             }
