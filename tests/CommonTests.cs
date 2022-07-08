@@ -220,7 +220,7 @@ namespace BTCPayServer.Lightning.Tests
                     case EclairLightningClient _:
                         balance = await client.GetBalance();
                         // onchain
-                        Assert.True(balance.OnchainBalance.Confirmed > 0);
+                        Assert.True(balance.OnchainBalance.Confirmed > 0L);
                         Assert.Equal(Money.Zero,balance.OnchainBalance.Unconfirmed);
                         // offchain
                         Assert.NotNull(balance.OffchainBalance);
