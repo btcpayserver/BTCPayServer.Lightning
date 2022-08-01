@@ -276,7 +276,7 @@ namespace BTCPayServer.Lightning
                         {
                             if (reader.Read())
                             {
-                                features |= (FeatureBits)(1 << i);
+                                features |= (FeatureBits)((long) 1 << i);
                             }
                         }
                         break;

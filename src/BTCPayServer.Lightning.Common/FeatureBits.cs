@@ -3,7 +3,7 @@ using System;
 namespace BTCPayServer.Lightning
 {
     [Flags]
-    public enum FeatureBits
+    public enum FeatureBits : long
     {
         None = 0,
 
