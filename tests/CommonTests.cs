@@ -658,6 +658,10 @@ retry:
             Assert.True((p.FeatureBits | (FeatureBits.MPPOptional | FeatureBits.PaymentAddrRequired | FeatureBits.TLVOnionPayloadOptional)) ==
                 (FeatureBits.MPPOptional | FeatureBits.PaymentAddrRequired | FeatureBits.TLVOnionPayloadOptional));
             Assert.True(p.VerifySignature());
+            
+            p = BOLT11PaymentRequest.Parse("lnbcrt1p3w0278pp5n8ky9m98m7ppjw4gr4mhgvxhm8r0830w870raccvu6tgnavrs60sdqqcqzpgxqyz5vqsp5v50decplk2phztne8xqjxyvrrr2k0nf2q5sflnn4vqc6mc048fds9q2gqqqqqyssqk6tlvhclzm7ejg6p8szg34tt28puz5hvmuv93rkhnaq63t6k92sk0q2g7arltwqahvhg3ks6l922zsdtnf7wt540ypmqqulzvke8gyqqttv7fu", Network.RegTest);
+            Assert.True((p.FeatureBits | (FeatureBits.MPPOptional | FeatureBits.PaymentAddrRequired | FeatureBits.TLVOnionPayloadOptional | FeatureBits.PaymentMetadataRequired)) == 
+                        (FeatureBits.MPPOptional | FeatureBits.PaymentAddrRequired | FeatureBits.TLVOnionPayloadOptional | FeatureBits.PaymentMetadataRequired));
 
             p = BOLT11PaymentRequest.Parse("lnbc2500u1pvjluezpp5qqqsyqcyq5rqwzqfqqqsyqcyq5rqwzqfqqqsyqcyq5rqwzqfqypqdq5xysxxatsyp3k7enxv4jsxqzpuaztrnwngzn3kdzw5hydlzf03qdgm2hdq27cqv3agm2awhz5se903vruatfhq77w3ls4evs3ch9zw97j25emudupq63nyw24cg27h2rspfj9srp", Network.Main);
             Assert.Equal("lnbc", p.Prefix);
