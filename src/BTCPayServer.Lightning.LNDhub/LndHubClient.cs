@@ -84,7 +84,7 @@ namespace BTCPayServer.Lightning.LndHub
         {
             var payload = new CreateInvoiceRequest
             {
-                Amount = (long)req.Amount.ToUnit(LightMoneyUnit.Satoshi),
+                Amount = req.Amount,
                 Memo = req.Description ?? string.Empty,
                 DescriptionHash = req.DescriptionHash
             };

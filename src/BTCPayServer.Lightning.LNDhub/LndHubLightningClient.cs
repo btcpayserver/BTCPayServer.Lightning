@@ -32,7 +32,7 @@ namespace BTCPayServer.Lightning.LndHub
             {
                 BlockHeight = data.BlockHeight
             };
-            foreach (var nodeUri in data.NodeURIs)
+            foreach (var nodeUri in data.Uris)
             {
                 if (NodeInfo.TryParse(nodeUri, out var info))
                     nodeInfo.NodeInfoList.Add(info);
@@ -46,7 +46,7 @@ namespace BTCPayServer.Lightning.LndHub
             var balance = await _client.GetBalance(cancellation);
             var offchain = new OffchainBalance
             {
-                Local = balance.BtcBalance.AvailableBalance
+                Local = balance.BTC.AvailableBalance
             };
             return new LightningNodeBalance(null, offchain);
         }
@@ -59,14 +59,14 @@ namespace BTCPayServer.Lightning.LndHub
         public async Task<LightningInvoice> GetInvoice(string invoiceId, CancellationToken cancellation = default)
         {
             var invoices = await _client.GetInvoices(cancellation);
-            var data = invoices.FirstOrDefault(i => i.Id == invoiceId);
+            var data = invoices.FirstOrDefault(i => i.Id.ToString() == invoiceId);
             return data == null ? null : LndHubUtil.ToLightningInvoice(data);
         }
 
         public async Task<LightningPayment> GetPayment(string paymentHash, CancellationToken cancellation = default)
         {
             var payments = await _client.GetTransactions(cancellation);
-            var data = payments.FirstOrDefault(i => i.PaymentHash == paymentHash);
+            var data = payments.FirstOrDefault(i => i.PaymentHash.ToString() == paymentHash);
             return data == null ? null : LndHubUtil.ToLightningPayment(data);
         }
 
@@ -80,7 +80,7 @@ namespace BTCPayServer.Lightning.LndHub
             var invoice = await _client.CreateInvoice(req, cancellation);
 
             // the response to addinvoice is incomplete, fetch the invoice to return that data
-            return await GetInvoice(invoice.Id, cancellation);
+            return await GetInvoice(invoice.Id.ToString(), cancellation);
         }
 
         public async Task<PayResponse> Pay(string bolt11, CancellationToken cancellation = default)

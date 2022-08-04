@@ -18,7 +18,7 @@ namespace BTCPayServer.Lightning.LndHub
 
             var invoice = new LightningInvoice
             {
-                Id = data.Id,
+                Id = data.Id.ToString(),
                 BOLT11 = data.PaymentRequest,
                 Status = status,
                 ExpiresAt = expiresAt.GetValueOrDefault(),
@@ -34,13 +34,14 @@ namespace BTCPayServer.Lightning.LndHub
 
         internal static LightningPayment ToLightningPayment(TransactionData data)
         {
+            var paymentHash = data.PaymentHash.ToString();
             var payment = new LightningPayment
             {
-                Id = data.PaymentHash,
-                PaymentHash = data.PaymentHash,
+                Id = paymentHash,
+                PaymentHash = paymentHash,
                 Preimage = data.PaymentPreimage,
                 Status = LightningPaymentStatus.Complete,
-                CreatedAt = Utils.UnixTimeToDateTime(long.Parse(data.Timestamp)),
+                CreatedAt = data.Timestamp,
                 Amount = data.Value - data.Fee,
                 AmountSent = data.Value,
                 Fee = data.Fee

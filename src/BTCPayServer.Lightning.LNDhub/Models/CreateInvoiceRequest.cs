@@ -1,3 +1,4 @@
+using BTCPayServer.Lightning.LNDhub.JsonConverters;
 using NBitcoin;
 using NBitcoin.JsonConverters;
 using Newtonsoft.Json;
@@ -8,7 +9,8 @@ namespace BTCPayServer.Lightning.LNDhub.Models
     {
         // Amount in satoshis
         [JsonProperty("amt")]
-        public long Amount { get; set; }
+        [JsonConverter(typeof(LndHubLightMoneyJsonConverter))]
+        public LightMoney Amount { get; set; }
 
         [JsonProperty("memo")]
         public string Memo { get; set; }
@@ -16,6 +18,5 @@ namespace BTCPayServer.Lightning.LNDhub.Models
         [JsonProperty("description_hash")]
         [JsonConverter(typeof(UInt256JsonConverter))]
         public uint256 DescriptionHash { get; set; }
-
     }
 }
