@@ -5,10 +5,13 @@ namespace BTCPayServer.Lightning.LNDhub.Models
 {
     public class NodeInfoData
     {
-        [JsonProperty("block_height")]
+        [JsonProperty(PropertyName = "uris")]
+        public IEnumerable<string> Uris { get; set; }
+    
+        [JsonProperty(PropertyName = "identity_pubkey")]
+        public string IdentityPubkey { get; set; }
+    
+        [JsonProperty(PropertyName = "block_height")]
         public int BlockHeight { get; set; }
-
-        [JsonProperty("uris")]
-        public List<string> NodeURIs { get; set; }
     }
 }

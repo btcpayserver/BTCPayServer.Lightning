@@ -480,8 +480,8 @@ retry:
             {
                 await EnsureConnectedToDestinations(test);
 
-                var amount1 = 6150;
-                var amount2 = 8251;
+                var amount1 = new LightMoney(6150);
+                var amount2 = new LightMoney(8251);
                 var src = test.Customer;
                 var dest = test.Merchant;
                 Logs.Tester.LogInformation($"{test.Name}: {nameof(CanWaitListenInvoice)}");
@@ -496,8 +496,8 @@ retry:
                 if (src is LndHubLightningClient)
                 {
                     // Change amounts to whole sats for comparison - LNDhub only returns sats
-                    amount1 = 6000;
-                    amount2 = 8000;
+                    amount1 = LightMoney.Satoshis(6);
+                    amount2 = LightMoney.Satoshis(8);
                     // The senders LNDhub wallet needs some initial funds.
                     await FundLndHubWallet(src, LightMoney.Satoshis(2100));
                 }

@@ -1,6 +1,7 @@
 using System;
 using BTCPayServer.Lightning.JsonConverters;
 using BTCPayServer.Lightning.LNDhub.JsonConverters;
+using NBitcoin;
 using Newtonsoft.Json;
 
 namespace BTCPayServer.Lightning.LNDhub.Models
@@ -9,24 +10,21 @@ namespace BTCPayServer.Lightning.LNDhub.Models
     {
         [JsonProperty("destination")]
         public string Destination { get; set; }
-        
-        [JsonProperty("description")]
-        public string Description { get; set; }
 
         [JsonProperty("description_hash")]
         public string DescriptionHash { get; set; }
-
-        [JsonProperty("payment_hash")]
-        [JsonConverter(typeof(LndHubBufferJsonConverter))]
-        public string PaymentHash { get; set; }
         
         [JsonProperty("payment_preimage")]
         [JsonConverter(typeof(LndHubBufferJsonConverter))]
-        public string PaymentPreimage { get; set; }
+        public uint256 PaymentPreimage { get; set; }
+
+        [JsonProperty("payment_hash")]
+        [JsonConverter(typeof(LndHubBufferJsonConverter))]
+        public uint256 PaymentHash { get; set; }
         
         [JsonProperty("payment_addr")]
         [JsonConverter(typeof(LndHubBufferJsonConverter))]
-        public string PaymentAddress { get; set; }
+        public uint256 PaymentAddress { get; set; }
         
         [JsonProperty("payment_error")]
         public string PaymentError { get; set; }

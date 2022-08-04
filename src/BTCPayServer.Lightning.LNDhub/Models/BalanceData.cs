@@ -5,13 +5,13 @@ namespace BTCPayServer.Lightning.LNDhub.Models
 {
     public class BalanceData
     {
-        [JsonProperty("btc")]
-        public BTCBalance BtcBalance { get; set; }
+        [JsonProperty(PropertyName = "BTC")]
+        public BtcBalance BTC { get; set; }
     }
 
-    public class BTCBalance
+    public class BtcBalance
     {
-        [JsonProperty("availableBalance")]
+        [JsonProperty(PropertyName = "AvailableBalance")]
         [JsonConverter(typeof(LndHubLightMoneyJsonConverter))]
         public LightMoney AvailableBalance { get; set; }
     }

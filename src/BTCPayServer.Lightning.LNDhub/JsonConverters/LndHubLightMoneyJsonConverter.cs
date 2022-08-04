@@ -1,5 +1,4 @@
 ﻿using System;
-using System.Globalization;
 using System.Reflection;
 using NBitcoin.JsonConverters;
 using Newtonsoft.Json;
@@ -37,7 +36,10 @@ namespace BTCPayServer.Lightning.LNDhub.JsonConverters
 
         public override void WriteJson(JsonWriter writer, object value, JsonSerializer serializer)
         {
-            writer.WriteValue(((LightMoney)value).ToUnit(LightMoneyUnit.Satoshi));
+            if (value != null)
+                writer.WriteValue((int)((LightMoney)value).ToUnit(LightMoneyUnit.Satoshi));
+            else
+                writer.WriteNull();
         }
     }
 }

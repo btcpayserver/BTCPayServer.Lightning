@@ -1,6 +1,6 @@
 using System;
-using System.ComponentModel;
 using BTCPayServer.Lightning.LNDhub.JsonConverters;
+using NBitcoin;
 using Newtonsoft.Json;
 
 namespace BTCPayServer.Lightning.LNDhub.Models
@@ -9,7 +9,10 @@ namespace BTCPayServer.Lightning.LNDhub.Models
     {
         [JsonProperty("r_hash")]
         [JsonConverter(typeof(LndHubBufferJsonConverter))]
-        public string Id { get; set; }
+        public uint256 Id { get; set; }
+    
+        [JsonProperty("type")]
+        public string Type { get => "user_invoice"; }
 
         [JsonProperty("description")]
         public string Description { get; set; }
@@ -22,6 +25,9 @@ namespace BTCPayServer.Lightning.LNDhub.Models
 
         [JsonProperty("payment_request")]
         public string PaymentRequest { get; set; }
+
+        [JsonProperty("pay_req")]
+        public string PayReq { get => PaymentRequest; }
 
         [JsonProperty("ispaid")]
         public bool IsPaid { get; set; }
@@ -38,6 +44,4 @@ namespace BTCPayServer.Lightning.LNDhub.Models
         [JsonConverter(typeof(NBitcoin.JsonConverters.DateTimeToUnixTimeConverter))]
         public DateTimeOffset? CreatedAt { get; set; }
     }
-
-
 }
