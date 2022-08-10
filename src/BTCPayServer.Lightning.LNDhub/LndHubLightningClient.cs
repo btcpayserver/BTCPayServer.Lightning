@@ -94,16 +94,15 @@ namespace BTCPayServer.Lightning.LndHub
             {
                 var pr = BOLT11PaymentRequest.Parse(bolt11, _network);
                 var payAmount = payParams?.Amount ?? pr.MinimumAmount;
-                var data = await _client.Pay(bolt11, payParams, cancellation);
-                var totalAmount = data.Decoded?.AmountMsat ?? data.AmountMsat;
-                var feeAmount = data.PaymentRoute?.FeeMsat ?? totalAmount - payAmount;
-                var response = new PayResponse(PayResult.Ok, new PayDetails
+                var response = await _client.Pay(bolt11, payParams, cancellation);
+                var totalAmount = response.Decoded?.Amount;
+                var feeAmount = response.PaymentRoute?.FeeMsat ?? totalAmount - payAmount;
+                
+                return new PayResponse(PayResult.Ok, new PayDetails
                 {
                     TotalAmount = totalAmount,
                     FeeAmount = feeAmount
                 });
-
-                return response;
             }
             catch (LndHubClient.LndHubApiException exception)
             {

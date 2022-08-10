@@ -92,7 +92,7 @@ namespace BTCPayServer.Lightning.LndHub
             return await Post<CreateInvoiceRequest, InvoiceData>("addinvoice", payload, cancellation);
         }
 
-        public async Task<PaymentData> Pay(string bolt11, PayInvoiceParams payParams, CancellationToken cancellation)
+        public async Task<PaymentResponse> Pay(string bolt11, PayInvoiceParams payParams, CancellationToken cancellation)
         {
             var payload = new PayInvoiceRequest
             {
@@ -102,7 +102,7 @@ namespace BTCPayServer.Lightning.LndHub
             if (payParams?.Amount != null)
                 payload.Amount = (long)payParams.Amount.ToUnit(LightMoneyUnit.Satoshi);
 
-            return await Post<PayInvoiceRequest, PaymentData>("payinvoice", payload, cancellation);
+            return await Post<PayInvoiceRequest, PaymentResponse>("payinvoice", payload, cancellation);
         }
 
         private async Task<TResponse> Get<TResponse>(string path, CancellationToken cancellation)
@@ -166,6 +166,17 @@ namespace BTCPayServer.Lightning.LndHub
                 return (TResponse)(object)new EmptyRequestModel();
             }
             var data = JsonConvert.DeserializeObject<TResponse>(str);
+            
+            // Handle edge case: LNDhub returns only the PaymentData in case of self-payment
+            if (path == "payinvoice" && data is PaymentResponse { Decoded: null })
+            {
+                var resp = new PaymentResponse
+                {
+                    PaymentError = "",
+                    Decoded = JsonConvert.DeserializeObject<PaymentData>(str)
+                };
+                return (TResponse)Convert.ChangeType(resp, typeof(TResponse));
+            }
 
             return data;
         }
@@ -203,26 +214,14 @@ namespace BTCPayServer.Lightning.LndHub
 
         public class LndHubApiException : Exception
         {
-            // https://github.com/BlueWallet/LndHub/blob/master/doc/Send-requirements.md#general-error-response
-            private enum ErrorCodes : int
-            {
-                BAD_AUTH = 1,
-                NOT_ENOUGH_BALANCE = 2,
-                BAD_PARTNER = 3,
-                INVALID_INVOICE = 4,
-                ROUTE_NOT_FOUND = 5,
-                GENERAL_SERVER_ERROR = 7,
-                LND_FAILURE = 7
-            }
-
-            private ErrorData Error { get; set; }
+            private ErrorResponse Error { get; set; }
 
             public override string Message => Error?.Message;
             public int ErrorCode => Error.Code;
-            public bool AuthenticationFailed => Error.Code == (int)ErrorCodes.BAD_AUTH;
+            public bool AuthenticationFailed => ErrorCode == 1;
             public LndHubApiException(string json)
             {
-                Error = JsonConvert.DeserializeObject<ErrorData>(json);
+                Error = JsonConvert.DeserializeObject<ErrorResponse>(json);
             }
         }
     }

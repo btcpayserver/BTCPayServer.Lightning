@@ -22,17 +22,11 @@ namespace BTCPayServer.Lightning.LNDhub.JsonConverters
             {
                 case JsonToken.Integer:
                 {
-                    var result = Utils.UnixTimeToDateTime((ulong)(long)reader.Value);
-                    if (objectType == typeof(DateTime))
-                        return result.UtcDateTime;
-                    break;
+                    return Utils.UnixTimeToDateTime((ulong)(long)reader.Value);
                 }
                 case JsonToken.String:
                 {
-                    var result = Utils.UnixTimeToDateTime(long.Parse((string)reader.Value));
-                    if (objectType == typeof(DateTime))
-                        return result.UtcDateTime;
-                    break;
+                    return Utils.UnixTimeToDateTime(long.Parse((string)reader.Value));
                 }
             }
             
