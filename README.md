@@ -58,12 +58,13 @@ LightningInvoice invoice = await client.CreateInvoice(10000, "CanCreateInvoice",
 
 `ILightningClient` is an interface which abstract the underlying implementation with a common interface.
 
-The `connectionString` encapsulates the necessary information BTCPay needs to connect to your lightning node, we currently support:
+The `connectionString` encapsulates the necessary information BTCPay needs to connect to your Lightning node, we currently support:
 
 * `clightning` via TCP or unix domain socket connection
 * `lightning charge` via HTTPS
 * `LND` via the REST proxy
 * `Eclair` via their new REST API
+* `LNbank` via REST API
 * `LNDhub` via their REST API
 
 #### Examples
@@ -76,12 +77,17 @@ The `connectionString` encapsulates the necessary information BTCPay needs to co
 * `type=charge;server=https://charge:8080/;api-token=myapitoken...`
 * `type=charge;server=https://charge:8080/;cookiefilepath=/path/to/cookie...`
 * `type=eclair;server=http://127.0.0.1:4570;password=eclairpass`
+* `type=eclair;server=http://127.0.0.1:4570;password=eclairpass;bitcoin-host=bitcoin.host;bitcoin-auth=btcpass`
 * `type=lnbank;server=http://lnbank:5000;api-token=myapitoken;allowinsecure=true`
 * `type=lnbank;server=https://mybtcpay.com/lnbank;api-token=myapitoken`
 * `type=lndhub;server=https://login:password@lndhub.io`
 
+##### Eclair notes
+
 Note that `bitcoin-host` and `bitcoin-auth` are optional, only useful if you want to call `ILightningClient.GetDepositAddress` on Eclair.
 We expect this won't be needed in the future.
+
+##### LND notes
 
 Note that the `certthumbprint` to connect to your LND node can be obtained through this command line:
 
@@ -92,6 +98,11 @@ openssl x509 -noout -fingerprint -sha256 -in /root/.lnd/tls.cert | sed -e 's/.*=
 You can omit `certthumprint` if you the certificate is trusted by your machine
 
 You can set `allowinsecure` to `true` if your LND REST server is using HTTP or HTTPS with an untrusted certificate which you don't know the `certthumprint`.
+
+##### LNDhub notes
+
+You can also use the `lndhub://` URL, which can be retrieved e.g. from the BlueWallet Export/Backup screen.
+The library turns it into the expected `type=lndhub` connection string format.
 
 ### Using implementation specific class
 
@@ -106,7 +117,7 @@ cd tests
 docker-compose up
 ```
 
-Then you can run and debug the tests with visual studio or visual studio code.
+Then you can run and debug the tests with Visual Studio or Visual Studio Code.
 
 If you want to use command line:
 
