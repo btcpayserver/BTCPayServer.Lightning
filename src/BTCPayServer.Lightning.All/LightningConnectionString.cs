@@ -654,6 +654,13 @@ namespace BTCPayServer.Lightning
                         builder.Append(";allowinsecure=true");
                     }
                     break;
+                case LightningConnectionType.LNDhub:
+                    builder.Append($";server={BaseUri}");
+                    if (AllowInsecure)
+                    {
+                        builder.Append(";allowinsecure=true");
+                    }
+                    break;
                 default:
                     throw new NotSupportedException(type);
             }

@@ -175,6 +175,11 @@ namespace BTCPayServer.Lightning.Tests
             var clientTypes = Tester.GetLightningClients().Select(l => l.Client.GetType()).ToArray();
             foreach (var connectionString in connectionStrings)
             {
+                // check connection string can be parsed and turned into a string again
+                LightningConnectionString.TryParse(connectionString, false, out var parsed);
+                Assert.NotNull(parsed.ToString());
+                
+                // apply connection string and create invoice   
                 var client = factory.Create(connectionString);
                 if (!clientTypes.Contains(client.GetType())) continue;
                 
