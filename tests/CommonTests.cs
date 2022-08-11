@@ -189,6 +189,30 @@ namespace BTCPayServer.Lightning.Tests
                 AssertUnpaid(retrievedInvoice);
             }
         }
+        
+        [Fact]
+        public void CanParseCustomConnectionString()
+        {
+            var network = Tester.Network;
+            ILightningClientFactory factory = new LightningClientFactory(network);
+                
+            var connectionStrings = new List<string>
+                {
+                    "lndhub://login:password@http://server.onion"
+                };
+            
+            var clientTypes = Tester.GetLightningClients().Select(l => l.Client.GetType()).ToArray();
+            foreach (var connectionString in connectionStrings)
+            {
+                // check connection string can be parsed and turned into a string again
+                LightningConnectionString.TryParse(connectionString, false, out var parsed);
+                Assert.NotNull(parsed.ToString());
+                
+                // apply connection string and check client
+                var client = factory.Create(connectionString);
+                Assert.Contains(client.GetType(), clientTypes);
+            }
+        }
 
         [Fact(Timeout = Timeout)]
         public async Task CanGetInfo()

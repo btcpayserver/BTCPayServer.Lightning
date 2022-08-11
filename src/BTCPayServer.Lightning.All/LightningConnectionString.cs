@@ -46,7 +46,7 @@ namespace BTCPayServer.Lightning
         }
         public static bool TryParse(string str, bool supportLegacy, out LightningConnectionString connectionString)
         {
-            return TryParse(str, supportLegacy, out connectionString, out var error);
+            return TryParse(str, supportLegacy, out connectionString, out _);
         }
         public static bool TryParse(string str, bool supportLegacy, out LightningConnectionString connectionString, out string error)
         {
@@ -62,17 +62,20 @@ namespace BTCPayServer.Lightning
                 }
                 return parsed;
             }
-            else
+
+            if (str.StartsWith("lndhub://"))
             {
-                return TryParseNewFormat(str, out connectionString, out error);
+                return TryParseLNDhub(str, out connectionString, out error);
             }
+            
+            return TryParseNewFormat(str, out connectionString, out error);
         }
 
         private static bool TryParseNewFormat(string str, out LightningConnectionString connectionString, out string error)
         {
             connectionString = null;
             error = null;
-            var parts = str.Split(new char[] { ';' }, StringSplitOptions.RemoveEmptyEntries);
+            var parts = str.Split(new [] { ';' }, StringSplitOptions.RemoveEmptyEntries);
             Dictionary<string, string> keyValues = new Dictionary<string, string>();
             foreach (var part in parts.Select(p => p.Trim()))
             {
@@ -527,6 +530,20 @@ namespace BTCPayServer.Lightning
             result.IsLegacy = true;
             connectionString = result;
             return true;
+        }
+
+        private static bool TryParseLNDhub(string str, out LightningConnectionString connectionString, out string error)
+        {
+            var parts = str.Replace("lndhub://", "").Split('@');
+            if (parts.Length != 2 || !Uri.TryCreate(parts[1].Replace("://", $"://{parts[0]}@"), UriKind.Absolute, out var uri))
+            {
+                connectionString = null;
+                error = "Invalid LNDhub URI";
+                return false;
+            }
+            
+            // transform into connection string format
+            return TryParseNewFormat($"type=lndhub;server={uri.AbsoluteUri}", out connectionString, out error);
         }
 
         public LightningConnectionString()
