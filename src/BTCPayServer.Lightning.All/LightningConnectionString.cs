@@ -295,6 +295,17 @@ namespace BTCPayServer.Lightning
                             securitySet = "certthumbprint";
                         }
 
+                        var certificateFilePath = Take(keyValues, "certfilepath");
+                        if (certificateFilePath != null)
+                        {
+                            if (securitySet != null) {
+                                error = $"The key 'certfilepath' conflict with '{securitySet}'";
+                                return false;
+                            }
+                            result.CertificateFilePath = certificateFilePath;
+                            securitySet = "certfilepath";
+                        }
+
                         var allowinsecureStr = Take(keyValues, "allowinsecure");
 
                         if (allowinsecureStr != null)
@@ -563,6 +574,7 @@ namespace BTCPayServer.Lightning
         }
         public byte[] Macaroon { get; set; }
         public string MacaroonFilePath { get; set; }
+        public string CertificateFilePath { get; set; }
         public byte[] CertificateThumbprint { get; set; }
         public bool AllowInsecure { get; set; }
         public string CookieFilePath { get; set; }
