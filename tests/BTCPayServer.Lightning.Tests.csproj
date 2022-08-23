@@ -4,7 +4,7 @@
     <TargetFramework>netcoreapp6.0</TargetFramework>
 
     <IsPackable>false</IsPackable>
-	  <LangVersion>8</LangVersion>
+	  <LangVersion>10</LangVersion>
   </PropertyGroup>
 
   <ItemGroup>

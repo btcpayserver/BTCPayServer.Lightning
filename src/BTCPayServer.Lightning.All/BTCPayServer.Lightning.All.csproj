@@ -4,7 +4,7 @@
 		<TargetFramework>net6.0</TargetFramework>
 		<RootNamespace>BTCPayServer.Lightning</RootNamespace>
 		<Version>1.4.0</Version>
-		<LangVersion>7.3</LangVersion>
+		<LangVersion>10</LangVersion>
 		<PackageId>BTCPayServer.Lightning.All</PackageId>
 		<Description>Client library for lightning network implementations to build Lightning Network Apps in C#.</Description>
 		<PackageProjectUrl>https://github.com/btcpayserver/BTCPayServer.Lightning</PackageProjectUrl>
