@@ -20,6 +20,7 @@ namespace BTCPayServer.Lightning.LND
         /// The SHA256 of the PEM certificate
         /// </summary>
         public byte[] CertificateThumbprint { get; set; }
+        public string CertificateFilePath { get; set; }
         public byte[] Macaroon { get; set; }
         public bool AllowInsecure { get; set; }
         public string MacaroonFilePath { get; set; }

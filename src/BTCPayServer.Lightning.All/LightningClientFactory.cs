@@ -64,6 +64,7 @@ namespace BTCPayServer.Lightning
                     Macaroon = connectionString.Macaroon,
                     MacaroonFilePath = connectionString.MacaroonFilePath,
                     CertificateThumbprint = connectionString.CertificateThumbprint,
+                    CertificateFilePath = connectionString.CertificateFilePath,
                     AllowInsecure = connectionString.AllowInsecure,
                 }, HttpClient), Network);
             }

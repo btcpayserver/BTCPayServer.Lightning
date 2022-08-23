@@ -74,6 +74,7 @@ The `connectionString` encapsulates the necessary information BTCPay needs to co
 * `type=lnd-rest;server=http://mylnd:8080/;macaroonfilepath=/root/.lnd/admin.macaroon;allowinsecure=true`
 * `type=lnd-rest;server=https://mylnd:8080/;macaroon=abef263adfe...`
 * `type=lnd-rest;server=https://mylnd:8080/;macaroon=abef263adfe...;certthumbprint=abef263adfe...`
+* `type=lnd-rest;server=https://mylnd:8080/;macaroonfilepath=/root/.lnd/admin.macaroon;certfilepath=/var/lib/lnd/tls.cert`
 * `type=charge;server=https://charge:8080/;api-token=myapitoken...`
 * `type=charge;server=https://charge:8080/;cookiefilepath=/path/to/cookie...`
 * `type=eclair;server=http://127.0.0.1:4570;password=eclairpass`
@@ -89,15 +90,21 @@ We expect this won't be needed in the future.
 
 ##### LND notes
 
-Note that the `certthumbprint` to connect to your LND node can be obtained through this command line:
+Unless the LND certificate is trusted by your machine you need to set the server authentication scheme for LND by specifying one of: `certthumbprint`, `certfilepath`, `allowinsecure=true`.
+
+`certfilepath` and `certthumbprint` are equivalent in terms of security but differ in their practical usage.
+`certfilepath` reads a file on your file system so unless you set up some kind of file syncing you can not use it for remote connections.
+The advantage is that if the certificate is updated (and synced in case of a remote machine) no more reconfiguration is required for RPC connections to continue to work.
+It is therefore the recommended option if you can use it.
+
+The `certthumbprint` to connect to your LND node can be obtained through this command line:
 
 ```bash
 openssl x509 -noout -fingerprint -sha256 -in /root/.lnd/tls.cert | sed -e 's/.*=//;s/://g'
 ```
 
-You can omit `certthumprint` if you the certificate is trusted by your machine
-
-You can set `allowinsecure` to `true` if your LND REST server is using HTTP or HTTPS with an untrusted certificate which you don't know the `certthumprint`.
+`allowinsecure=true` just blindly accepts any server connection and is therefore not secure unless used in tightly controlled environments.
+E.g. host is the same machine or is accessed over an encrypted tunnel, assuming no untrusted entities can bind the specified port.
 
 ##### LNDhub notes
 

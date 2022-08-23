@@ -97,6 +97,7 @@ namespace BTCPayServer.Lightning.LND
                 }
                 // If we do not allow insecure and want https and do not pin certificates, we don't need specific http handlers
                 else if (settings.CertificateThumbprint == null
+                         && settings.CertificateFilePath == null
                          && settings.Uri.Scheme == "https")
                 {
                     return defaultHttpClient;
@@ -116,6 +117,16 @@ namespace BTCPayServer.Lightning.LND
                     var actualCert = chain.ChainElements[chain.ChainElements.Count - 1].Certificate;
                     var hash = GetHash(actualCert);
                     return hash.SequenceEqual(expectedThumbprint);
+                };
+            } else if (settings.CertificateFilePath != null) {
+                handler.ServerCertificateCustomValidationCallback = (request, cert, chain, errors) =>
+                {
+                    if (cert == null) throw new ArgumentNullException("cert");
+                    var expectedCollection = new X509Certificate2Collection();
+                    expectedCollection.ImportFromPemFile(settings.CertificateFilePath);
+                    if (!expectedCollection.Contains(cert))
+                    throw new InvalidOperationException("The configured certificate collection does not contain the server-supplied certificate");
+                    return true;
                 };
             }
 
