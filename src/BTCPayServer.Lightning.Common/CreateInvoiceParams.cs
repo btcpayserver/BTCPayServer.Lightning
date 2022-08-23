@@ -15,8 +15,6 @@ namespace BTCPayServer.Lightning
                 throw new ArgumentNullException(nameof(amount));
             if (description == null)
                 throw new ArgumentNullException(nameof(description));
-            if (expiry == null)
-                throw new ArgumentNullException(nameof(expiry));
 
             Amount = amount;
             Description = description;
@@ -28,8 +26,6 @@ namespace BTCPayServer.Lightning
                 throw new ArgumentNullException(nameof(amount));
             if (descriptionHash == null)
                 throw new ArgumentNullException(nameof(descriptionHash));
-            if (expiry == null)
-                throw new ArgumentNullException(nameof(expiry));
 
             Amount = amount;
             DescriptionHash = descriptionHash;
