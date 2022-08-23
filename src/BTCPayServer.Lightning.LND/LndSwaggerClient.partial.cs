@@ -124,9 +124,7 @@ namespace BTCPayServer.Lightning.LND
                     if (cert == null) throw new ArgumentNullException("cert");
                     var expectedCollection = new X509Certificate2Collection();
                     expectedCollection.ImportFromPemFile(settings.CertificateFilePath);
-                    if (!expectedCollection.Contains(cert))
-                    throw new InvalidOperationException("The configured certificate collection does not contain the server-supplied certificate");
-                    return true;
+                    return expectedCollection.Contains(cert);
                 };
             }
 
