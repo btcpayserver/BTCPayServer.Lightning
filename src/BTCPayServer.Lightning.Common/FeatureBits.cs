@@ -3,7 +3,7 @@ using System;
 namespace BTCPayServer.Lightning
 {
     [Flags]
-    public enum FeatureBits
+    public enum FeatureBits : long
     {
         None = 0,
 
@@ -46,6 +46,26 @@ namespace BTCPayServer.Lightning
         /// of a payment supports settlement of an invoice with more than one
         /// HTLC.
         /// </summary>
-        MPPOptional = 1 << 17
+        MPPOptional = 1 << 17,
+
+        /// <summary>
+        // AMPRequired is a required feature bit that signals that the receiver
+        // of a payment supports accepts spontaneous payments
+        /// </summary>
+        AMPRequired = 1 << 30,
+        
+        /// <summary>
+        /// PaymentMetadataRequired is a required bit that denotes that if an
+        /// invoice contains metadata, it must be passed along with the payment
+        /// htlc(s).
+        /// </summary>
+        PaymentMetadataRequired = (long) 1 << 48,
+
+        /// <summary>
+        // PaymentMetadataOptional is an optional bit that denotes that if an
+        // invoice contains metadata, it may be passed along with the payment
+        // htlc(s).
+        /// </summary>
+        PaymentMetadataOptional = (long) 1 << 49
     }
 }
