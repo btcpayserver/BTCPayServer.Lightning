@@ -68,7 +68,7 @@ namespace BTCPayServer.Lightning.Tests
         public async Task CanCreateInvoiceWithDescriptionHash()
         {
             var hashToUse =
-                new uint256(new SHA256Managed().ComputeHash(Encoding.UTF8.GetBytes("CanCreateInvoiceWithDescriptionHash")));
+                new uint256(SHA256.Create().ComputeHash(Encoding.UTF8.GetBytes("CanCreateInvoiceWithDescriptionHash")));
 
             async Task<LightningInvoice> CreateWithHash(ILightningClient lightningClient)
             {

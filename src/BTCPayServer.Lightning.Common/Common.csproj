@@ -1,0 +1,5 @@
+<Project>
+    <PropertyGroup Condition=" '$(TargetFramework)' == 'netstandard2.0' ">
+      <DefineConstants>$(DefineConstants);NULLABLE_SHIMS;NO_PEM_IMPORT</DefineConstants>
+    </PropertyGroup>
+</Project>

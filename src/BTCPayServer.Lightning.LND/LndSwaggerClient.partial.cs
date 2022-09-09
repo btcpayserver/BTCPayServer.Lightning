@@ -119,6 +119,7 @@ namespace BTCPayServer.Lightning.LND
                     return hash.SequenceEqual(expectedThumbprint);
                 };
             } else if (settings.CertificateFilePath != null) {
+#if !NO_PEM_IMPORT
                 handler.ServerCertificateCustomValidationCallback = (request, cert, chain, errors) =>
                 {
                     if (cert == null) throw new ArgumentNullException("cert");
@@ -126,6 +127,9 @@ namespace BTCPayServer.Lightning.LND
                     expectedCollection.ImportFromPemFile(settings.CertificateFilePath);
                     return expectedCollection.Contains(cert);
                 };
+#else
+                throw new NotSupportedException("CertificateFilePath is supported only from .NET6.0");
+#endif
             }
 
             if (settings.AllowInsecure)
