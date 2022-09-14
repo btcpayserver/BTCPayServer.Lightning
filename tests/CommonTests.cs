@@ -47,16 +47,22 @@ namespace BTCPayServer.Lightning.Tests
             foreach (var client in Tester.GetLightningClients())
             {
                 Logs.Tester.LogInformation($"{client.Name}: {nameof(CanCreateInvoice)}");
+                var expiry = TimeSpan.FromMinutes(5);
+                var beyondExpiry = client.Client is LndHubLightningClient
+                    ? DateTimeOffset.UtcNow + TimeSpan.FromDays(1) // LNDhub has a fixed expiry of 1 day
+                    : DateTimeOffset.UtcNow + TimeSpan.FromMinutes(6);
                 var expectedAmount = client.Client is LndHubLightningClient 
                     ? LightMoney.Satoshis(amount/1000) // LNDhub accounts with sats instead of msat
                     : LightMoney.MilliSatoshis(amount);
-                var createdInvoice = await client.Client.CreateInvoice(amount, "CanCreateInvoice", TimeSpan.FromMinutes(5));
+                var createdInvoice = await client.Client.CreateInvoice(amount, "CanCreateInvoice", expiry);
                 var retrievedInvoice = await client.Client.GetInvoice(createdInvoice.Id);
                 
                 AssertUnpaid(createdInvoice, expectedAmount);
                 Assert.True(createdInvoice.ExpiresAt > DateTimeOffset.UtcNow);
+                Assert.True(createdInvoice.ExpiresAt < beyondExpiry);
                 AssertUnpaid(retrievedInvoice, expectedAmount);
                 Assert.True(retrievedInvoice.ExpiresAt > DateTimeOffset.UtcNow);
+                Assert.True(retrievedInvoice.ExpiresAt < beyondExpiry);
                 retrievedInvoice = await client.Client.GetInvoice("c4180c13ae6b43e261c4c6f43c1b6760cfc80ba5a06643f383ece30d7316e4a6");
                 Assert.Null(retrievedInvoice);
                 retrievedInvoice = await client.Client.GetInvoice("lol");
