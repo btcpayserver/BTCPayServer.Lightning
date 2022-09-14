@@ -553,7 +553,7 @@ retry:
                     : new LnrpcSendRequest
                     {
                         Dest_string = payParams.Destination?.ToString(),
-                        Payment_hash_string = payParams.PaymentHash?.ToString(),
+                        Payment_hash = payParams.PaymentHash.ToBytes(),
                         Dest_custom_records = payParams.CustomRecords
                     };
                 

@@ -271,10 +271,10 @@ namespace BTCPayServer.Lightning.CLightning
         {
             try
             {
-                if (bolt11 == null)
+                if (bolt11 == null && payParams.Destination is null)
                     throw new ArgumentNullException(nameof(bolt11));
 
-                bolt11 = bolt11.Replace("lightning:", "").Replace("LIGHTNING:", "");
+                bolt11 = bolt11?.Replace("lightning:", "").Replace("LIGHTNING:", "");
                 var explicitAmount = payParams?.Amount;
                 var feePercent = payParams?.MaxFeePercent;
                 if (feePercent is null && payParams?.MaxFeeFlat is Money m)
@@ -283,7 +283,8 @@ namespace BTCPayServer.Lightning.CLightning
                     var amountSat = (explicitAmount ?? pr.MinimumAmount).ToUnit(LightMoneyUnit.Satoshi);
                     feePercent = (double)(m.Satoshi / amountSat) * 100;
                 }
-                var response = await SendCommandAsync<CLightningPayResponse>("pay", new object[] { bolt11, explicitAmount?.MilliSatoshi, null, null, feePercent }, false, cancellation: cancellation);
+                
+                var response = await SendCommandAsync<CLightningPayResponse>(bolt11 == null?"keysend":"pay", new object[] { bolt11 is null?payParams.Destination.ToHex(): bolt11, explicitAmount?.MilliSatoshi, null, null, feePercent }, false, cancellation: cancellation);
 
                 return new PayResponse(PayResult.Ok, new PayDetails
                 {
@@ -318,9 +319,9 @@ namespace BTCPayServer.Lightning.CLightning
             return await PayAsync(bolt11, null, cancellation);
         }
 
-        public Task<PayResponse> Pay(PayInvoiceParams payParams, CancellationToken cancellation = default)
+        public async Task<PayResponse> Pay(PayInvoiceParams payParams, CancellationToken cancellation = default)
         {
-            throw new NotSupportedException();
+            return await PayAsync(null, payParams, cancellation);
         }
 
         static NBitcoin.DataEncoders.DataEncoder InvoiceIdEncoder = NBitcoin.DataEncoders.Encoders.Base58;
