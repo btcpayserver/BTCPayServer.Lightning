@@ -330,7 +330,7 @@ namespace BTCPayServer.Lightning.CLightning
         {
             var amount = req.Amount;
             var msat = amount == LightMoney.Zero ? "any" : amount.MilliSatoshi.ToString();
-            var expiry = Math.Max(0, (int)req.Expiry.TotalMilliseconds);
+            var expiry = Math.Max(0, (int)req.Expiry.TotalSeconds);
             var id = InvoiceIdEncoder.EncodeData(RandomUtils.GetBytes(20));
             var cmd = req.DescriptionHash == null ? "invoice" : "invoicewithdescriptionhash";
             var opts = req.DescriptionHash == null
