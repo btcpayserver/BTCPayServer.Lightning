@@ -8,6 +8,7 @@ using System.Threading;
 using System.Threading.Channels;
 using System.Threading.Tasks;
 using NBitcoin;
+using NBitcoin.DataEncoders;
 using Newtonsoft.Json.Linq;
 
 namespace BTCPayServer.Lightning.LND
@@ -552,8 +553,8 @@ retry:
                     // keysend payment
                     : new LnrpcSendRequest
                     {
-                        Dest_string = payParams.Destination?.ToString(),
-                        Payment_hash = payParams.PaymentHash.ToBytes(),
+                        Dest = Encoders.Base64.EncodeData(payParams.Destination.ToBytes()),
+                        Payment_hash = Encoders.Base64.EncodeData(payParams.PaymentHash.ToBytes()),
                         Dest_custom_records = payParams.CustomRecords
                     };
                 

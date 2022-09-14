@@ -8667,12 +8667,12 @@ namespace BTCPayServer.Lightning.LND
     [System.CodeDom.Compiler.GeneratedCode("NJsonSchema", "9.9.11.0 (Newtonsoft.Json v9.0.0.0)")]
     public partial class LnrpcSendRequest : System.ComponentModel.INotifyPropertyChanged
     {
-        private byte[] _dest;
+        private string _dest;
         private string _dest_string;
         private string _amt;
         private string _amt_msat;
         private LnrpcFeeLimit _fee_limit;
-        private byte[] _payment_hash;
+        private string _payment_hash;
         private string _payment_hash_string;
         private string _payment_request;
         private int? _final_cltv_delta;
@@ -8680,7 +8680,7 @@ namespace BTCPayServer.Lightning.LND
         private Dictionary<ulong,string> _dest_custom_records;
 
         [Newtonsoft.Json.JsonProperty("dest", Required = Newtonsoft.Json.Required.Default, NullValueHandling = Newtonsoft.Json.NullValueHandling.Ignore)]
-        public byte[] Dest
+        public string Dest
         {
             get { return _dest; }
             set
@@ -8753,7 +8753,7 @@ namespace BTCPayServer.Lightning.LND
         }
 
         [Newtonsoft.Json.JsonProperty("payment_hash", Required = Newtonsoft.Json.Required.Default, NullValueHandling = Newtonsoft.Json.NullValueHandling.Ignore)]
-        public byte[] Payment_hash
+        public string Payment_hash
         {
             get { return _payment_hash; }
             set

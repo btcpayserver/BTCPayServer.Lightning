@@ -356,15 +356,12 @@ namespace BTCPayServer.Lightning.Tests
                 var amount = LightMoney.Satoshis(21);
                 var preimage = new byte[32];
                 new Random().NextBytes(preimage);
-                var paymentHash = new uint256(SHA256.Create().ComputeHash(preimage));
-                var paymentHash2 = new uint256(Hashes.SHA256(preimage));
-                    
+                var paymentHash = new uint256(Hashes.SHA256(preimage));
+
                 // https://github.com/satoshisstream/satoshis.stream/blob/main/TLV_registry.md
                 var tlvData = new Dictionary<ulong,string>
                 {
-                    {5482373484,  Encoders.Base64.EncodeData(preimage)},
-                    // { 696969, Encoders.Base64.EncodeData(Encoding.Default.GetBytes("123")) },
-                    // { 112111100, Encoders.Base64.EncodeData(Encoding.Default.GetBytes("wal_hrDHs0RBEM576")) }
+                    {5482373484, Encoders.Base64.EncodeData(preimage)}
                 };
                 var param = new PayInvoiceParams
                 {
@@ -374,15 +371,11 @@ namespace BTCPayServer.Lightning.Tests
                     CustomRecords = tlvData
                 };
 
-                PayResponse response;
                 switch (src)
                 {
-                    case CLightningClient _:
-                        response = await src.Pay(param);
-                        Assert.Equal(PayResult.Ok, response.Result);
-                        break;
                     case LndClient _:
-                         response = await src.Pay(param);
+                    case CLightningClient _:
+                        var response = await src.Pay(param);
                         Assert.Equal(PayResult.Ok, response.Result);
                         break;
 
