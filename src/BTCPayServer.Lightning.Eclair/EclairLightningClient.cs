@@ -249,6 +249,11 @@ namespace BTCPayServer.Lightning.Eclair
             return await Pay(bolt11, null, cancellation);
         }
 
+        public Task<PayResponse> Pay(PayInvoiceParams payParams, CancellationToken cancellation = default)
+        {
+            throw new NotImplementedException();
+        }
+
         public async Task<OpenChannelResponse> OpenChannel(OpenChannelRequest openChannelRequest,
             CancellationToken cancellation = default)
         {

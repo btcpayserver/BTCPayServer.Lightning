@@ -112,6 +112,11 @@ namespace BTCPayServer.Lightning.LndHub
             }
         }
 
+        public Task<PayResponse> Pay(PayInvoiceParams payParams, CancellationToken cancellation = default)
+        {
+            throw new NotSupportedException();
+        }
+
         async Task<ILightningInvoiceListener> ILightningClient.Listen(CancellationToken cancellation)
         {
             return await _client.CreateInvoiceSession(cancellation);

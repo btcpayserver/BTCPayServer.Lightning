@@ -216,6 +216,11 @@ namespace BTCPayServer.Lightning.Charge
             throw new NotSupportedException();
         }
 
+        Task<PayResponse> ILightningClient.Pay(PayInvoiceParams payParams, CancellationToken cancellation)
+        {
+            throw new NotSupportedException();
+        }
+
         Task<OpenChannelResponse> ILightningClient.OpenChannel(OpenChannelRequest openChannelRequest, CancellationToken cancellation)
         {
             throw new NotSupportedException();

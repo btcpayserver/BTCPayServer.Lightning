@@ -318,6 +318,11 @@ namespace BTCPayServer.Lightning.CLightning
             return await PayAsync(bolt11, null, cancellation);
         }
 
+        public Task<PayResponse> Pay(PayInvoiceParams payParams, CancellationToken cancellation = default)
+        {
+            throw new NotSupportedException();
+        }
+
         static NBitcoin.DataEncoders.DataEncoder InvoiceIdEncoder = NBitcoin.DataEncoders.Encoders.Base58;
 
         async Task<LightningInvoice> ILightningClient.CreateInvoice(LightMoney amount, string description, TimeSpan expiry, CancellationToken cancellation)

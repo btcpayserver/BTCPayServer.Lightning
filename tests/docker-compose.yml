@@ -129,6 +129,8 @@ services:
         trickledelay=1000
         no-rest-tls=1
         no-macaroons=1
+        accept-amp=true
+        accept-keysend=true
     ports:
       - "32736:8080"
     expose:
@@ -162,6 +164,8 @@ services:
         trickledelay=1000
         no-rest-tls=1
         no-macaroons=1
+        accept-amp=true
+        accept-keysend=true
     ports:
       - "42802:8080"
     expose:

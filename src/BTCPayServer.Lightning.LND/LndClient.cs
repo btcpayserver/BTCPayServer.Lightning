@@ -517,21 +517,14 @@ namespace BTCPayServer.Lightning.LND
                 CreatedAt = DateTimeOffset.FromUnixTimeSeconds(ConvertInv.ToInt64(resp.Creation_date))
             };
 
-            switch (resp.Status)
+            payment.Status = resp.Status switch
             {
-                case "IN_FLIGHT":
-                    payment.Status = LightningPaymentStatus.Pending;
-                    break;
-                case "SUCCEEDED":
-                    payment.Status = LightningPaymentStatus.Complete;
-                    break;
-                case "FAILED":
-                    payment.Status = LightningPaymentStatus.Failed;
-                    break;
-                case "UNKNOWN":
-                    payment.Status = LightningPaymentStatus.Unknown;
-                    break;
-            }
+                "IN_FLIGHT" => LightningPaymentStatus.Pending,
+                "SUCCEEDED" => LightningPaymentStatus.Complete,
+                "FAILED" => LightningPaymentStatus.Failed,
+                "UNKNOWN" => LightningPaymentStatus.Unknown,
+                _ => payment.Status
+            };
 
             return payment;
         }
@@ -550,7 +543,20 @@ retry:
             var retryCount = 0;
             try
             {
-                var req = new LnrpcSendRequest { Payment_request = bolt11 };
+                var req = !string.IsNullOrEmpty(bolt11)
+                    // regular payment request
+                    ? new LnrpcSendRequest
+                    {
+                        Payment_request = bolt11
+                    }
+                    // keysend payment
+                    : new LnrpcSendRequest
+                    {
+                        Dest_string = payParams.Destination?.ToString(),
+                        Payment_hash_string = payParams.PaymentHash?.ToString(),
+                        Dest_custom_records = payParams.CustomRecords
+                    };
+                
                 if (payParams?.MaxFeePercent > 0)
                 {
                     req.Fee_limit ??= new LnrpcFeeLimit();
@@ -629,6 +635,11 @@ retry:
         async Task<PayResponse> ILightningClient.Pay(string bolt11, CancellationToken cancellation)
         {
             return await PayAsync(bolt11, null, cancellation);
+        }
+
+        async Task<PayResponse> ILightningClient.Pay(PayInvoiceParams payParams, CancellationToken cancellation)
+        {
+            return await PayAsync(null, payParams, cancellation);
         }
 
         //TODO: There is a bug here somewhere where we do not detect "requires funding channel message"
