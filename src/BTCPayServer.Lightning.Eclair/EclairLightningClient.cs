@@ -251,7 +251,7 @@ namespace BTCPayServer.Lightning.Eclair
 
         public Task<PayResponse> Pay(PayInvoiceParams payParams, CancellationToken cancellation = default)
         {
-            throw new NotImplementedException();
+            throw new NotSupportedException("Eclair does not support keysend payments");
         }
 
         public async Task<OpenChannelResponse> OpenChannel(OpenChannelRequest openChannelRequest,
