@@ -199,6 +199,11 @@ namespace BTCPayServer.Lightning.Eclair
             return new LightningNodeBalance(onchain, offchain);
         }
 
+        public async Task<PayResponse> Pay(string bolt11, CancellationToken cancellation = default)
+        {
+            return await Pay(bolt11, null, cancellation);
+        }
+
         public async Task<PayResponse> Pay(string bolt11, PayInvoiceParams payParams, CancellationToken cancellation = default)
         {
             try
@@ -207,7 +212,7 @@ namespace BTCPayServer.Lightning.Eclair
                 {
                     Invoice = bolt11,
                     AmountMsat = payParams?.Amount?.MilliSatoshi,
-                    MaxFeePct = payParams?.MaxFeePercent != null ? (int)Math.Round(payParams.MaxFeePercent.Value) : (int?)null,
+                    MaxFeePct = payParams?.MaxFeePercent != null ? (int)Math.Round(payParams.MaxFeePercent.Value) : null,
                     MaxFeeFlatSat = payParams?.MaxFeeFlat?.Satoshi
                 };
                 var uuid = await _eclairClient.PayInvoice(req, cancellation);
@@ -244,14 +249,52 @@ namespace BTCPayServer.Lightning.Eclair
             return new PayResponse(PayResult.CouldNotFindRoute);
         }
 
-        public async Task<PayResponse> Pay(string bolt11, CancellationToken cancellation = default)
+        public async Task<PayResponse> Pay(PayInvoiceParams payParams, CancellationToken cancellation = default)
         {
-            return await Pay(bolt11, null, cancellation);
-        }
+            try
+            {
+                var paymentHash = payParams.PaymentHash.ToString();
+                var req = new SendToNodeRequest
+                {
+                    NodeId = payParams.Destination.ToString(),
+                    AmountMsat = payParams.Amount?.MilliSatoshi,
+                    PaymentHash = paymentHash,
+                    MaxFeePct = payParams.MaxFeePercent != null ? (int)Math.Round(payParams.MaxFeePercent.Value) : null,
+                    MaxFeeFlatSat = payParams.MaxFeeFlat?.Satoshi,
 
-        public Task<PayResponse> Pay(PayInvoiceParams payParams, CancellationToken cancellation = default)
-        {
-            throw new NotSupportedException("Eclair does not support keysend payments");
+                };
+                var uuid = await _eclairClient.SendToNode(req, cancellation);
+                while (!cancellation.IsCancellationRequested)
+                {
+                    var status = await _eclairClient.GetSentInfo(paymentHash, uuid, cancellation);
+                    if (!status.Any())
+                    {
+                        continue;
+                    }
+
+                    var sentInfo = status.First();
+                    switch (sentInfo.Status.type)
+                    {
+                        case "sent":
+                            return new PayResponse(PayResult.Ok, new PayDetails
+                            {
+                                TotalAmount = sentInfo.Amount,
+                                FeeAmount = sentInfo.FeesPaid
+                            });
+                        case "failed":
+                            return new PayResponse(PayResult.CouldNotFindRoute);
+                        case "pending":
+                            await Task.Delay(200, cancellation);
+                            break;
+                    }
+                }
+            }
+            catch (EclairClient.EclairApiException exception)
+            {
+                return new PayResponse(PayResult.Error, exception.Message);
+            }
+
+            return new PayResponse(PayResult.CouldNotFindRoute);
         }
 
         public async Task<OpenChannelResponse> OpenChannel(OpenChannelRequest openChannelRequest,
