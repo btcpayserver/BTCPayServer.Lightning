@@ -340,6 +340,63 @@ namespace BTCPayServer.Lightning.Tests
             }
         }
 
+        [Fact(Timeout = Timeout)]
+        public async Task CanHandleKeysend()
+        {
+            await WaitServersAreUp();
+            foreach (var test in Tester.GetTestedPairs())
+            {
+                await EnsureConnectedToDestinations(test);
+                var src = test.Customer;
+                var dest = test.Merchant;
+
+                var info = await dest.GetInfo();
+                var node = info.NodeInfoList.First();
+                
+                var amount = LightMoney.Satoshis(21);
+                var preimage = new byte[32];
+                new Random().NextBytes(preimage);
+                var paymentHash = new uint256(Hashes.SHA256(preimage));
+
+                // https://github.com/satoshisstream/satoshis.stream/blob/main/TLV_registry.md
+                var tlvData = new Dictionary<ulong,string>
+                {
+                    { 5482373484, Encoders.Base64.EncodeData(preimage) },
+                    { 696969, Encoders.Base64.EncodeData(Encoding.Default.GetBytes("123456")) },
+                    { 112111100, Encoders.Base64.EncodeData(Encoding.Default.GetBytes("wal_hrDHs0RBEM576")) }
+                };
+                var param = new PayInvoiceParams
+                {
+                    Destination = node.NodeId,
+                    PaymentHash = paymentHash,
+                    Amount = amount,
+                    CustomRecords = tlvData
+                };
+
+                switch (src)
+                {
+                    case LndClient _:
+                    case CLightningClient _:
+                        var response = await src.Pay(param);
+                        Assert.Equal(PayResult.Ok, response.Result);
+                        break;
+                    
+                    case EclairLightningClient _:
+                        var resp = await src.Pay(param);
+                        // TODO: Fix route finding issue for Eclair
+                        Assert.IsType<PayResult>(resp.Result);
+                        break;
+
+                    default:
+                        await Assert.ThrowsAsync<NotSupportedException>(async () =>
+                        {
+                            await src.Pay(param);
+                        });
+                        break;
+                }
+            }
+        }
+
         private async Task WaitServersAreUp()
         {
             var clients = Tester.GetLightningClients().Select(c => WaitServersAreUp(c.Name, c.Client)).ToArray();

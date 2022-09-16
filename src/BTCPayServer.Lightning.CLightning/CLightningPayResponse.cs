@@ -12,7 +12,10 @@ namespace BTCPayServer.Lightning.CLightning
 
         [JsonConverter(typeof(NBitcoin.JsonConverters.UInt256JsonConverter))]
         [JsonProperty("payment_hash")]
-        public uint256 PaymentHash { get; set; }
+        public uint256 PaymentHash { get; set; }        
+        [JsonConverter(typeof(NBitcoin.JsonConverters.UInt256JsonConverter))]
+        [JsonProperty("payment_preimage")]
+        public uint256 PaymentPreImage { get; set; }
 
         [JsonProperty("msatoshi")]
         [JsonConverter(typeof(JsonConverters.LightMoneyJsonConverter))]

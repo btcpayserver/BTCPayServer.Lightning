@@ -186,17 +186,9 @@ namespace BTCPayServer.Lightning.Eclair
             return await SendCommandAsync<PayInvoiceRequest, string>("payinvoice", payInvoiceRequest, cts);
         }
 
-        public async Task<string> SendToNode(PubKey nodeId, int amountMsat, string paymentHash, int? maxAttempts = null,
-            CancellationToken cts = default)
+        public async Task<string> SendToNode(SendToNodeRequest sendToNodeRequest, CancellationToken cts = default)
         {
-            return await SendCommandAsync<SendToNodeRequest, string>("sendtonode",
-                new SendToNodeRequest()
-                {
-                    NodeId = nodeId.ToString(),
-                    AmountMsat = amountMsat,
-                    PaymentHash = paymentHash,
-                    MaxAttempts = maxAttempts
-                }, cts);
+            return await SendCommandAsync<SendToNodeRequest, string>("sendtonode", sendToNodeRequest, cts);
         }
 
         public Task<BitcoinAddress> GetNewAddress(CancellationToken cancellationToken = default)
@@ -208,7 +200,7 @@ namespace BTCPayServer.Lightning.Eclair
             CancellationToken cts = default)
         {
             return await SendCommandAsync<GetSentInfoRequest, List<GetSentInfoResponse>>("getsentinfo",
-                new GetSentInfoRequest()
+                new GetSentInfoRequest
                 {
                     PaymentHash = paymentHash,
                     Id = id

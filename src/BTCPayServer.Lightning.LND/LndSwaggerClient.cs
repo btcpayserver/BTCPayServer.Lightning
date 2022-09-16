@@ -5,6 +5,7 @@
 //----------------------
 
 using System;
+using System.Collections.Generic;
 using Newtonsoft.Json.Linq;
 using System.Diagnostics;
 using NBitcoin;
@@ -5771,6 +5772,7 @@ namespace BTCPayServer.Lightning.LND
         private string _fallback_addr;
         private string _cltv_expiry;
         private System.Collections.ObjectModel.ObservableCollection<LnrpcRouteHint> _route_hints;
+        private System.Collections.ObjectModel.ObservableCollection<LnrpcInvoiceHTLC> _htlcs;
         private bool? _private;
         private string _amountPaid;
         [Newtonsoft.Json.JsonProperty("state")]
@@ -6013,6 +6015,23 @@ namespace BTCPayServer.Lightning.LND
                 if (_route_hints != value)
                 {
                     _route_hints = value;
+                    RaisePropertyChanged();
+                }
+            }
+        }
+
+        /// <summary>*
+        /// Route hints that can each be individually used to assist in reaching the
+        /// invoice's destination.</summary>
+        [Newtonsoft.Json.JsonProperty("htlcs", Required = Newtonsoft.Json.Required.Default, NullValueHandling = Newtonsoft.Json.NullValueHandling.Ignore)]
+        public System.Collections.ObjectModel.ObservableCollection<LnrpcInvoiceHTLC> Htlcs
+        {
+            get { return _htlcs; }
+            set
+            {
+                if (_htlcs != value)
+                {
+                    _htlcs = value;
                     RaisePropertyChanged();
                 }
             }
@@ -6279,6 +6298,190 @@ namespace BTCPayServer.Lightning.LND
         public static LnrpcListInvoiceResponse FromJson(string data)
         {
             return Newtonsoft.Json.JsonConvert.DeserializeObject<LnrpcListInvoiceResponse>(data);
+        }
+
+        protected virtual void RaisePropertyChanged([System.Runtime.CompilerServices.CallerMemberName] string propertyName = null)
+        {
+            var handler = PropertyChanged;
+            if (handler != null)
+                handler(this, new System.ComponentModel.PropertyChangedEventArgs(propertyName));
+        }
+    }
+    
+    [System.CodeDom.Compiler.GeneratedCode("NJsonSchema", "9.9.11.0 (Newtonsoft.Json v9.0.0.0)")]
+    public partial class LnrpcInvoiceHTLC : System.ComponentModel.INotifyPropertyChanged
+    {
+        private string _chan_id;
+        private string _htlc_index;
+        private string _amt_msat;
+        private int? _accept_height;
+        private string _accept_time;
+        private string _resolve_time;
+        private int? _expiry_height;
+        private string _mpp_total_amt_msat;
+        private string _state;
+        private Dictionary<ulong, string> _custom_records;
+
+        /// <summary>*
+        /// Short channel id over which the htlc was received.</summary>
+        [Newtonsoft.Json.JsonProperty("chan_id", Required = Newtonsoft.Json.Required.Default, NullValueHandling = Newtonsoft.Json.NullValueHandling.Ignore)]
+        public string Chan_id
+        {
+            get { return _chan_id; }
+            set
+            {
+                if (_chan_id != value)
+                {
+                    _chan_id = value;
+                    RaisePropertyChanged();
+                }
+            }
+        }
+
+        /// <summary>Index identifying the htlc on the channel.</summary>
+        [Newtonsoft.Json.JsonProperty("htlc_index", Required = Newtonsoft.Json.Required.Default, NullValueHandling = Newtonsoft.Json.NullValueHandling.Ignore)]
+        public string Htlc_index
+        {
+            get { return _htlc_index; }
+            set
+            {
+                if (_htlc_index != value)
+                {
+                    _htlc_index = value;
+                    RaisePropertyChanged();
+                }
+            }
+        }
+
+        /// <summary>The amount of the htlc in msat.</summary>
+        [Newtonsoft.Json.JsonProperty("amt_msat", Required = Newtonsoft.Json.Required.Default, NullValueHandling = Newtonsoft.Json.NullValueHandling.Ignore)]
+        public string Amt_msat
+        {
+            get { return _amt_msat; }
+            set
+            {
+                if (_amt_msat != value)
+                {
+                    _amt_msat = value;
+                    RaisePropertyChanged();
+                }
+            }
+        }
+
+        /// <summary>Block height at which this htlc was accepted.</summary>
+        [Newtonsoft.Json.JsonProperty("accept_height", Required = Newtonsoft.Json.Required.Default, NullValueHandling = Newtonsoft.Json.NullValueHandling.Ignore)]
+        public int? Accept_height
+        {
+            get { return _accept_height; }
+            set
+            {
+                if (_accept_height != value)
+                {
+                    _accept_height = value;
+                    RaisePropertyChanged();
+                }
+            }
+        }
+
+        /// <summary>Time at which this htlc was accepted.</summary>
+        [Newtonsoft.Json.JsonProperty("accept_time", Required = Newtonsoft.Json.Required.Default, NullValueHandling = Newtonsoft.Json.NullValueHandling.Ignore)]
+        public string Accept_time
+        {
+            get { return _accept_time; }
+            set
+            {
+                if (_accept_time != value)
+                {
+                    _accept_time = value;
+                    RaisePropertyChanged();
+                }
+            }
+        }
+
+        /// <summary>Time at which this htlc was settled or canceled.</summary>
+        [Newtonsoft.Json.JsonProperty("resolve_time", Required = Newtonsoft.Json.Required.Default, NullValueHandling = Newtonsoft.Json.NullValueHandling.Ignore)]
+        public string Resolve_time
+        {
+            get { return _resolve_time; }
+            set
+            {
+                if (_resolve_time != value)
+                {
+                    _resolve_time = value;
+                    RaisePropertyChanged();
+                }
+            }
+        }
+
+        /// <summary>Block height at which this htlc expires.</summary>
+        [Newtonsoft.Json.JsonProperty("expiry_height", Required = Newtonsoft.Json.Required.Default, NullValueHandling = Newtonsoft.Json.NullValueHandling.Ignore)]
+        public int? Expiry_height
+        {
+            get { return _expiry_height; }
+            set
+            {
+                if (_expiry_height != value)
+                {
+                    _expiry_height = value;
+                    RaisePropertyChanged();
+                }
+            }
+        }
+
+        /// <summary>The total amount of the mpp payment in msat.</summary>
+        [Newtonsoft.Json.JsonProperty("mpp_total_amt_msat", Required = Newtonsoft.Json.Required.Default, NullValueHandling = Newtonsoft.Json.NullValueHandling.Ignore)]
+        public string Mpp_total_amt_msat
+        {
+            get { return _mpp_total_amt_msat; }
+            set
+            {
+                if (_mpp_total_amt_msat != value)
+                {
+                    _mpp_total_amt_msat = value;
+                    RaisePropertyChanged();
+                }
+            }
+        }
+
+        /// <summary>Current state the htlc is in.</summary>
+        [Newtonsoft.Json.JsonProperty("state", Required = Newtonsoft.Json.Required.Default, NullValueHandling = Newtonsoft.Json.NullValueHandling.Ignore)]
+        public string State
+        {
+            get { return _state; }
+            set
+            {
+                if (_state != value)
+                {
+                    _state = value;
+                    RaisePropertyChanged();
+                }
+            }
+        }
+        
+        [Newtonsoft.Json.JsonProperty("custom_records", Required = Newtonsoft.Json.Required.Default, NullValueHandling = Newtonsoft.Json.NullValueHandling.Ignore)]
+        public Dictionary<ulong, string> CustomRecords
+        {
+            get { return _custom_records; }
+            set
+            {
+                if (_custom_records != value)
+                {
+                    _custom_records = value;
+                    RaisePropertyChanged();
+                }
+            }
+        }
+
+        public event System.ComponentModel.PropertyChangedEventHandler PropertyChanged;
+
+        public string ToJson()
+        {
+            return Newtonsoft.Json.JsonConvert.SerializeObject(this);
+        }
+
+        public static LnrpcInvoiceHTLC FromJson(string data)
+        {
+            return Newtonsoft.Json.JsonConvert.DeserializeObject<LnrpcInvoiceHTLC>(data);
         }
 
         protected virtual void RaisePropertyChanged([System.Runtime.CompilerServices.CallerMemberName] string propertyName = null)
@@ -7023,6 +7226,7 @@ namespace BTCPayServer.Lightning.LND
         private string _fallback_addr;
         private string _cltv_expiry;
         private System.Collections.ObjectModel.ObservableCollection<LnrpcRouteHint> _route_hints;
+        private System.Collections.ObjectModel.ObservableCollection<LnrpcInvoiceHTLC> _htlcs;
 
         [Newtonsoft.Json.JsonProperty("destination", Required = Newtonsoft.Json.Required.Default, NullValueHandling = Newtonsoft.Json.NullValueHandling.Ignore)]
         public string Destination
@@ -7159,6 +7363,20 @@ namespace BTCPayServer.Lightning.LND
                 if (_route_hints != value)
                 {
                     _route_hints = value;
+                    RaisePropertyChanged();
+                }
+            }
+        }
+
+        [Newtonsoft.Json.JsonProperty("htlcs", Required = Newtonsoft.Json.Required.Default, NullValueHandling = Newtonsoft.Json.NullValueHandling.Ignore)]
+        public System.Collections.ObjectModel.ObservableCollection<LnrpcInvoiceHTLC> Htlcs
+        {
+            get { return _htlcs; }
+            set
+            {
+                if (_htlcs != value)
+                {
+                    _htlcs = value;
                     RaisePropertyChanged();
                 }
             }
@@ -8449,19 +8667,20 @@ namespace BTCPayServer.Lightning.LND
     [System.CodeDom.Compiler.GeneratedCode("NJsonSchema", "9.9.11.0 (Newtonsoft.Json v9.0.0.0)")]
     public partial class LnrpcSendRequest : System.ComponentModel.INotifyPropertyChanged
     {
-        private byte[] _dest;
+        private string _dest;
         private string _dest_string;
         private string _amt;
         private string _amt_msat;
         private LnrpcFeeLimit _fee_limit;
-        private byte[] _payment_hash;
+        private string _payment_hash;
         private string _payment_hash_string;
         private string _payment_request;
         private int? _final_cltv_delta;
         private bool? _allow_self_payment;
+        private Dictionary<ulong,string> _dest_custom_records;
 
         [Newtonsoft.Json.JsonProperty("dest", Required = Newtonsoft.Json.Required.Default, NullValueHandling = Newtonsoft.Json.NullValueHandling.Ignore)]
-        public byte[] Dest
+        public string Dest
         {
             get { return _dest; }
             set
@@ -8534,7 +8753,7 @@ namespace BTCPayServer.Lightning.LND
         }
 
         [Newtonsoft.Json.JsonProperty("payment_hash", Required = Newtonsoft.Json.Required.Default, NullValueHandling = Newtonsoft.Json.NullValueHandling.Ignore)]
-        public byte[] Payment_hash
+        public string Payment_hash
         {
             get { return _payment_hash; }
             set
@@ -8604,6 +8823,20 @@ namespace BTCPayServer.Lightning.LND
                 if (_allow_self_payment != value)
                 {
                     _allow_self_payment = value;
+                    RaisePropertyChanged();
+                }
+            }
+        }
+        
+        [Newtonsoft.Json.JsonProperty("dest_custom_records", Required = Newtonsoft.Json.Required.Default, NullValueHandling = Newtonsoft.Json.NullValueHandling.Ignore)]
+        public Dictionary<ulong,string> Dest_custom_records
+        {
+            get { return _dest_custom_records; }
+            set
+            {
+                if (_dest_custom_records != value)
+                {
+                    _dest_custom_records = value;
                     RaisePropertyChanged();
                 }
             }

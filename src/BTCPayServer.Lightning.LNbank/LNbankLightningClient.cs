@@ -162,6 +162,11 @@ namespace BTCPayServer.Lightning.LNbank
             }
         }
 
+        public Task<PayResponse> Pay(PayInvoiceParams payParams, CancellationToken cancellation = default)
+        {
+            throw new NotSupportedException();
+        }
+
         public async Task<OpenChannelResponse> OpenChannel(OpenChannelRequest req, CancellationToken cancellation = default)
         {
             OpenChannelResult result;

@@ -5,7 +5,7 @@ using Newtonsoft.Json;
 
 namespace BTCPayServer.Lightning.Eclair.Models
 {
-    public partial class GetSentInfoResponse
+    public class GetSentInfoResponse
     {
         public Guid Id { get; set; }
         public Guid ParentId { get; set; }
