@@ -1,4 +1,5 @@
 using System;
+using System.Collections.Generic;
 
 namespace BTCPayServer.Lightning
 {
@@ -11,5 +12,6 @@ namespace BTCPayServer.Lightning
         public DateTimeOffset ExpiresAt { get; set; }
         public LightMoney Amount { get; set; }
         public LightMoney AmountReceived { get; set; }
+        public Dictionary<ulong, string> CustomRecords { get; set; }
     }
 }
