@@ -231,6 +231,22 @@ namespace BTCPayServer.Lightning.Tests
                 Assert.NotNull(info);
                 Assert.True(info.BlockHeight > 0);
                 Assert.NotEmpty(info.NodeInfoList);
+                Assert.NotNull(info.Alias);
+                Assert.NotNull(info.Version);
+                Assert.NotNull(info.Color);
+
+                switch (client.Client)
+                {
+                    case LndClient _:
+                    case ChargeClient _:
+                    case CLightningClient _:
+                    case LndHubLightningClient _:
+                        Assert.NotNull(info.PeersCount);
+                        Assert.NotNull(info.ActiveChannelsCount);
+                        Assert.NotNull(info.InactiveChannelsCount);
+                        Assert.NotNull(info.PendingChannelsCount);
+                        break;
+                }
             }
         }
 
@@ -379,6 +395,9 @@ namespace BTCPayServer.Lightning.Tests
                     case CLightningClient _:
                         var response = await src.Pay(param);
                         Assert.Equal(PayResult.Ok, response.Result);
+
+                        var invoice = await dest.GetInvoice(Encoders.Hex.EncodeData(paymentHash.ToBytes()));
+                        //var payment = await src.GetPayment(paymentHash.ToString());
                         break;
                     
                     case EclairLightningClient _:

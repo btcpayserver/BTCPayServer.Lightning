@@ -153,7 +153,10 @@ namespace BTCPayServer.Lightning.Eclair
             var info = await _eclairClient.GetInfo(cancellation);
             var nodeInfo = new LightningNodeInformation
             {
-                BlockHeight = info.BlockHeight
+                BlockHeight = info.BlockHeight,
+                Version = info.Version,
+                Color = info.Color,
+                Alias = info.Alias
             };
             if (info.PublicAddresses != null)
             {

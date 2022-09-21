@@ -5058,8 +5058,10 @@ namespace BTCPayServer.Lightning.LND
     {
         private string _identity_pubkey;
         private string _alias;
+        private string _color;
         private long? _num_pending_channels;
         private long? _num_active_channels;
+        private long? _num_inactive_channels;
         private long? _num_peers;
         private long? _block_height;
         private string _block_hash;
@@ -5099,6 +5101,20 @@ namespace BTCPayServer.Lightning.LND
             }
         }
 
+        [Newtonsoft.Json.JsonProperty("color", Required = Newtonsoft.Json.Required.Default, NullValueHandling = Newtonsoft.Json.NullValueHandling.Ignore)]
+        public string Color
+        {
+            get { return _color; }
+            set
+            {
+                if (_color != value)
+                {
+                    _color = value;
+                    RaisePropertyChanged();
+                }
+            }
+        }
+
         [Newtonsoft.Json.JsonProperty("num_pending_channels", Required = Newtonsoft.Json.Required.Default, NullValueHandling = Newtonsoft.Json.NullValueHandling.Ignore)]
         public long? Num_pending_channels
         {
@@ -5122,6 +5138,20 @@ namespace BTCPayServer.Lightning.LND
                 if (_num_active_channels != value)
                 {
                     _num_active_channels = value;
+                    RaisePropertyChanged();
+                }
+            }
+        }
+
+        [Newtonsoft.Json.JsonProperty("num_inactive_channels", Required = Newtonsoft.Json.Required.Default, NullValueHandling = Newtonsoft.Json.NullValueHandling.Ignore)]
+        public long? Num_inactive_channels
+        {
+            get { return _num_inactive_channels; }
+            set
+            {
+                if (_num_inactive_channels != value)
+                {
+                    _num_inactive_channels = value;
                     RaisePropertyChanged();
                 }
             }

@@ -514,9 +514,16 @@ retry:
         public static LightningNodeInformation ToLightningNodeInformation(GetInfoResponse info)
         {
             var pubkey = new PubKey(info.Id);
-            var nodeInfo = new LightningNodeInformation()
+            var nodeInfo = new LightningNodeInformation
             {
-                BlockHeight = info.BlockHeight
+                BlockHeight = info.BlockHeight,
+                Alias = info.Alias,
+                Color = info.Color,
+                Version = info.Version,
+                PeersCount = info.NumPeers,
+                ActiveChannelsCount = info.NumActiveChannels,
+                InactiveChannelsCount = info.NumInactiveChannels,
+                PendingChannelsCount = info.NumPendingChannels
             };
             if (info.Address != null)
             {
