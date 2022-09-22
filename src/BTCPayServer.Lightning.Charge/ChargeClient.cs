@@ -1,6 +1,7 @@
 using System;
 using System.Collections.Generic;
 using System.Globalization;
+using System.Linq;
 using System.Net;
 using System.Net.Http;
 using System.Net.Http.Headers;
@@ -118,7 +119,7 @@ namespace BTCPayServer.Lightning.Charge
             return GetInfoAsync().GetAwaiter().GetResult();
         }
 
-        public async Task<ChargeInvoice> GetInvoice(string invoiceId, CancellationToken cancellation = default)
+        private async Task<ChargeInvoice> GetInvoice(string invoiceId, CancellationToken cancellation = default)
         {
             var request = CreateMessage(HttpMethod.Get, $"invoice/{invoiceId}");
             var message = await _Client.SendAsync(request, cancellation);
@@ -129,7 +130,7 @@ namespace BTCPayServer.Lightning.Charge
             return JsonConvert.DeserializeObject<ChargeInvoice>(content);
         }
 
-        public async Task<GetInfoResponse> GetInfoAsync(CancellationToken cancellation = default)
+        private async Task<GetInfoResponse> GetInfoAsync(CancellationToken cancellation = default)
         {
             var request = CreateMessage(HttpMethod.Get, "info");
             var message = await _Client.SendAsync(request, cancellation);
@@ -159,27 +160,57 @@ namespace BTCPayServer.Lightning.Charge
             var invoice = await GetInvoice(invoiceId, cancellation);
             if (invoice == null)
                 return null;
-            return ChargeClient.ToLightningInvoice(invoice);
+            return ToLightningInvoice(invoice);
         }
+
+        async Task<LightningInvoice[]> ILightningClient.ListInvoices(CancellationToken cancellation)
+        {
+            var invoices = await ListInvoices(null, cancellation);
+            return invoices.Select(ToLightningInvoice).ToArray();
+        }
+
+        async Task<LightningInvoice[]> ILightningClient.ListInvoices(ListInvoicesParams param, CancellationToken cancellation)
+        {
+            var invoices = await ListInvoices(param, cancellation);
+            return invoices.Select(ToLightningInvoice).ToArray();
+        }
+        
+        private async Task<ChargeInvoice[]> ListInvoices(ListInvoicesParams param, CancellationToken cancellation)
+        {
+            var request = CreateMessage(HttpMethod.Get, "invoices");
+            var message = await _Client.SendAsync(request, cancellation);
+            if (message.StatusCode == HttpStatusCode.NotFound)
+                return null;
+            message.EnsureSuccessStatusCode();
+            var content = await message.Content.ReadAsStringAsync();
+            var invoices = JsonConvert.DeserializeObject<ChargeInvoice[]>(content);
+            if (param != null)
+            {
+                // we need to filter client-side, because the listinvoices command does not support these filters
+                invoices = invoices.Where(invoice => 
+                    (!param.PendingOnly.HasValue || param.PendingOnly.Value is false || ToInvoiceStatus(invoice.Status) == LightningInvoiceStatus.Unpaid) &&
+                    (!param.OffsetIndex.HasValue || invoice.PayIndex >= param.OffsetIndex.Value)).ToArray();
+            }
+            return invoices;
+        }
+
+        private static LightningInvoiceStatus ToInvoiceStatus(string s) => CLightningClient.ToInvoiceStatus(s);
 
         async Task<ILightningInvoiceListener> ILightningClient.Listen(CancellationToken cancellation)
         {
             return await Listen(cancellation);
         }
 
-        internal static LightningInvoice ToLightningInvoice(ChargeInvoice invoice)
+        internal static LightningInvoice ToLightningInvoice(ChargeInvoice invoice) => new()
         {
-            return new LightningInvoice()
-            {
-                Id = invoice.Id ?? invoice.Label,
-                Amount = invoice.MilliSatoshi,
-                AmountReceived = invoice.MilliSatoshiReceived,
-                BOLT11 = invoice.PaymentRequest,
-                PaidAt = invoice.PaidAt,
-                ExpiresAt = invoice.ExpiresAt,
-                Status = CLightningClient.ToInvoiceStatus(invoice.Status)
-            };
-        }
+            Id = invoice.Id ?? invoice.Label,
+            Amount = invoice.MilliSatoshi,
+            AmountReceived = invoice.MilliSatoshiReceived,
+            BOLT11 = invoice.PaymentRequest,
+            PaidAt = invoice.PaidAt,
+            ExpiresAt = invoice.ExpiresAt,
+            Status = ToInvoiceStatus(invoice.Status)
+        };
 
         async Task<LightningInvoice> ILightningClient.CreateInvoice(LightMoney amount, string description, TimeSpan expiry, CancellationToken cancellation)
         {

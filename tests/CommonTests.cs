@@ -67,6 +67,14 @@ namespace BTCPayServer.Lightning.Tests
                 Assert.Null(retrievedInvoice);
                 retrievedInvoice = await client.Client.GetInvoice("lol");
                 Assert.Null(retrievedInvoice);
+                
+                var invoices = await client.Client.ListInvoices();
+                Assert.Contains(invoices, invoice => invoice.Id == createdInvoice.Id);
+                
+                // check that it's also present in the pending only list
+                var onlyPending = new ListInvoicesParams { PendingOnly = true };
+                invoices = await client.Client.ListInvoices(onlyPending);
+                Assert.Contains(invoices, invoice => invoice.Id == createdInvoice.Id);
             }
         }
 
@@ -463,6 +471,13 @@ retry:
                 Assert.Equal(amount, paidInvoice.Amount);
                 Assert.Equal(amount, paidInvoice.AmountReceived);
 
+                // check invoices lists: not present in pending, but in general list
+                var onlyPending = new ListInvoicesParams { PendingOnly = true };
+                var invoices = await test.Merchant.ListInvoices(onlyPending);
+                Assert.DoesNotContain(invoices, i => i.Id == paidInvoice.Id);
+                invoices = await test.Merchant.ListInvoices();
+                Assert.Contains(invoices, i => i.Id == paidInvoice.Id);
+                
                 // check payment
                 var payReq = BOLT11PaymentRequest.Parse(invoice.BOLT11, Network.RegTest);
                 var hash = payReq.PaymentHash?.ToString();

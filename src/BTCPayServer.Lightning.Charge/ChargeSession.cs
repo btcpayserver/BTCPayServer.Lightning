@@ -30,6 +30,9 @@ namespace BTCPayServer.Lightning.Charge
         [JsonProperty("payreq")]
         public string PaymentRequest { get; set; }
         public string Label { get; set; }
+        
+        [JsonProperty("pay_index")]
+        public int? PayIndex { get; set; }
     }
     public class ChargeSession : WebsocketListener, ILightningInvoiceListener
     {

@@ -10,11 +10,7 @@ namespace BTCPayServer.Lightning.LndHub
         {
             var now = DateTimeOffset.UtcNow;
             var expiresAt = data.CreatedAt + data.ExpireTime;
-            var status = expiresAt <= now
-                ? LightningInvoiceStatus.Expired
-                : data.IsPaid
-                    ? LightningInvoiceStatus.Paid
-                    : LightningInvoiceStatus.Unpaid;
+            var status = ToLightningInvoiceStatus(data);
 
             var invoice = new LightningInvoice
             {
@@ -30,6 +26,16 @@ namespace BTCPayServer.Lightning.LndHub
                 invoice.PaidAt = now;
 
             return invoice;
+        }
+
+        internal static LightningInvoiceStatus ToLightningInvoiceStatus(InvoiceData data)
+        {
+            var expiresAt = data.CreatedAt + data.ExpireTime;
+            return expiresAt <= DateTimeOffset.UtcNow
+                ? LightningInvoiceStatus.Expired
+                : data.IsPaid
+                    ? LightningInvoiceStatus.Paid
+                    : LightningInvoiceStatus.Unpaid;;
         }
 
         internal static LightningPayment ToLightningPayment(TransactionData data)

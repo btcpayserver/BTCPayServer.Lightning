@@ -32,21 +32,49 @@ namespace BTCPayServer.Lightning.Eclair
             _network = network;
             _eclairClient = new EclairClient(address, password, network, httpClient);
         }
-
-
-        public async Task<LightningInvoice> GetInvoice(string invoiceId,
-            CancellationToken cancellation = default)
+        
+        public async Task<LightningInvoice> GetInvoice(string invoiceId, CancellationToken cancellation = default)
         {
-            InvoiceResponse result = null;
             try
             {
-                result = await _eclairClient.GetInvoice(invoiceId, cancellation);
+                var result = await _eclairClient.GetInvoice(invoiceId, cancellation);
+                return await ToLightningInvoice(result, cancellation);
             }
             catch (EclairClient.EclairApiException ex) when (ex.Error.Error == "Not found" || ex.Error.Error.Contains("Invalid hexadecimal", StringComparison.OrdinalIgnoreCase))
             {
                 return null;
             }
+        }
 
+        public async Task<LightningInvoice[]> ListInvoices(CancellationToken cancellation = default) =>
+            await ListInvoices(null, cancellation);
+
+        public async Task<LightningInvoice[]> ListInvoices(ListInvoicesParams request, CancellationToken cancellation = default)
+        {
+            int? from = request?.OffsetIndex != null ? (int)request.OffsetIndex.Value : null;
+            var invoices = request is { PendingOnly: true }
+                ? await _eclairClient.ListPendingInvoices(from, null, cancellation)
+                : await _eclairClient.ListInvoices(from, null, cancellation);
+
+            return await Task.WhenAll(invoices.Select(invoice => ToLightningInvoice(invoice, cancellation)));
+        }
+
+        private async Task<LightningInvoice> ToLightningInvoice(InvoiceResponse invoice, CancellationToken cancellation)
+        {
+            var parsed = BOLT11PaymentRequest.Parse(invoice.Serialized, _network);
+            var invoiceId = invoice.PaymentHash;
+            var lnInvoice = new LightningInvoice
+            {
+                Id = invoiceId,
+                Amount = parsed.MinimumAmount,
+                ExpiresAt = parsed.ExpiryDate,
+                BOLT11 = invoice.Serialized
+            };
+            if (DateTimeOffset.UtcNow >= parsed.ExpiryDate)
+            {
+                lnInvoice.Status = LightningInvoiceStatus.Expired;
+            }
+            
             GetReceivedInfoResponse info = null;
             try
             {
@@ -56,24 +84,13 @@ namespace BTCPayServer.Lightning.Eclair
             {
             }
 
-            var parsed = BOLT11PaymentRequest.Parse(result.Serialized, _network);
-            var lnInvoice = new LightningInvoice()
-            {
-                Id = result.PaymentHash,
-                Amount = parsed.MinimumAmount,
-                ExpiresAt = parsed.ExpiryDate,
-                BOLT11 = result.Serialized
-            };
-            if (DateTimeOffset.UtcNow >= parsed.ExpiryDate)
-            {
-                lnInvoice.Status = LightningInvoiceStatus.Expired;
-            }
             if (info != null && info.Status.Type == "received")
             {
                 lnInvoice.AmountReceived = info.Status.Amount;
                 lnInvoice.Status = info.Status.Amount >= parsed.MinimumAmount ? LightningInvoiceStatus.Paid : LightningInvoiceStatus.Unpaid;
                 lnInvoice.PaidAt = info.Status.ReceivedAt;
             }
+
             return lnInvoice;
         }
 

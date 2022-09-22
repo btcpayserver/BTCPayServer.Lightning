@@ -452,6 +452,17 @@ namespace BTCPayServer.Lightning.LND
             }
         }
 
+        public async Task<LightningInvoice[]> ListInvoices(CancellationToken cancellation = default)
+        {
+            return await ListInvoices(null, cancellation);
+        }
+
+        public async Task<LightningInvoice[]> ListInvoices(ListInvoicesParams request, CancellationToken cancellation = default)
+        {
+            var resp = await SwaggerClient.ListInvoicesAsync(request?.PendingOnly, request?.OffsetIndex, cancellation);
+            return resp.Invoices.Select(ConvertLndInvoice).ToArray();
+        }
+
         async Task<LightningPayment> ILightningClient.GetPayment(string paymentHash, CancellationToken cancellation)
         {
             try

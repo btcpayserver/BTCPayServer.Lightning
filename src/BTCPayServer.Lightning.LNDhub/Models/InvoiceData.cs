@@ -18,7 +18,7 @@ namespace BTCPayServer.Lightning.LNDhub.Models
         public string Description { get; set; }
 
         [JsonProperty("add_index")]
-        public string AddIndex { get; set; }
+        public int AddIndex { get; set; }
 
         [JsonProperty("payment_hash")]
         public string PaymentHash { get; set; }

@@ -42,6 +42,18 @@ namespace BTCPayServer.Lightning.LNbank
             return await Get<InvoiceData>($"invoice/{invoiceId}", cancellation);
         }
 
+        public async Task<InvoiceData[]> ListInvoices(ListInvoicesParams param, CancellationToken cancellation)
+        {
+            var path = new StringBuilder("invoices");
+            if (param != null)
+            {
+                if (param is { PendingOnly: true }) path.Append("pending_only=true&");
+                if (param.OffsetIndex.HasValue) path.Append("offset_index=").Append(param.OffsetIndex.Value);
+            }
+            
+            return await Get<InvoiceData[]>(path.ToString(), cancellation);
+        }
+
         public async Task<PaymentData> GetPayment(string paymentHash, CancellationToken cancellation)
         {
             return await Get<PaymentData>($"payment/{paymentHash}", cancellation);

@@ -3,6 +3,7 @@ using System.Linq;
 using System.Net.Http;
 using System.Threading;
 using System.Threading.Tasks;
+using BTCPayServer.Lightning.LNbank.Models;
 using NBitcoin;
 
 namespace BTCPayServer.Lightning.LNbank
@@ -54,21 +55,23 @@ namespace BTCPayServer.Lightning.LNbank
             try
             {
                 var invoice = await _client.GetInvoice(invoiceId, cancellation);
-                return new LightningInvoice
-                {
-                    Id = invoice.Id,
-                    Amount = invoice.Amount,
-                    PaidAt = invoice.PaidAt,
-                    ExpiresAt = invoice.ExpiresAt,
-                    BOLT11 = invoice.BOLT11,
-                    Status = invoice.Status,
-                    AmountReceived = invoice.AmountReceived
-                };
+                return ToLightningInvoice(invoice);
             }
             catch (LNbankClient.LNbankApiException)
             {
                 return null;
             }
+        }
+
+        public Task<LightningInvoice[]> ListInvoices(CancellationToken cancellation = default)
+        {
+            return ListInvoices(null, cancellation);
+        }
+
+        public async Task<LightningInvoice[]> ListInvoices(ListInvoicesParams request, CancellationToken cancellation = default)
+        {
+            var invoices = await _client.ListInvoices(request, cancellation);
+            return invoices.Select(ToLightningInvoice).ToArray();
         }
 
         public async Task<LightningPayment> GetPayment(string paymentHash, CancellationToken cancellation = default)
@@ -226,5 +229,16 @@ namespace BTCPayServer.Lightning.LNbank
 
             return listener;
         }
+
+        private static LightningInvoice ToLightningInvoice(InvoiceData invoice) => new()
+        {
+            Id = invoice.Id,
+            Amount = invoice.Amount,
+            PaidAt = invoice.PaidAt,
+            ExpiresAt = invoice.ExpiresAt,
+            BOLT11 = invoice.BOLT11,
+            Status = invoice.Status,
+            AmountReceived = invoice.AmountReceived
+        };
     }
 }

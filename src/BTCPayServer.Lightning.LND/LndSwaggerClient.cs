@@ -1651,22 +1651,24 @@ namespace BTCPayServer.Lightning.LND
         /// database. Any active debug invoices are ignored.</summary>
         /// <param name="pending_only">/ Toggles if all invoices should be returned, or only those that are currently unsettled.</param>
         /// <exception cref="SwaggerException">A server side error occurred.</exception>
-        public System.Threading.Tasks.Task<LnrpcListInvoiceResponse> ListInvoicesAsync(bool? pending_only)
+        public System.Threading.Tasks.Task<LnrpcListInvoiceResponse> ListInvoicesAsync(bool? pending_only, long? index_offset)
         {
-            return ListInvoicesAsync(pending_only, System.Threading.CancellationToken.None);
+            return ListInvoicesAsync(pending_only, index_offset, System.Threading.CancellationToken.None);
         }
 
         /// <summary>* lncli: `listinvoices`
         /// ListInvoices returns a list of all the invoices currently stored within the
         /// database. Any active debug invoices are ignored.</summary>
         /// <param name="pending_only">/ Toggles if all invoices should be returned, or only those that are currently unsettled.</param>
+        /// <param name="index_offset">/ The index of an invoice that will be used as either the start or end of a query to determine which invoices should be returned in the response.</param>
         /// <param name="cancellationToken">A cancellation token that can be used by other objects or threads to receive notice of cancellation.</param>
         /// <exception cref="SwaggerException">A server side error occurred.</exception>
-        public async System.Threading.Tasks.Task<LnrpcListInvoiceResponse> ListInvoicesAsync(bool? pending_only, System.Threading.CancellationToken cancellationToken)
+        public async System.Threading.Tasks.Task<LnrpcListInvoiceResponse> ListInvoicesAsync(bool? pending_only, long? index_offset, System.Threading.CancellationToken cancellationToken)
         {
             var urlBuilder_ = new System.Text.StringBuilder();
             urlBuilder_.Append(BaseUrl).Append("/v1/invoices?");
-            if (pending_only != null) urlBuilder_.Append("pending_only=").Append(System.Uri.EscapeDataString(System.Convert.ToString(pending_only.Value, System.Globalization.CultureInfo.InvariantCulture))).Append("&");
+            if (pending_only.HasValue) urlBuilder_.Append("pending_only=").Append(System.Uri.EscapeDataString(System.Convert.ToString(pending_only.Value, System.Globalization.CultureInfo.InvariantCulture))).Append("&");
+            if (index_offset.HasValue) urlBuilder_.Append("index_offset=").Append(System.Uri.EscapeDataString(System.Convert.ToString(index_offset.Value, System.Globalization.CultureInfo.InvariantCulture))).Append("&");
             urlBuilder_.Length--;
 
             var client_ = _httpClient;
