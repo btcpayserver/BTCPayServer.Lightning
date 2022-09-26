@@ -71,7 +71,7 @@ namespace BTCPayServer.Lightning
 
             if (connectionString.ConnectionType == LightningConnectionType.Eclair)
             {
-                return new EclairLightningClient(connectionString.BaseUri, connectionString.Password, Network, HttpClient);
+                return new EclairLightningClient(connectionString.BaseUri, connectionString.Username, connectionString.Password, Network, HttpClient);
             }
 
             if (connectionString.ConnectionType == LightningConnectionType.LNbank)

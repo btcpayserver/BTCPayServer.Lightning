@@ -350,7 +350,8 @@ namespace BTCPayServer.Lightning
 
                     result.BaseUri = eclairuri;
                     result.Password = Take(keyValues, "password");
-                    result.BitcoinHost = Take(keyValues, "bitcoin-host");
+                    result.Username = Take(keyValues, "username");
+                    result.BitcoinHost  = Take(keyValues, "bitcoin-host");
 
                     if (result.BitcoinHost != null)
                     {
