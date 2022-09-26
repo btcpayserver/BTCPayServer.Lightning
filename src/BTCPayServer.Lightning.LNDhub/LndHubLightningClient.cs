@@ -63,6 +63,24 @@ namespace BTCPayServer.Lightning.LndHub
             return data == null ? null : LndHubUtil.ToLightningInvoice(data);
         }
 
+        public Task<LightningInvoice[]> ListInvoices(CancellationToken cancellation = default)
+        {
+            return ListInvoices(null, cancellation);
+        }
+
+        public async Task<LightningInvoice[]> ListInvoices(ListInvoicesParams request, CancellationToken cancellation = default)
+        {
+            var invoices = await _client.GetInvoices(cancellation);
+            if (request != null)
+            {
+                // we need to filter client-side, because LNDhub does not support these filters
+                invoices = invoices.Where(invoice => 
+                    (!request.PendingOnly.HasValue || request.PendingOnly.Value is false || LndHubUtil.ToLightningInvoiceStatus(invoice) == LightningInvoiceStatus.Unpaid) &&
+                    (!request.OffsetIndex.HasValue || invoice.AddIndex >= request.OffsetIndex.Value)).ToArray();
+            }
+            return invoices.Select(LndHubUtil.ToLightningInvoice).ToArray();
+        }
+
         public async Task<LightningPayment> GetPayment(string paymentHash, CancellationToken cancellation = default)
         {
             var payments = await _client.GetTransactions(cancellation);

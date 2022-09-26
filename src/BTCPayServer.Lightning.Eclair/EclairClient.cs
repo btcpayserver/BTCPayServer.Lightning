@@ -228,26 +228,18 @@ namespace BTCPayServer.Lightning.Eclair
                 }, cts);
         }
 
-        public async Task<List<InvoiceResponse>> ListInvoices(DateTime? from = null, DateTime? to = null,
+        public async Task<List<InvoiceResponse>> ListInvoices(int? from = null, int? to = null,
             CancellationToken cts = default)
         {
             return await SendCommandAsync<ListInvoicesRequest, List<InvoiceResponse>>("listinvoices",
-                new ListInvoicesRequest()
-                {
-                    From = from?.ToUnixTimestamp(),
-                    To = to?.ToUnixTimestamp()
-                }, cts);
+                new ListInvoicesRequest { From = from, To = to }, cts);
         }
 
-        public async Task<List<InvoiceResponse>> ListPendingInvoices(DateTime? from = null, DateTime? to = null,
+        public async Task<List<InvoiceResponse>> ListPendingInvoices(int? from = null, int? to = null,
             CancellationToken cts = default)
         {
             return await SendCommandAsync<ListInvoicesRequest, List<InvoiceResponse>>("listpendinginvoices",
-                new ListInvoicesRequest()
-                {
-                    From = from?.ToUnixTimestamp(),
-                    To = to?.ToUnixTimestamp()
-                }, cts);
+                new ListInvoicesRequest { From = from, To = to }, cts);
         }
 
         public async Task<List<string>> FindRoute(string invoice, int? amountMsat = null,

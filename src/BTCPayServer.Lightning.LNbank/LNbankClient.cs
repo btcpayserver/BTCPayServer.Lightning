@@ -1,4 +1,5 @@
 using System;
+using System.Collections.Generic;
 using System.Linq;
 using System.Net.Http;
 using System.Net.Http.Headers;
@@ -40,6 +41,20 @@ namespace BTCPayServer.Lightning.LNbank
         public async Task<InvoiceData> GetInvoice(string invoiceId, CancellationToken cancellation)
         {
             return await Get<InvoiceData>($"invoice/{invoiceId}", cancellation);
+        }
+
+        public async Task<InvoiceData[]> ListInvoices(ListInvoicesParams param, CancellationToken cancellation)
+        {
+            var path = new StringBuilder("invoices");
+            if (param != null)
+            {
+                var query = new List<string>();
+                if (param is { PendingOnly: true }) query.Add("pending_only=true");
+                if (param.OffsetIndex.HasValue) query.Add($"offset_index={param.OffsetIndex.Value}");
+                path.Append($"?{string.Join("&", query)}");
+            }
+            
+            return await Get<InvoiceData[]>(path.ToString(), cancellation);
         }
 
         public async Task<PaymentData> GetPayment(string paymentHash, CancellationToken cancellation)
