@@ -1,4 +1,5 @@
 using System;
+using System.Collections.Generic;
 using System.Linq;
 using System.Net.Http;
 using System.Net.Http.Headers;
@@ -47,8 +48,10 @@ namespace BTCPayServer.Lightning.LNbank
             var path = new StringBuilder("invoices");
             if (param != null)
             {
-                if (param is { PendingOnly: true }) path.Append("pending_only=true&");
-                if (param.OffsetIndex.HasValue) path.Append("offset_index=").Append(param.OffsetIndex.Value);
+                var query = new List<string>();
+                if (param is { PendingOnly: true }) query.Add("pending_only=true");
+                if (param.OffsetIndex.HasValue) query.Add($"offset_index={param.OffsetIndex.Value}");
+                path.Append($"?{string.Join("&", query)}");
             }
             
             return await Get<InvoiceData[]>(path.ToString(), cancellation);
