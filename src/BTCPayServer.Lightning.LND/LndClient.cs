@@ -380,6 +380,13 @@ namespace BTCPayServer.Lightning.LND
             var nodeInfo = new LightningNodeInformation
             {
                 BlockHeight = (int?)resp.Block_height ?? 0,
+                Alias = resp.Alias,
+                Color = resp.Color,
+                Version = resp.Version,
+                PeersCount = resp.Num_peers,
+                ActiveChannelsCount = resp.Num_active_channels,
+                InactiveChannelsCount = resp.Num_inactive_channels,
+                PendingChannelsCount = resp.Num_pending_channels
             };
 
             try
@@ -502,7 +509,6 @@ namespace BTCPayServer.Lightning.LND
             if (resp.Settled == true)
             {
                 invoice.PaidAt = DateTimeOffset.FromUnixTimeSeconds(ConvertInv.ToInt64(resp.Settle_date));
-
                 invoice.Status = LightningInvoiceStatus.Paid;
             }
             else

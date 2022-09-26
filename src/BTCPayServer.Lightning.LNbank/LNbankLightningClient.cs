@@ -27,7 +27,14 @@ namespace BTCPayServer.Lightning.LNbank
 
             var nodeInfo = new LightningNodeInformation
             {
-                BlockHeight = data.BlockHeight
+                BlockHeight = data.BlockHeight,
+                Alias = data.Alias,
+                Color = data.Color,
+                Version = data.Version,
+                PeersCount = data.PeersCount,
+                ActiveChannelsCount = data.ActiveChannelsCount,
+                InactiveChannelsCount = data.InactiveChannelsCount,
+                PendingChannelsCount = data.PendingChannelsCount
             };
             foreach (var nodeUri in data.NodeURIs)
             {
