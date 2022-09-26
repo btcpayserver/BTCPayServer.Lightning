@@ -687,8 +687,7 @@ retry:
                 {
                     req.Sat_per_byte = ((int)openChannelRequest.FeeRate.SatoshiPerByte).ToString();
                 }
-                var result = await this.SwaggerClient.OpenChannelSyncAsync(req, cancellation);
-                result.
+                await SwaggerClient.OpenChannelSyncAsync(req, cancellation);
                 return new OpenChannelResponse(OpenChannelResult.Ok);
             }
             catch (SwaggerException ex) when
