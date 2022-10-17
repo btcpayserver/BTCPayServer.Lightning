@@ -37,7 +37,7 @@ namespace BTCPayServer.Lightning.LNDhub.JsonConverters
         public override void WriteJson(JsonWriter writer, object value, JsonSerializer serializer)
         {
             if (value != null)
-                writer.WriteValue((int)((LightMoney)value).ToUnit(LightMoneyUnit.Satoshi));
+                writer.WriteValue(((LightMoney)value).ToUnit(LightMoneyUnit.Satoshi));
             else
                 writer.WriteNull();
         }
