@@ -46,16 +46,20 @@ namespace BTCPayServer.Lightning
 
             var portIndex = str.IndexOf(':');
             int port = 9735;
+            string host;
             if (portIndex != -1)
             {
                 if (portIndex <= atIndex)
                     return false;
                 if (!int.TryParse(str.Substring(portIndex + 1), out port))
                     return false;
+                host = str.Substring(atIndex + 1, portIndex - atIndex - 1);
+            }
+            else
+            {
+                host = str.Substring(atIndex + 1);
             }
 
-
-            string host = str.Substring(atIndex + 1, portIndex - atIndex - 1);
             if (host.Length == 0)
                 return false;
             nodeInfo = new NodeInfo(nodeId, host, port);

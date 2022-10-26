@@ -934,6 +934,26 @@ retry:
         }
 
         [Fact]
+        public void CanParseNodeInfo()
+        {
+            var pk = new Key().PubKey.ToHex();
+            var host = "localhost";
+            var port = 2732;
+            var ni = NodeInfo.Parse($"{pk}@{host}:{port}");
+            Assert.Equal(pk, ni.NodeId.ToHex());
+            Assert.Equal(host, ni.Host);
+            Assert.Equal(port, ni.Port);
+
+            ni = NodeInfo.Parse($"{pk}@{host}");
+            Assert.Equal(pk, ni.NodeId.ToHex());
+            Assert.Equal(host, ni.Host);
+            Assert.Equal(9735, ni.Port);
+
+            Assert.False(NodeInfo.TryParse($"lol@{host}", out _));
+            Assert.False(NodeInfo.TryParse($"lol@:{port}", out _));
+        }
+
+        [Fact]
         public void CanParseLightningURL()
         {
             Assert.True(LightningConnectionString.TryParse("/test/a", true, out var conn));
