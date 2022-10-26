@@ -951,6 +951,8 @@ retry:
 
             Assert.False(NodeInfo.TryParse($"lol@{host}", out _));
             Assert.False(NodeInfo.TryParse($"lol@:{port}", out _));
+            Assert.False(NodeInfo.TryParse($"lol@:", out _));
+            Assert.False(NodeInfo.TryParse($"lol@{host}:", out _));
         }
 
         [Fact]
