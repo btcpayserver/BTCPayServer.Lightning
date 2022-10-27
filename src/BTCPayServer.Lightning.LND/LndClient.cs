@@ -174,7 +174,6 @@ namespace BTCPayServer.Lightning.LND
                 try
                 {
                     _Client = _Parent.CreateHttpClient();
-                    _Client.Timeout = TimeSpan.FromMilliseconds(Timeout.Infinite);
                     var paymentHash = _PaymentHash.HexStringToBase64UrlString();
                     var request = new HttpRequestMessage(HttpMethod.Get, WithTrailingSlash(_Parent.BaseUrl) + $"v2/router/track/{paymentHash}");
                     _Parent._Authentication.AddAuthentication(request);
@@ -472,6 +471,11 @@ namespace BTCPayServer.Lightning.LND
 
         async Task<LightningPayment> ILightningClient.GetPayment(string paymentHash, CancellationToken cancellation)
         {
+            return await GetPayment(paymentHash, cancellation);
+        }
+
+        async Task<LightningPayment> GetPayment(string paymentHash, CancellationToken cancellation)
+        {
             try
             {
                 using var session = new LndPaymentClientSession(SwaggerClient, paymentHash);
@@ -603,8 +607,12 @@ retry:
                 {
                     req.AmtMsat = payParams.Amount.MilliSatoshi.ToString();
                 }
-
-                var response = await SwaggerClient.SendPaymentSyncAsync(req, cancellation);
+                
+                // Pay the invoice - cancel after timeout, potentially caused by hold invoices
+                using var cts = CancellationTokenSource.CreateLinkedTokenSource(cancellation);
+                cts.CancelAfter(LightningPayment.SendTimeout);
+                
+                var response = await SwaggerClient.SendPaymentSyncAsync(req, cts.Token);
                 if (string.IsNullOrEmpty(response.Payment_error) && response.Payment_preimage != null)
                 {
                     if (response.Payment_route != null)
@@ -629,6 +637,8 @@ retry:
                     case "insufficient_balance":
                     case "no_route":
                         return new PayResponse(PayResult.CouldNotFindRoute, response.Payment_error);
+                    case "payment is in transition":
+                        return new PayResponse(PayResult.Unknown, response.Payment_error);
                     default:
                         return new PayResponse(PayResult.Error, response.Payment_error);
                 }
@@ -654,6 +664,35 @@ retry:
 
                 throw new LndException(lndError.Error);
             }
+            catch (Exception ex) when (ex is TaskCanceledException or OperationCanceledException)
+            {
+                if (bolt11 != null)
+                {
+                    var pr = BOLT11PaymentRequest.Parse(bolt11, Network);
+                    var paymentHash = pr.PaymentHash?.ToString();
+                    var response = await GetPayment(paymentHash, cancellation);
+                    
+                    switch (response.Status)
+                    {
+                        case LightningPaymentStatus.Unknown:
+                        case LightningPaymentStatus.Pending:
+                            return new PayResponse(PayResult.Unknown, ex.Message);
+
+                        case LightningPaymentStatus.Failed:
+                            return new PayResponse(PayResult.Error, ex.Message);
+                        
+                        case LightningPaymentStatus.Complete:
+                            return new PayResponse(PayResult.Ok, new PayDetails
+                            {
+                                TotalAmount = response.AmountSent,
+                                FeeAmount = response.Fee
+                            });
+                        default:
+                            throw new ArgumentOutOfRangeException();
+                    }
+                }
+            }
+            return new PayResponse(PayResult.Unknown);
         }
 
         async Task<PayResponse> ILightningClient.Pay(string bolt11, PayInvoiceParams payParams, CancellationToken cancellation)

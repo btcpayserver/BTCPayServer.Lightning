@@ -3,9 +3,7 @@ using System.Collections.Generic;
 using System.IO;
 using System.Linq;
 using System.Net;
-using System.Net.Security;
 using System.Net.Sockets;
-using System.Runtime.InteropServices;
 using System.Text;
 using System.Threading;
 using System.Threading.Tasks;
@@ -253,18 +251,19 @@ namespace BTCPayServer.Lightning.CLightning
 
         async Task<LightningPayment> ILightningClient.GetPayment(string paymentHash, CancellationToken cancellation)
         {
+            return await GetPayment(paymentHash, cancellation);
+        }
+
+        async Task<LightningPayment> GetPayment(string paymentHash, CancellationToken cancellation)
+        {
             var payments = await SendCommandAsync<CLightningPayment[]>("listpays", new[] { null, paymentHash }, false, true, cancellation);
-            if (payments.Length == 0)
-                return null;
-            return ToLightningPayment(payments[0]);
+            return payments.Length == 0 ? null : ToLightningPayment(payments[0]);
         }
 
         async Task<LightningInvoice> ILightningClient.GetInvoice(string invoiceId, CancellationToken cancellation)
         {
             var invoices = await SendCommandAsync<CLightningInvoice[]>("listinvoices", new[] { invoiceId }, false, true, cancellation);
-            if (invoices.Length == 0)
-                return null;
-            return ToLightningInvoice(invoices[0]);
+            return invoices.Length == 0 ? null : ToLightningInvoice(invoices[0]);
         }
 
         async Task<LightningInvoice[]> ILightningClient.ListInvoices(CancellationToken cancellation)
@@ -288,12 +287,12 @@ namespace BTCPayServer.Lightning.CLightning
 
         private async Task<PayResponse> PayAsync(string bolt11, PayInvoiceParams payParams, CancellationToken cancellation = default)
         {
+            if (bolt11 == null && payParams.Destination is null)
+                throw new ArgumentNullException(nameof(bolt11));
+            
+            bolt11 = bolt11?.Replace("lightning:", "").Replace("LIGHTNING:", "");
             try
             {
-                if (bolt11 == null && payParams.Destination is null)
-                    throw new ArgumentNullException(nameof(bolt11));
-
-                bolt11 = bolt11?.Replace("lightning:", "").Replace("LIGHTNING:", "");
                 var explicitAmount = payParams?.Amount;
                 var feePercent = payParams?.MaxFeePercent;
                 if (feePercent is null && payParams?.MaxFeeFlat is Money m)
@@ -303,7 +302,14 @@ namespace BTCPayServer.Lightning.CLightning
                     feePercent = (double)(m.Satoshi / amountSat) * 100;
                 }
                 
-                var response = await SendCommandAsync<CLightningPayResponse>(bolt11 == null?"keysend":"pay", new object[] { bolt11 is null?payParams.Destination.ToHex(): bolt11, explicitAmount?.MilliSatoshi, null, null, feePercent }, false, cancellation: cancellation);
+                // Pay the invoice - cancel after timeout, potentially caused by hold invoices
+                using var cts = CancellationTokenSource.CreateLinkedTokenSource(cancellation);
+                cts.CancelAfter(LightningPayment.SendTimeout);
+
+                var command = bolt11 == null ? "keysend" : "pay";
+                var destination = bolt11 ?? payParams.Destination.ToHex();
+                var response = await SendCommandAsync<CLightningPayResponse>(command,
+                    new object[] { destination, explicitAmount?.MilliSatoshi, null, null, feePercent }, false, cancellation: cts.Token);
 
                 return new PayResponse(PayResult.Ok, new PayDetails
                 {
@@ -326,6 +332,35 @@ namespace BTCPayServer.Lightning.CLightning
                         : PayResult.Error;
                 return new PayResponse(result, ex.Message);
             }
+            catch (Exception ex) when (ex is TaskCanceledException or OperationCanceledException)
+            {
+                if (bolt11 != null)
+                {
+                    var pr = BOLT11PaymentRequest.Parse(bolt11, Network);
+                    var paymentHash = pr.PaymentHash?.ToString();
+                    var response = await GetPayment(paymentHash, cancellation);
+                    
+                    switch (response.Status)
+                    {
+                        case LightningPaymentStatus.Unknown:
+                        case LightningPaymentStatus.Pending:
+                            return new PayResponse(PayResult.Unknown, ex.Message);
+
+                        case LightningPaymentStatus.Failed:
+                            return new PayResponse(PayResult.Error, ex.Message);
+                        
+                        case LightningPaymentStatus.Complete:
+                            return new PayResponse(PayResult.Ok, new PayDetails
+                            {
+                                TotalAmount = response.AmountSent,
+                                FeeAmount = response.Fee
+                            });
+                        default:
+                            throw new ArgumentOutOfRangeException();
+                    }
+                }
+            }
+            return new PayResponse(PayResult.Unknown);
         }
 
         async Task<PayResponse> ILightningClient.Pay(string bolt11, PayInvoiceParams payParams, CancellationToken cancellation)
