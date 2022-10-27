@@ -7,13 +7,22 @@ namespace BTCPayServer.Lightning.LND
 {
     internal static class Extensions
     {
-        public static LndError2 AsLNDError(this SwaggerException swagger)
+        public static LNDError AsLNDError(this SwaggerException swagger)
         {
-            var error = JsonConvert.DeserializeObject<LndError2>(swagger.Response);
-            error.Error = error.Error ?? error.Message;
-            if (error.Error == null)
-                return null;
-            return error;
+            LNDError error;
+
+            try
+            {
+                error = JsonConvert.DeserializeObject<LNDError>(swagger.Response);
+            }
+            catch (Exception)
+            {
+                var nested = JsonConvert.DeserializeObject<LNDNestedError>(swagger.Response);
+                error = nested.Error;
+            }
+            
+            error.Error = error.Message;
+            return error.Error == null ? null : error;
         }
     }
 }

@@ -4,16 +4,15 @@ using System.Text;
 
 namespace BTCPayServer.Lightning.LND
 {
-    class LndError2
+    class LNDError
     {
-        public string Error
-        {
-            get; set;
-        }
+        public string Error { get; set; }
         public string Message { get; set; }
-        public int Code
-        {
-            get; set;
-        }
+        public int Code { get; set; }
+    }
+    
+    class LNDNestedError
+    {
+        public LNDError Error { get; set; }
     }
 }
