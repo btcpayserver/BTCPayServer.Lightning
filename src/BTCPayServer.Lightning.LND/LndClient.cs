@@ -453,7 +453,7 @@ namespace BTCPayServer.Lightning.LND
                 return null;
             }
             catch (SwaggerException ex) when
-               (ex.StatusCode == "500" && ex.AsLNDError() is LndError2 err && err.Error.StartsWith("encoding/hex", StringComparison.OrdinalIgnoreCase))
+               (ex.StatusCode == "500" && ex.AsLNDError() is LNDError err && err.Error.StartsWith("encoding/hex", StringComparison.OrdinalIgnoreCase))
             {
                 return null;
             }
@@ -633,20 +633,23 @@ retry:
                         return new PayResponse(PayResult.Error, response.Payment_error);
                 }
             }
-            catch (SwaggerException ex) when
-                (ex.AsLNDError() is LndError2 lndError)
+            catch (SwaggerException ex) when (ex.AsLNDError() is {} lndError)
             {
                 if (lndError.Error.StartsWith("chain backend is still syncing"))
                 {
                     if (retryCount++ > 3)
-                        return new PayResponse(PayResult.Error, ex.Response);
+                        return new PayResponse(PayResult.Error, lndError.Error);
 
                     await Task.Delay(1000, cancellation);
                     goto retry;
                 }
                 if (lndError.Error.StartsWith("self-payments not allowed"))
                 {
-                    return new PayResponse(PayResult.CouldNotFindRoute, ex.Response);
+                    return new PayResponse(PayResult.CouldNotFindRoute, lndError.Error);
+                }
+                if (lndError.Error.StartsWith("payment is in transition"))
+                {
+                    return new PayResponse(PayResult.Error, lndError.Error);
                 }
 
                 throw new LndException(lndError.Error);
@@ -690,20 +693,20 @@ retry:
                 return new OpenChannelResponse(OpenChannelResult.Ok);
             }
             catch (SwaggerException ex) when
-                (ex.AsLNDError() is LndError2 lndError &&
+                (ex.AsLNDError() is LNDError lndError &&
                  (lndError.Error.StartsWith("peer is not connected") ||
                  lndError.Error.EndsWith("is not online")))
             {
                 return new OpenChannelResponse(OpenChannelResult.PeerNotConnected);
             }
             catch (SwaggerException ex) when
-                (ex.AsLNDError() is LndError2 lndError &&
+                (ex.AsLNDError() is LNDError lndError &&
                  lndError.Error.StartsWith("not enough witness outputs"))
             {
                 return new OpenChannelResponse(OpenChannelResult.CannotAffordFunding);
             }
             catch (SwaggerException ex) when
-                (ex.AsLNDError() is LndError2 lndError &&
+                (ex.AsLNDError() is LNDError lndError &&
                  lndError.Code == 177)
             {
                 var pendingChannels = await this.SwaggerClient.PendingChannelsAsync(cancellation);
@@ -714,7 +717,7 @@ retry:
                 return new OpenChannelResponse(OpenChannelResult.AlreadyExists);
             }
             catch (SwaggerException ex) when
-                (ex.AsLNDError() is LndError2 lndError &&
+                (ex.AsLNDError() is LNDError lndError &&
                  lndError.Error.StartsWith("channels cannot be created before"))
             {
                 if (retryCount++ > 3)
@@ -724,7 +727,7 @@ retry:
                 goto retry;
             }
             catch (SwaggerException ex) when
-                (ex.AsLNDError() is LndError2 lndError &&
+                (ex.AsLNDError() is LNDError lndError &&
                  lndError.Error.StartsWith("chain backend is still syncing"))
             {
                 if (retryCount++ > 3)
@@ -734,7 +737,7 @@ retry:
                 goto retry;
             }
             catch (SwaggerException ex) when
-                (ex.AsLNDError() is LndError2 lndError &&
+                (ex.AsLNDError() is LNDError lndError &&
                  lndError.Error.StartsWith("Number of pending channels exceed"))
             {
                 return new OpenChannelResponse(OpenChannelResult.NeedMoreConf);
