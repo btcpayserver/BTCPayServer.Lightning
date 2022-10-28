@@ -291,6 +291,11 @@ namespace BTCPayServer.Lightning.CLightning
                 throw new ArgumentNullException(nameof(bolt11));
             
             bolt11 = bolt11?.Replace("lightning:", "").Replace("LIGHTNING:", "");
+                
+            // Pay the invoice - cancel after timeout, potentially caused by hold invoices
+            using var cts = CancellationTokenSource.CreateLinkedTokenSource(cancellation);
+            cts.CancelAfter(LightningPayment.SendTimeout);
+            
             try
             {
                 var explicitAmount = payParams?.Amount;
@@ -301,10 +306,6 @@ namespace BTCPayServer.Lightning.CLightning
                     var amountSat = (explicitAmount ?? pr.MinimumAmount).ToUnit(LightMoneyUnit.Satoshi);
                     feePercent = (double)(m.Satoshi / amountSat) * 100;
                 }
-                
-                // Pay the invoice - cancel after timeout, potentially caused by hold invoices
-                using var cts = CancellationTokenSource.CreateLinkedTokenSource(cancellation);
-                cts.CancelAfter(LightningPayment.SendTimeout);
 
                 var command = bolt11 == null ? "keysend" : "pay";
                 var destination = bolt11 ?? payParams.Destination.ToHex();
@@ -332,7 +333,7 @@ namespace BTCPayServer.Lightning.CLightning
                         : PayResult.Error;
                 return new PayResponse(result, ex.Message);
             }
-            catch (Exception ex) when (ex is TaskCanceledException or OperationCanceledException)
+            catch (Exception ex) when (cts.Token.IsCancellationRequested)
             {
                 if (bolt11 != null)
                 {

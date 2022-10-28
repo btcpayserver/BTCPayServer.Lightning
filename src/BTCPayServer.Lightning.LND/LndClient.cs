@@ -569,8 +569,13 @@ namespace BTCPayServer.Lightning.LND
 
         private async Task<PayResponse> PayAsync(string bolt11, PayInvoiceParams payParams, CancellationToken cancellation)
         {
+            // Pay the invoice - cancel after timeout, potentially caused by hold invoices
+            using var cts = CancellationTokenSource.CreateLinkedTokenSource(cancellation);
+            cts.CancelAfter(LightningPayment.SendTimeout);
+            
 retry:
             var retryCount = 0;
+            
             try
             {
                 var req = !string.IsNullOrEmpty(bolt11)
@@ -607,10 +612,6 @@ retry:
                 {
                     req.AmtMsat = payParams.Amount.MilliSatoshi.ToString();
                 }
-                
-                // Pay the invoice - cancel after timeout, potentially caused by hold invoices
-                using var cts = CancellationTokenSource.CreateLinkedTokenSource(cancellation);
-                cts.CancelAfter(LightningPayment.SendTimeout);
                 
                 var response = await SwaggerClient.SendPaymentSyncAsync(req, cts.Token);
                 if (string.IsNullOrEmpty(response.Payment_error) && response.Payment_preimage != null)
@@ -664,7 +665,7 @@ retry:
 
                 throw new LndException(lndError.Error);
             }
-            catch (Exception ex) when (ex is TaskCanceledException or OperationCanceledException)
+            catch (Exception ex) when (cts.Token.IsCancellationRequested)
             {
                 if (bolt11 != null)
                 {
