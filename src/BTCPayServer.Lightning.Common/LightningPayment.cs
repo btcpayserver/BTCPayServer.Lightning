@@ -4,8 +4,6 @@ namespace BTCPayServer.Lightning
 {
     public class LightningPayment
     {
-        public static readonly TimeSpan SendTimeout = TimeSpan.FromSeconds(30);
-        
         public string Id { get; set; }
         public string PaymentHash { get; set; }
         public string Preimage { get; set; }

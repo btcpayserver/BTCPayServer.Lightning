@@ -1,4 +1,5 @@
 #nullable enable
+using System;
 using System.Collections.Generic;
 using NBitcoin;
 
@@ -15,4 +16,6 @@ public class PayInvoiceParams
     public uint256? PaymentHash { get; set; }
 
     public Dictionary<ulong, string>? CustomRecords { get; set; }
+    
+    public TimeSpan SendTimeout { get; set; } = TimeSpan.FromSeconds(30);
 }

@@ -294,7 +294,8 @@ namespace BTCPayServer.Lightning.CLightning
                 
             // Pay the invoice - cancel after timeout, potentially caused by hold invoices
             using var cts = CancellationTokenSource.CreateLinkedTokenSource(cancellation);
-            cts.CancelAfter(LightningPayment.SendTimeout);
+            var timeout = payParams?.SendTimeout ?? TimeSpan.FromSeconds(30);
+            cts.CancelAfter(timeout);
             
             try
             {
