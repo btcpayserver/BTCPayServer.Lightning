@@ -17,5 +17,6 @@ public class PayInvoiceParams
 
     public Dictionary<ulong, string>? CustomRecords { get; set; }
     
-    public TimeSpan SendTimeout { get; set; } = TimeSpan.FromSeconds(30);
+    public TimeSpan? SendTimeout { get; set; }
+    public static TimeSpan DefaultSendTimeout = TimeSpan.FromSeconds(30.0);
 }
