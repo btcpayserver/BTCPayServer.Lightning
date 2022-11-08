@@ -1,0 +1,162 @@
+﻿name: 'Publish nugets for BTCPay lib'
+on: push
+
+jobs:
+    build:
+        runs-on: ubuntu-latest
+        steps:
+            # Checkout the code
+            -   uses: actions/checkout@v2
+            
+            # Install .NET Core SDK
+            -   name: Setup .NET Core
+                uses: actions/setup-dotnet@v1
+                with:
+                    dotnet-version: 6.0.x
+            
+            
+            #all nuget
+            -   name: Publish NuGet for BTCPayServer.Lightning.All
+                if: ${{ github.ref == 'refs/heads/master' }} # Publish only when the push is on master
+                uses: Rebel028/publish-nuget@v2.7.0
+                with:
+                    PROJECT_FILE_PATH: src/BTCPayServer.Lightning.All/BTCPayServer.Lightning.All.csproj
+                    NUGET_KEY: ${{secrets.NUGET_KEY}}
+                    PACKAGE_NAME: BTCPayServer.Lightning.All
+                    INCLUDE_SYMBOLS: true
+                    VERSION_REGEX: ^\s*<Version>(.*)<\/Version>\s*$
+                    TAG_COMMIT: true
+                    TAG_FORMAT: All/v*
+            -   name: Publish Github Package Registry for BTCPayServer.Lightning.All
+                if: ${{ github.ref == 'refs/heads/master' }} # Publish only when the push is on master
+                uses: Rebel028/publish-nuget@v2.7.0
+                with:
+                    PROJECT_FILE_PATH: src/BTCPayServer.Lightning.All/BTCPayServer.Lightning.All.csproj
+                    NUGET_SOURCE: "https://nuget.pkg.github.com/btcpayserver"
+                    NUGET_KEY: ${{secrets.GH_TOKEN}}
+                    PACKAGE_NAME: BTCPayServer.Lightning.All
+                    INCLUDE_SYMBOLS: true
+                    VERSION_REGEX: ^\s*<Version>(.*)<\/Version>\s*$
+                    TAG_COMMIT: true
+                    TAG_FORMAT: All/v*
+            #charge nuget    
+            -   name: Publish NuGet for BTCPayServer.Lightning.Charge
+                if: ${{ github.ref == 'refs/heads/master' }} # Publish only when the push is on master
+                uses: Rebel028/publish-nuget@v2.7.0
+                with:
+                    PROJECT_FILE_PATH: src/BTCPayServer.Lightning.Charge/BTCPayServer.Lightning.Charge.csproj
+                    NUGET_KEY: ${{secrets.NUGET_KEY}}
+                    PACKAGE_NAME: BTCPayServer.Lightning.Charge
+                    INCLUDE_SYMBOLS: true
+                    VERSION_REGEX: ^\s*<Version>(.*)<\/Version>\s*$
+                    TAG_COMMIT: true
+                    TAG_FORMAT: Charge/v*
+            -   name: Publish Github Package Registry for BTCPayServer.Lightning.Charge
+                if: ${{ github.ref == 'refs/heads/master' }} # Publish only when the push is on master
+                uses: Rebel028/publish-nuget@v2.7.0
+                with:
+                    PROJECT_FILE_PATH: src/BTCPayServer.Lightning.Charge/BTCPayServer.Lightning.Charge.csproj
+                    NUGET_SOURCE: "https://nuget.pkg.github.com/btcpayserver"
+                    NUGET_KEY: ${{secrets.GH_TOKEN}}
+                    PACKAGE_NAME: BTCPayServer.Lightning.Charge
+                    INCLUDE_SYMBOLS: true
+                    VERSION_REGEX: ^\s*<PackageVersion>(.*)<\/PackageVersion>\s*$
+                    TAG_COMMIT: true
+                    TAG_FORMAT: Charge/v*
+            #CLightning nuget    
+            -   name: Publish NuGet for BTCPayServer.Lightning.CLightning
+                if: ${{ github.ref == 'refs/heads/master' }} # Publish only when the push is on master
+                uses: Rebel028/publish-nuget@v2.7.0
+                with:
+                    PROJECT_FILE_PATH: src/BTCPayServer.Lightning.CLightning/BTCPayServer.Lightning.CLightning.csproj
+                    NUGET_KEY: ${{secrets.NUGET_KEY}}
+                    PACKAGE_NAME: BTCPayServer.Lightning.CLightning
+                    INCLUDE_SYMBOLS: true
+                    VERSION_REGEX: ^\s*<Version>(.*)<\/Version>\s*$
+                    TAG_COMMIT: true
+                    TAG_FORMAT: CLightning/v*
+            -   name: Publish Github Package Registry for BTCPayServer.Lightning.CLightning
+                if: ${{ github.ref == 'refs/heads/master' }} # Publish only when the push is on master
+                uses: Rebel028/publish-nuget@v2.7.0
+                with:
+                    PROJECT_FILE_PATH: src/BTCPayServer.Lightning.CLightning/BTCPayServer.Lightning.CLightning.csproj
+                    NUGET_SOURCE: "https://nuget.pkg.github.com/btcpayserver"
+                    NUGET_KEY: ${{secrets.GH_TOKEN}}
+                    PACKAGE_NAME: BTCPayServer.Lightning.CLightning
+                    INCLUDE_SYMBOLS: true
+                    VERSION_REGEX: ^\s*<Version>(.*)<\/Version>\s*$
+                    TAG_COMMIT: true
+                    TAG_FORMAT: CLightning/v*
+            #Eclair nuget    
+            -   name: Publish NuGet for BTCPayServer.Lightning.Eclair
+                if: ${{ github.ref == 'refs/heads/master' }} # Publish only when the push is on master
+                uses: Rebel028/publish-nuget@v2.7.0
+                with:
+                    PROJECT_FILE_PATH: src/BTCPayServer.Lightning.Eclair/BTCPayServer.Lightning.Eclair.csproj
+                    NUGET_KEY: ${{secrets.NUGET_KEY}}
+                    PACKAGE_NAME: BTCPayServer.Lightning.Eclair
+                    INCLUDE_SYMBOLS: true
+                    VERSION_REGEX: ^\s*<Version>(.*)<\/Version>\s*$
+                    TAG_COMMIT: true
+                    TAG_FORMAT: Eclair/v*
+            -   name: Publish Github Package Registry for BTCPayServer.Lightning.Eclair
+                if: ${{ github.ref == 'refs/heads/master' }} # Publish only when the push is on master
+                uses: Rebel028/publish-nuget@v2.7.0
+                with:
+                    PROJECT_FILE_PATH: src/BTCPayServer.Lightning.Eclair/BTCPayServer.Lightning.Eclair.csproj
+                    NUGET_SOURCE: "https://nuget.pkg.github.com/btcpayserver"
+                    NUGET_KEY: ${{secrets.GH_TOKEN}}
+                    PACKAGE_NAME: BTCPayServer.Lightning.Eclair
+                    INCLUDE_SYMBOLS: true
+                    VERSION_REGEX: ^\s*<Version>(.*)<\/Version>\s*$
+                    TAG_COMMIT: true
+                    TAG_FORMAT: Eclair/v*
+            #BTCPayServer.Lightning.LNbank nuget    
+            -   name: Publish NuGet for BTCPayServer.Lightning.BTCPayServer.Lightning.LNbank
+                if: ${{ github.ref == 'refs/heads/master' }} # Publish only when the push is on master
+                uses: Rebel028/publish-nuget@v2.7.0
+                with:
+                    PROJECT_FILE_PATH: src/BTCPayServer.Lightning.BTCPayServer.Lightning.LNbank/BTCPayServer.Lightning.BTCPayServer.Lightning.LNbank.csproj
+                    NUGET_KEY: ${{secrets.NUGET_KEY}}
+                    PACKAGE_NAME: BTCPayServer.Lightning.BTCPayServer.Lightning.LNbank
+                    INCLUDE_SYMBOLS: true
+                    VERSION_REGEX: ^\s*<Version>(.*)<\/Version>\s*$
+                    TAG_COMMIT: true
+                    TAG_FORMAT: BTCPayServer.Lightning.LNbank/v*
+            -   name: Publish Github Package Registry for BTCPayServer.Lightning.BTCPayServer.Lightning.LNbank
+                if: ${{ github.ref == 'refs/heads/master' }} # Publish only when the push is on master
+                uses: Rebel028/publish-nuget@v2.7.0
+                with:
+                    PROJECT_FILE_PATH: src/BTCPayServer.Lightning.BTCPayServer.Lightning.LNbank/BTCPayServer.Lightning.BTCPayServer.Lightning.LNbank.csproj
+                    NUGET_SOURCE: "https://nuget.pkg.github.com/btcpayserver"
+                    NUGET_KEY: ${{secrets.GH_TOKEN}}
+                    PACKAGE_NAME: BTCPayServer.Lightning.BTCPayServer.Lightning.LNbank
+                    INCLUDE_SYMBOLS: true
+                    VERSION_REGEX: ^\s*<Version>(.*)<\/Version>\s*$
+                    TAG_COMMIT: true
+                    TAG_FORMAT: BTCPayServer.Lightning.LNbank/v*
+            #LND nuget    
+            -   name: Publish NuGet for BTCPayServer.Lightning.LND
+                if: ${{ github.ref == 'refs/heads/master' }} # Publish only when the push is on master
+                uses: Rebel028/publish-nuget@v2.7.0
+                with:
+                    PROJECT_FILE_PATH: src/BTCPayServer.Lightning.LND/BTCPayServer.Lightning.LND.csproj
+                    NUGET_KEY: ${{secrets.NUGET_KEY}}
+                    PACKAGE_NAME: BTCPayServer.Lightning.LND
+                    INCLUDE_SYMBOLS: true
+                    VERSION_REGEX: ^\s*<Version>(.*)<\/Version>\s*$
+                    TAG_COMMIT: true
+                    TAG_FORMAT: LND/v*
+            -   name: Publish Github Package Registry for BTCPayServer.Lightning.LND
+                if: ${{ github.ref == 'refs/heads/master' }} # Publish only when the push is on master
+                uses: Rebel028/publish-nuget@v2.7.0
+                with:
+                    PROJECT_FILE_PATH: src/BTCPayServer.Lightning.LND/BTCPayServer.Lightning.LND.csproj
+                    NUGET_SOURCE: "https://nuget.pkg.github.com/btcpayserver"
+                    NUGET_KEY: ${{secrets.GH_TOKEN}}
+                    PACKAGE_NAME: BTCPayServer.Lightning.LND
+                    INCLUDE_SYMBOLS: true
+                    VERSION_REGEX: ^\s*<Version>(.*)<\/Version>\s*$
+                    TAG_COMMIT: true
+                    TAG_FORMAT: LND/v*
+                  
