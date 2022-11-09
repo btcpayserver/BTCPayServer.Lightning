@@ -116,9 +116,9 @@ jobs:
                 if: ${{ github.ref == 'refs/heads/master' }} # Publish only when the push is on master
                 uses: Rebel028/publish-nuget@v2.7.0
                 with:
-                    PROJECT_FILE_PATH: src/BTCPayServer.Lightning.BTCPayServer.Lightning.LNbank/BTCPayServer.Lightning.BTCPayServer.Lightning.LNbank.csproj
+                    PROJECT_FILE_PATH: src/BTCPayServer.Lightning.LNbank/BTCPayServer.Lightning.LNbank.csproj
                     NUGET_KEY: ${{secrets.NUGET_KEY}}
-                    PACKAGE_NAME: BTCPayServer.Lightning.BTCPayServer.Lightning.LNbank
+                    PACKAGE_NAME: BTCPayServer.Lightning.LNbank
                     INCLUDE_SYMBOLS: true
                     VERSION_REGEX: ^\s*<Version>(.*)<\/Version>\s*$
                     TAG_COMMIT: true
@@ -127,10 +127,10 @@ jobs:
                 if: ${{ github.ref == 'refs/heads/master' }} # Publish only when the push is on master
                 uses: Rebel028/publish-nuget@v2.7.0
                 with:
-                    PROJECT_FILE_PATH: src/BTCPayServer.Lightning.BTCPayServer.Lightning.LNbank/BTCPayServer.Lightning.BTCPayServer.Lightning.LNbank.csproj
+                    PROJECT_FILE_PATH: src/BTCPayServer.Lightning.LNbank/BTCPayServer.Lightning.LNbank.csproj
                     NUGET_SOURCE: "https://nuget.pkg.github.com/btcpayserver"
                     NUGET_KEY: ${{secrets.GH_TOKEN}}
-                    PACKAGE_NAME: BTCPayServer.Lightning.BTCPayServer.Lightning.LNbank
+                    PACKAGE_NAME: BTCPayServer.Lightning.LNbank
                     INCLUDE_SYMBOLS: true
                     VERSION_REGEX: ^\s*<Version>(.*)<\/Version>\s*$
                     TAG_COMMIT: true
