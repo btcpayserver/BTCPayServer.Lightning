@@ -112,7 +112,7 @@ jobs:
                     TAG_COMMIT: true
                     TAG_FORMAT: Eclair/v*
             #BTCPayServer.Lightning.LNbank nuget    
-            -   name: Publish NuGet for BTCPayServer.Lightning.BTCPayServer.Lightning.LNbank
+            -   name: Publish NuGet for BTCPayServer.Lightning.LNbank
                 if: ${{ github.ref == 'refs/heads/master' }} # Publish only when the push is on master
                 uses: Rebel028/publish-nuget@v2.7.0
                 with:
@@ -123,7 +123,7 @@ jobs:
                     VERSION_REGEX: ^\s*<Version>(.*)<\/Version>\s*$
                     TAG_COMMIT: true
                     TAG_FORMAT: BTCPayServer.Lightning.LNbank/v*
-            -   name: Publish Github Package Registry for BTCPayServer.Lightning.BTCPayServer.Lightning.LNbank
+            -   name: Publish Github Package Registry for BTCPayServer.Lightning.LNbank
                 if: ${{ github.ref == 'refs/heads/master' }} # Publish only when the push is on master
                 uses: Rebel028/publish-nuget@v2.7.0
                 with:
