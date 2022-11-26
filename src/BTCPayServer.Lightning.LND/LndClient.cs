@@ -143,7 +143,8 @@ namespace BTCPayServer.Lightning.LND
                 _Body = null;
                 _Response?.Dispose();
                 _Response = null;
-                _Client?.Dispose();
+                if (_Parent._DefaultHttpClient is null)
+                    _Client?.Dispose();
                 _Client = null;
                 if (waitLoop)
                     _ListenLoop?.Wait();
@@ -281,7 +282,8 @@ namespace BTCPayServer.Lightning.LND
                 _Body = null;
                 _Response?.Dispose();
                 _Response = null;
-                _Client?.Dispose();
+                if (_Parent._DefaultHttpClient is null)
+                    _Client?.Dispose();
                 _Client = null;
                 if (waitLoop)
                     _ListenLoop?.Wait();

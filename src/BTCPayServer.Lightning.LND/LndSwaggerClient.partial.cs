@@ -54,7 +54,7 @@ namespace BTCPayServer.Lightning.LND
     }
     public partial class LndSwaggerClient
     {
-        HttpClient _DefaultHttpClient;
+        internal HttpClient _DefaultHttpClient;
         public LndSwaggerClient(LndRestSettings settings) : this(settings, null)
         {
 
