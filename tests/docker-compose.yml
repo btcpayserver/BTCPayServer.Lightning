@@ -34,7 +34,7 @@ services:
   lightningd:
     restart: unless-stopped
     stop_signal: SIGKILL
-    image: btcpayserver/lightning:v0.10.1-1-dev
+    image: btcpayserver/lightning:v0.12.1-dev
     environment:
       EXPOSE_TCP: "true"
       LIGHTNINGD_NETWORK: regtest
@@ -43,7 +43,6 @@ services:
         bitcoin-datadir=/etc/bitcoin
         bitcoin-rpcconnect=bitcoind
         network=regtest
-        announce-addr=lightningd
         log-level=debug
         dev-fast-gossip
         dev-bitcoind-poll=1
@@ -61,7 +60,7 @@ services:
   lightningd_dest:
     restart: unless-stopped
     stop_signal: SIGKILL
-    image: btcpayserver/lightning:v0.10.1-1-dev
+    image: btcpayserver/lightning:v0.12.1-dev
     environment:
       EXPOSE_TCP: "true"
       LIGHTNINGD_NETWORK: regtest
@@ -70,7 +69,6 @@ services:
         bitcoin-datadir=/etc/bitcoin
         bitcoin-rpcconnect=bitcoind
         network=regtest
-        announce-addr=lightningd_dest
         log-level=debug
         dev-fast-gossip
         dev-bitcoind-poll=1
