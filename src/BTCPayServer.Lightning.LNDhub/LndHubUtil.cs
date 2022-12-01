@@ -46,7 +46,7 @@ namespace BTCPayServer.Lightning.LndHub
                 Id = paymentHash,
                 PaymentHash = paymentHash,
                 Preimage = data.PaymentPreimage,
-                Status = LightningPaymentStatus.Complete,
+                Status = ToLightningPaymentStatus(data),
                 CreatedAt = data.Timestamp,
                 Amount = data.Value - data.Fee,
                 AmountSent = data.Value,
@@ -54,6 +54,13 @@ namespace BTCPayServer.Lightning.LndHub
             };
 
             return payment;
+        }
+
+        internal static LightningPaymentStatus ToLightningPaymentStatus(TransactionData data)
+        {
+            return data.Value != null && data.Fee != null
+                ? LightningPaymentStatus.Complete
+                : LightningPaymentStatus.Pending;
         }
     }
 }

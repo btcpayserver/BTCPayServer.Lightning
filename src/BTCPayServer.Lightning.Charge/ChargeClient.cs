@@ -286,5 +286,15 @@ namespace BTCPayServer.Lightning.Charge
         {
             throw new NotSupportedException();
         }
+
+        public Task<LightningPayment[]> ListPayments(CancellationToken cancellation = default)
+        {
+            throw new NotSupportedException();
+        }
+
+        public Task<LightningPayment[]> ListPayments(ListPaymentsParams request, CancellationToken cancellation = default)
+        {
+            throw new NotSupportedException();
+        }
     }
 }

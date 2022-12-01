@@ -1967,20 +1967,28 @@ namespace BTCPayServer.Lightning.LND
 
         /// <summary>* lncli: `listpayments`
         /// ListPayments returns a list of all outgoing payments.</summary>
-        /// <exception cref="SwaggerException">A server side error occurred.</exception>
-        public System.Threading.Tasks.Task<LnrpcListPaymentsResponse> ListPaymentsAsync()
-        {
-            return ListPaymentsAsync(System.Threading.CancellationToken.None);
-        }
-
-        /// <summary>* lncli: `listpayments`
-        /// ListPayments returns a list of all outgoing payments.</summary>
+        /// <param name="include_pending">/ Toggles if all invoices should be returned, or only those that are currently unsettled.</param>
+        /// <param name="index_offset">/ The index of an invoice that will be used as either the start or end of a query to determine which invoices should be returned in the response.</param>
         /// <param name="cancellationToken">A cancellation token that can be used by other objects or threads to receive notice of cancellation.</param>
         /// <exception cref="SwaggerException">A server side error occurred.</exception>
-        public async System.Threading.Tasks.Task<LnrpcListPaymentsResponse> ListPaymentsAsync(System.Threading.CancellationToken cancellationToken)
+        public System.Threading.Tasks.Task<LnrpcListPaymentsResponse> ListPaymentsAsync(bool? include_pending, long? index_offset)
+        {
+            return ListPaymentsAsync(include_pending, index_offset, System.Threading.CancellationToken.None);
+        }
+        
+        /// <summary>* lncli: `listpayments`
+        /// ListPayments returns a list of all outgoing payments.</summary>
+        /// <param name="include_pending">/ Toggles if all invoices should be returned, or only those that are currently unsettled.</param>
+        /// <param name="index_offset">/ The index of an invoice that will be used as either the start or end of a query to determine which invoices should be returned in the response.</param>
+        /// <param name="cancellationToken">A cancellation token that can be used by other objects or threads to receive notice of cancellation.</param>
+        /// <exception cref="SwaggerException">A server side error occurred.</exception>
+        public async System.Threading.Tasks.Task<LnrpcListPaymentsResponse> ListPaymentsAsync(bool? include_pending, long? index_offset, System.Threading.CancellationToken cancellationToken)
         {
             var urlBuilder_ = new System.Text.StringBuilder();
-            urlBuilder_.Append(BaseUrl).Append("/v1/payments");
+            urlBuilder_.Append(BaseUrl).Append("/v1/payments?");
+            if (include_pending.HasValue) urlBuilder_.Append("pending_only=").Append(System.Uri.EscapeDataString(System.Convert.ToString(include_pending.Value, System.Globalization.CultureInfo.InvariantCulture))).Append("&");
+            if (index_offset.HasValue) urlBuilder_.Append("index_offset=").Append(System.Uri.EscapeDataString(System.Convert.ToString(index_offset.Value, System.Globalization.CultureInfo.InvariantCulture))).Append("&");
+            urlBuilder_.Length--;
 
             var client_ = _httpClient;
             try

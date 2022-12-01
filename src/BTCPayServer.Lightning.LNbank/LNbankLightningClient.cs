@@ -86,22 +86,23 @@ namespace BTCPayServer.Lightning.LNbank
             try
             {
                 var payment = await _client.GetPayment(paymentHash, cancellation);
-                return new LightningPayment
-                {
-                    Id = payment.Id,
-                    Amount = payment.TotalAmount != null && payment.FeeAmount != null ? payment.TotalAmount - payment.FeeAmount : null,
-                    AmountSent = payment.TotalAmount,
-                    CreatedAt = payment.CreatedAt,
-                    BOLT11 = payment.BOLT11,
-                    Preimage = payment.Preimage,
-                    PaymentHash = payment.PaymentHash,
-                    Status = payment.Status
-                };
+                return ToLightningPayment(payment);
             }
             catch (LNbankClient.LNbankApiException)
             {
                 return null;
             }
+        }
+
+        public Task<LightningPayment[]> ListPayments(CancellationToken cancellation = default)
+        {
+            return ListPayments(null, cancellation);
+        }
+
+        public async Task<LightningPayment[]> ListPayments(ListPaymentsParams request, CancellationToken cancellation = default)
+        {
+            var payments = await _client.ListPayments(request, cancellation);
+            return payments.Select(ToLightningPayment).ToArray();
         }
 
         public async Task<BitcoinAddress> GetDepositAddress(CancellationToken cancellation = default)
@@ -246,6 +247,18 @@ namespace BTCPayServer.Lightning.LNbank
             BOLT11 = invoice.BOLT11,
             Status = invoice.Status,
             AmountReceived = invoice.AmountReceived
+        };
+        
+        private static LightningPayment ToLightningPayment(PaymentData payment) => new()
+        {
+            Id = payment.Id,
+            Amount = payment.TotalAmount != null && payment.FeeAmount != null ? payment.TotalAmount - payment.FeeAmount : null,
+            AmountSent = payment.TotalAmount,
+            CreatedAt = payment.CreatedAt,
+            BOLT11 = payment.BOLT11,
+            Preimage = payment.Preimage,
+            PaymentHash = payment.PaymentHash,
+            Status = payment.Status
         };
     }
 }

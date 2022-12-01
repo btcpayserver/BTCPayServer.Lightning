@@ -285,6 +285,25 @@ namespace BTCPayServer.Lightning.CLightning
             return invoices.Select(ToLightningInvoice).ToArray();
         }
 
+        async Task<LightningPayment[]> ILightningClient.ListPayments(CancellationToken cancellation)
+        {
+            return await ListPayments(null, cancellation);
+            }
+
+        public async Task<LightningPayment[]> ListPayments(ListPaymentsParams request, CancellationToken cancellation)
+        {
+            var payments = await SendCommandAsync<CLightningPayment[]>("listpays", null, false, true, cancellation);
+            if (request != null)
+            {
+                // we need to filter client-side, because the listpays command does not support these filters
+                payments = payments.Where(payment => 
+                    ((request.IncludePending.HasValue && request.IncludePending.Value) || ToPaymentStatus(payment.Status) != LightningPaymentStatus.Pending) &&
+                    (!request.OffsetIndex.HasValue || !payment.CreatedAt.HasValue || payment.CreatedAt.Value.ToUnixTimeMilliseconds() >= request.OffsetIndex.Value)).ToArray();
+            }
+
+            return payments.Select(ToLightningPayment).ToArray();
+        }
+
         private async Task<PayResponse> PayAsync(string bolt11, PayInvoiceParams payParams, CancellationToken cancellation = default)
         {
             if (bolt11 == null && payParams.Destination is null)

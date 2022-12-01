@@ -514,21 +514,47 @@ retry:
                 Assert.Contains(invoices, i => i.Id == paidInvoice.Id);
                 
                 // check payment
-                var payReq = BOLT11PaymentRequest.Parse(invoice.BOLT11, Network.RegTest);
-                var hash = payReq.PaymentHash?.ToString();
-                var payment = await test.Customer.GetPayment(hash);
+                var hash = GetInvoicePaymentHash(invoice).ToString();
+                var payment = await GetInvoicePayment(invoice, test.Customer);
+                await test.Customer.GetPayment(hash);
                 Assert.Equal(hash, payment.PaymentHash);
                 Assert.Equal(amount, payment.Amount);
                 Assert.Equal(amount, payment.AmountSent);
                 Assert.Equal(0, payment.Fee);
                 Assert.Equal(LightningPaymentStatus.Complete, payment.Status);
 
+                // check payments lists
+                if (test.Customer is not EclairLightningClient)
+                {
+                    var payments = await test.Customer.ListPayments();
+                    Assert.Contains(payments, p => p.PaymentHash == payment.PaymentHash);
+                }
+                else
+                {
+                    await Assert.ThrowsAsync<NotSupportedException>(async () =>
+                    {
+                        await test.Customer.ListPayments();
+                    });
+                }
+
+                // record this timestamp now to use it later as an offset in the second payments list check
+                // the delay is needed to reliably mark the line between previous and upcoming payments
+                var offsetIndex = DateTimeOffset.Now.ToUnixTimeMilliseconds();
+                await Task.Delay(1000);
+                
                 // with max fee percent
                 var invoiceMaxFeePercent = await test.Merchant.CreateInvoice(amount, "CanPayInvoiceWithMaxFeeAndReceivePercent", expiry);
                 paidReply = await test.Customer.Pay(invoiceMaxFeePercent.BOLT11, new PayInvoiceParams { MaxFeePercent = 6.15f });
                 Assert.Equal(PayResult.Ok, paidReply.Result);
                 Assert.Equal(amount, paidReply.Details.TotalAmount);
                 Assert.Equal(0, paidReply.Details.FeeAmount);
+                
+                var paymentMaxFeePercent = await GetInvoicePayment(invoiceMaxFeePercent, test.Customer);
+                var paymentMaxFeePercentHash = GetInvoicePaymentHash(invoiceMaxFeePercent).ToString();
+                Assert.Equal(paymentMaxFeePercentHash, paymentMaxFeePercent.PaymentHash);
+                Assert.Equal(amount, paymentMaxFeePercent.Amount);
+                Assert.Equal(amount, paymentMaxFeePercent.AmountSent);
+                Assert.Equal(0, paymentMaxFeePercent.Fee);
 
                 // with fee below 1%
                 var invoiceMaxFeePercent2 = await test.Merchant.CreateInvoice(amount, "CanPayInvoiceWithMaxFeeAndReceivePercent2", expiry);
@@ -536,6 +562,13 @@ retry:
                 Assert.Equal(PayResult.Ok, paidReply.Result);
                 Assert.Equal(amount, paidReply.Details.TotalAmount);
                 Assert.Equal(0, paidReply.Details.FeeAmount);
+                
+                var paymentMaxFeePercent2 = await GetInvoicePayment(invoiceMaxFeePercent2, test.Customer);
+                var paymentMaxFeePercent2Hash = GetInvoicePaymentHash(invoiceMaxFeePercent2).ToString();
+                Assert.Equal(paymentMaxFeePercent2Hash, paymentMaxFeePercent2.PaymentHash);
+                Assert.Equal(amount, paymentMaxFeePercent2.Amount);
+                Assert.Equal(amount, paymentMaxFeePercent2.AmountSent);
+                Assert.Equal(0, paymentMaxFeePercent2.Fee);
 
                 // with max fee limit
                 var invoiceMaxFeeLimit = await test.Merchant.CreateInvoice(amount, "CanPayInvoiceWithMaxFeeAndReceiveLimit", expiry);
@@ -543,6 +576,13 @@ retry:
                 Assert.Equal(PayResult.Ok, paidReply.Result);
                 Assert.Equal(amount, paidReply.Details.TotalAmount);
                 Assert.Equal(0, paidReply.Details.FeeAmount);
+                
+                var paymentMaxFeeLimit = await GetInvoicePayment(invoiceMaxFeeLimit, test.Customer);
+                var paymentMaxFeeLimitHash = GetInvoicePaymentHash(invoiceMaxFeeLimit).ToString();
+                Assert.Equal(paymentMaxFeeLimitHash, paymentMaxFeeLimit.PaymentHash);
+                Assert.Equal(amount, paymentMaxFeeLimit.Amount);
+                Assert.Equal(amount, paymentMaxFeeLimit.AmountSent);
+                Assert.Equal(0, paymentMaxFeeLimit.Fee);
 
                 // with zero/explicit amount
                 if (test.Customer is LndHubLightningClient)
@@ -559,6 +599,20 @@ retry:
                     Assert.Equal(PayResult.Ok, paidReply.Result);
                     Assert.Equal(amount, paidReply.Details.TotalAmount);
                     Assert.Equal(0, paidReply.Details.FeeAmount);
+                }
+                
+                // check payments lists with offset
+                if (test.Customer is not EclairLightningClient)
+                {
+                    var param = new ListPaymentsParams { IncludePending = true, OffsetIndex = offsetIndex };
+                    var payments = await test.Customer.ListPayments(param);
+                    Assert.InRange(payments.Length, 3, 4);
+                    // Initial payment should be skipped because of offset
+                    Assert.DoesNotContain(payments, p => p.PaymentHash == payment.PaymentHash);
+                    // Later payments should be included
+                    Assert.Contains(payments, p => p.PaymentHash == paymentMaxFeePercent.PaymentHash);
+                    Assert.Contains(payments, p => p.PaymentHash == paymentMaxFeePercent2.PaymentHash);
+                    Assert.Contains(payments, p => p.PaymentHash == paymentMaxFeeLimit.PaymentHash);
                 }
             }
         }
@@ -1113,6 +1167,18 @@ retry:
             }
 
             return invoice;
+        }
+
+        private async Task<LightningPayment> GetInvoicePayment(LightningInvoice invoice, ILightningClient client)
+        {
+            var hash = GetInvoicePaymentHash(invoice).ToString();
+            return await client.GetPayment(hash);
+        }
+
+        private uint256 GetInvoicePaymentHash(LightningInvoice invoice)
+        {
+            var payReq = BOLT11PaymentRequest.Parse(invoice.BOLT11, Network.RegTest);
+            return payReq.PaymentHash;
         }
 
         private static void AssertUnpaid(LightningInvoice invoice, LightMoney expectedAmount = null)

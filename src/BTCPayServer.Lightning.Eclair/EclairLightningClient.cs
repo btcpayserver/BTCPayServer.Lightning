@@ -136,6 +136,16 @@ namespace BTCPayServer.Lightning.Eclair
             return payment;
         }
 
+        public Task<LightningPayment[]> ListPayments(CancellationToken cancellation = default)
+        {
+            throw new NotSupportedException();
+        }
+
+        public Task<LightningPayment[]> ListPayments(ListPaymentsParams request, CancellationToken cancellation = default)
+        {
+            throw new NotSupportedException();
+        }
+
         async Task<LightningInvoice> ILightningClient.CreateInvoice(LightMoney amount, string description, TimeSpan expiry,
             CancellationToken cancellation)
         {
