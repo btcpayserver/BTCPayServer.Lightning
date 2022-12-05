@@ -147,6 +147,7 @@ namespace BTCPayServer.Lightning.CLightning
                         {
                             var req = new JObject();
                             req.Add("id", 0);
+                            req.Add("jsonrpc", "2.0");
                             req.Add("method", command);
                             req.Add("params", new JArray(parameters));
                             await req.WriteToAsync(jsonWriter, cancellation);
