@@ -95,6 +95,24 @@ namespace BTCPayServer.Lightning.LndHub
             return data == null ? null : LndHubUtil.ToLightningPayment(data);
         }
 
+        public async Task<LightningPayment[]> ListPayments(CancellationToken cancellation = default)
+        {
+            return await ListPayments(null, cancellation);
+        }
+
+        public async Task<LightningPayment[]> ListPayments(ListPaymentsParams request, CancellationToken cancellation = default)
+        {
+            var payments = await _client.GetTransactions(cancellation);
+            if (request != null)
+            {
+                // we need to filter client-side, because LNDhub does not support these filters
+                payments = payments.Where(payment =>
+                    ((request.IncludePending.HasValue && request.IncludePending.Value) || LndHubUtil.ToLightningPaymentStatus(payment) != LightningPaymentStatus.Pending) &&
+                    (!request.OffsetIndex.HasValue || !payment.Timestamp.HasValue || payment.Timestamp.Value.ToUnixTimeMilliseconds() >= request.OffsetIndex.Value)).ToArray();
+            }
+            return payments.Select(LndHubUtil.ToLightningPayment).ToArray();
+        }
+
         public async Task<LightningInvoice> CreateInvoice(LightMoney amount, string description, TimeSpan expiry, CancellationToken cancellation = default)
         {
             return await (this as ILightningClient).CreateInvoice(new CreateInvoiceParams(amount, description, expiry), cancellation);

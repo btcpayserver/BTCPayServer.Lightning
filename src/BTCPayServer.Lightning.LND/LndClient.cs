@@ -493,6 +493,25 @@ namespace BTCPayServer.Lightning.LND
             }
         }
 
+        public async Task<LightningPayment[]> ListPayments(CancellationToken cancellation = default)
+        {
+            return await ListPayments(null, cancellation);
+        }
+
+        public async Task<LightningPayment[]> ListPayments(ListPaymentsParams request, CancellationToken cancellation = default)
+        {
+            var resp = await SwaggerClient.ListPaymentsAsync(request?.IncludePending, null, cancellation);
+            var payments = resp.Payments.Select(ConvertLndPayment).ToArray();
+            if (request is { OffsetIndex: { } })
+            {
+                // we need to filter client-side, because the LNDs offset works differently
+                payments = payments.Where(payment => 
+                    !payment.CreatedAt.HasValue || payment.CreatedAt.Value.ToUnixTimeMilliseconds() >= request.OffsetIndex.Value).ToArray();
+            }
+
+            return payments;
+        }
+
         async Task<ILightningInvoiceListener> ILightningClient.Listen(CancellationToken cancellation)
         {
             var session = new LndInvoiceClientSession(SwaggerClient);

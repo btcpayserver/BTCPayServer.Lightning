@@ -11,6 +11,8 @@ namespace BTCPayServer.Lightning
         Task<LightningInvoice[]> ListInvoices(CancellationToken cancellation = default);
         Task<LightningInvoice[]> ListInvoices(ListInvoicesParams request, CancellationToken cancellation = default);
         Task<LightningPayment> GetPayment(string paymentHash, CancellationToken cancellation = default);
+        Task<LightningPayment[]> ListPayments(CancellationToken cancellation = default);
+        Task<LightningPayment[]> ListPayments(ListPaymentsParams request, CancellationToken cancellation = default);
         Task<LightningInvoice> CreateInvoice(LightMoney amount, string description, TimeSpan expiry, CancellationToken cancellation = default);
         Task<LightningInvoice> CreateInvoice(CreateInvoiceParams createInvoiceRequest, CancellationToken cancellation = default);
         Task<ILightningInvoiceListener> Listen(CancellationToken cancellation = default);
