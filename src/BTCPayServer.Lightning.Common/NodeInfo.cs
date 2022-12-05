@@ -1,5 +1,6 @@
 using System;
 using System.Collections.Generic;
+using System.Net;
 using System.Text;
 using NBitcoin;
 
@@ -13,8 +14,18 @@ namespace BTCPayServer.Lightning
                 throw new ArgumentNullException(nameof(host));
             if (nodeId == null)
                 throw new ArgumentNullException(nameof(nodeId));
+
             Port = port;
-            Host = host;
+            if (IPAddress.TryParse(host, out var addr))
+            {
+                Host = addr.ToString();
+                if (addr.AddressFamily == System.Net.Sockets.AddressFamily.InterNetworkV6)
+                    Host = $"[{Host}]";
+            }
+            else
+            {
+                Host = host;
+            }
             NodeId = nodeId;
         }
 
@@ -44,7 +55,10 @@ namespace BTCPayServer.Lightning
                 return false;
             }
 
-            var portIndex = str.IndexOf(':');
+            var portIndex = str.LastIndexOf(':');
+            // An ipv6 can contains two ::
+            if (portIndex >= 1 && str[portIndex - 1] == ':')
+                portIndex = -1;
             int port = 9735;
             string host;
             if (portIndex != -1)

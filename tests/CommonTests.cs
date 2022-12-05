@@ -1007,6 +1007,18 @@ retry:
             Assert.False(NodeInfo.TryParse($"lol@:{port}", out _));
             Assert.False(NodeInfo.TryParse($"lol@:", out _));
             Assert.False(NodeInfo.TryParse($"lol@{host}:", out _));
+
+            var pkObj = new Key().PubKey;
+            var ipv6 = new NodeInfo(pkObj, "2a03:4000:2:b2::2", 9735);
+            Assert.Equal($"{pkObj}@[2a03:4000:2:b2::2]:9735", ipv6.ToString());
+            ipv6 = new NodeInfo(pkObj, "[2a03:4000:2:b2::2]", 9735);
+            Assert.Equal($"{pkObj}@[2a03:4000:2:b2::2]:9735", ipv6.ToString());
+            ipv6 = NodeInfo.Parse(ipv6.ToString());
+            Assert.Equal($"{pkObj}@[2a03:4000:2:b2::2]:9735", ipv6.ToString());
+            ipv6 = NodeInfo.Parse(ipv6.ToString().Replace("[","").Replace("]",""));
+            Assert.Equal($"{pkObj}@[2a03:4000:2:b2::2]:9735", ipv6.ToString());
+            ipv6 = NodeInfo.Parse($"{pkObj}@2a03:4000:2:b2::2");
+            Assert.Equal($"{pkObj}@[2a03:4000:2:b2::2]:9735", ipv6.ToString());
         }
 
         [Fact]
