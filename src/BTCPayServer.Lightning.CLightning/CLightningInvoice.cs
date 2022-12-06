@@ -1,6 +1,8 @@
 using System;
+using System.Collections.Generic;
 using NBitcoin;
 using Newtonsoft.Json;
+using Newtonsoft.Json.Linq;
 
 namespace BTCPayServer.Lightning.CLightning
 {
@@ -10,11 +12,11 @@ namespace BTCPayServer.Lightning.CLightning
         [JsonProperty("payment_hash")]
         public uint256 PaymentHash { get; set; }
 
-        [JsonProperty("msatoshi")]
+        [JsonProperty("amount_msat")]
         [JsonConverter(typeof(JsonConverters.LightMoneyJsonConverter))]
         public LightMoney MilliSatoshi { get; set; }
 
-        [JsonProperty("msatoshi_received")]
+        [JsonProperty("amount_received_msat")]
         [JsonConverter(typeof(JsonConverters.LightMoneyJsonConverter))]
         public LightMoney MilliSatoshiReceived { get; set; }
 
@@ -33,5 +35,20 @@ namespace BTCPayServer.Lightning.CLightning
         [JsonProperty("paid_at")]
         [JsonConverter(typeof(NBitcoin.JsonConverters.DateTimeToUnixTimeConverter))]
         public DateTimeOffset? PaidAt { get; set; }
+
+
+#pragma warning disable IDE0051
+        // Legacy stuff
+        [JsonProperty("msatoshi")]
+        [JsonConverter(typeof(JsonConverters.LightMoneyJsonConverter))]
+        LightMoney msatoshi { set { MilliSatoshi = value; } }
+
+        [JsonProperty("msatoshi_received")]
+        [JsonConverter(typeof(JsonConverters.LightMoneyJsonConverter))]
+        LightMoney msatoshi_received { set { MilliSatoshiReceived = value; } }
+#pragma warning restore IDE0051
+
+        [Newtonsoft.Json.JsonExtensionData]
+        public IDictionary<string, JToken> AdditionalProperties { get; set; }
     }
 }

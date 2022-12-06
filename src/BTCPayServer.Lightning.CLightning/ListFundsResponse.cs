@@ -1,5 +1,7 @@
+using System.Collections.Generic;
 using NBitcoin;
 using Newtonsoft.Json;
+using Newtonsoft.Json.Linq;
 
 namespace BTCPayServer.Lightning.CLightning
 {
@@ -22,6 +24,16 @@ namespace BTCPayServer.Lightning.CLightning
 
         [JsonConverter(typeof(NBitcoin.JsonConverters.MoneyJsonConverter))]
         public Money Value { get; set; }
+
+#pragma warning disable IDE0051
+        // For some reason clightning decided the value of a UTXO should be in millisat... when it is impossible
+        [JsonProperty("amount_msat")]
+        [JsonConverter(typeof(JsonConverters.LightMoneyJsonConverter))]
+        LightMoney amount_msat { set { Value = Money.Coins(value.ToDecimal(LightMoneyUnit.BTC)); } }
+#pragma warning restore IDE0051
+
+        [Newtonsoft.Json.JsonExtensionData]
+        public IDictionary<string, JToken> AdditionalProperties { get; set; }
     }
 
     public class FundsChannel
@@ -49,5 +61,8 @@ namespace BTCPayServer.Lightning.CLightning
         [JsonProperty("short_channel_id")]
         [JsonConverter(typeof(JsonConverters.ShortChannelIdJsonConverter))]
         public ShortChannelId ShortChannelId { get; set; }
+
+        [Newtonsoft.Json.JsonExtensionData]
+        public IDictionary<string, JToken> AdditionalProperties { get; set; }
     }
 }

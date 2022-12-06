@@ -562,7 +562,7 @@ retry:
                                                    ex.Message == "Unknown peer" ||
                                                    ex.Message == "Unable to connect, no address known for peer")
             {
-                return new OpenChannelResponse(OpenChannelResult.PeerNotConnected);
+               return new OpenChannelResponse(OpenChannelResult.PeerNotConnected);
             }
             catch (LightningRPCException ex) when (ex.Message.Contains("CHANNELD_AWAITING_LOCKIN"))
             {

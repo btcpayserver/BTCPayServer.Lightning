@@ -43,7 +43,7 @@ services:
         bitcoin-datadir=/etc/bitcoin
         bitcoin-rpcconnect=bitcoind
         network=regtest
-        announce-addr=lightningd
+        announce-addr=lightningd:9735
         log-level=debug
         dev-fast-gossip
         dev-bitcoind-poll=1
@@ -58,7 +58,7 @@ services:
     links:
       - bitcoind
 
-  lightningddest:
+  lightningd_dest:
     restart: unless-stopped
     stop_signal: SIGKILL
     image: btcpayserver/lightning:v22.11-dev
@@ -70,7 +70,7 @@ services:
         bitcoin-datadir=/etc/bitcoin
         bitcoin-rpcconnect=bitcoind
         network=regtest
-        announce-addr=lightningddest
+        announce-addr=lightningd_dest:9735
         log-level=debug
         dev-fast-gossip
         dev-bitcoind-poll=1
@@ -81,7 +81,7 @@ services:
       - "9835" # api port
     volumes:
       - "bitcoind_dir:/etc/bitcoin"
-      - "lightningddest_dir:/root/.lightning"
+      - "lightningd_dest_dir:/root/.lightning"
     links:
       - bitcoind
 
@@ -315,7 +315,7 @@ services:
       - eclair
       - eclair_dest
       - lightningd
-      - lightningddest
+      - lightningd_dest
       - lnd
       - lnd_dest
       - lndhub
@@ -335,7 +335,7 @@ services:
       - eclair
       - eclair_dest
       - lightningd
-      - lightningddest
+      - lightningd_dest
       - lnd
       - lnd_dest
       - lndhub
@@ -348,7 +348,7 @@ services:
       - eclair
       - eclair_dest
       - lightningd
-      - lightningddest
+      - lightningd_dest
       - lnd
       - lnd_dest
       - lndhub
@@ -362,7 +362,7 @@ volumes:
   bitcoind_dir:
   lightningd_dir:
   lightning_charge_dir:
-  lightningddest_dir:
+  lightningd_dest_dir:
   eclair_dir:
   eclair_dest_dir:
   lndhub_dir:
