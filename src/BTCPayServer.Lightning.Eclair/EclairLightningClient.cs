@@ -167,9 +167,9 @@ namespace BTCPayServer.Lightning.Eclair
         }
         Task<LightningInvoice> ILightningClient.CreateInvoice(CreateInvoiceParams req, CancellationToken cancellation)
         {
-            if (req.DescriptionHash != null)
+            if (req.DescriptionHash is not null)
             {
-                throw new NotSupportedException();
+                throw new NotSupportedException("DescriptionHash isn't supported");
             }
             return (this as ILightningClient).CreateInvoice(req.Amount, req.Description, req.Expiry, cancellation);
         }

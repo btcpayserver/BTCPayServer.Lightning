@@ -81,13 +81,16 @@ namespace BTCPayServer.Lightning.Tests
         [Fact(Timeout = Timeout)]
         public async Task CanCreateInvoiceWithDescriptionHash()
         {
-            var hashToUse =
-                new uint256(SHA256.Create().ComputeHash(Encoding.UTF8.GetBytes("CanCreateInvoiceWithDescriptionHash")));
+            var expectedHash = new uint256("1d8adbd8794116cfd6044e1d25446685a7c6c750a9e2cec1845acc23656466d1");
+            var create = new CreateInvoiceParams(10000, "CanCreateInvoiceWithDescriptionHash", TimeSpan.FromMinutes(5))
+            {
+                DescriptionHashOnly = true
+            };
+            Assert.Equal(expectedHash, create.DescriptionHash);
 
             async Task<LightningInvoice> CreateWithHash(ILightningClient lightningClient)
             {
-                return await lightningClient.CreateInvoice(new CreateInvoiceParams(10000, hashToUse,
-                    TimeSpan.FromMinutes(5)));
+                return await lightningClient.CreateInvoice(create);
             }
             await WaitServersAreUp();
             foreach (var client in Tester.GetLightningClients())
@@ -106,7 +109,7 @@ namespace BTCPayServer.Lightning.Tests
                         var createdInvoiceBOLT = BOLT11PaymentRequest.Parse(createdInvoice.BOLT11, Network.RegTest);
                         var retrievedInvoiceBOLT = BOLT11PaymentRequest.Parse(retrievedInvoice.BOLT11, Network.RegTest);
                         Assert.Equal(createdInvoiceBOLT.PaymentHash, retrievedInvoiceBOLT.PaymentHash);
-                        Assert.Equal(hashToUse, createdInvoiceBOLT.DescriptionHash);
+                        Assert.Equal(expectedHash, createdInvoiceBOLT.DescriptionHash);
                         break;
                     case LndHubLightningClient _:
                         // Once this gets merged, we can support it too: https://github.com/BlueWallet/LndHub/pull/319
