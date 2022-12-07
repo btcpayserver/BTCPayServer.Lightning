@@ -354,7 +354,7 @@ namespace BTCPayServer.Lightning.CLightning
                         : PayResult.Error;
                 return new PayResponse(result, ex.Message);
             }
-            catch (Exception ex) when (cts.Token.IsCancellationRequested)
+            catch (Exception ex) when (cts.Token.IsCancellationRequested && !cancellation.IsCancellationRequested)
             {
                 if (bolt11 != null)
                 {
@@ -414,12 +414,62 @@ namespace BTCPayServer.Lightning.CLightning
             var msat = amount == LightMoney.Zero ? "any" : amount.MilliSatoshi.ToString();
             var expiry = Math.Max(0, (int)req.Expiry.TotalSeconds);
             var id = InvoiceIdEncoder.EncodeData(RandomUtils.GetBytes(20));
-            var cmd = req.DescriptionHash == null ? "invoice" : "invoicewithdescriptionhash";
-            var opts = req.DescriptionHash == null
-                ? new object[] { msat, id, req.Description ?? "", expiry, null, null, req.PrivateRouteHints }
-                : new object[] { msat, id, req.DescriptionHash.ToString(), expiry, null, null, req.PrivateRouteHints };
             
-            var invoice = await SendCommandAsync<CLightningInvoice>(cmd, opts, cancellation: cancellation);
+            List<object> args = new List<object>();
+            args.Add(msat);
+            args.Add(id);
+            args.Add(req.Description ?? "");
+            args.Add(expiry);
+            args.Add(null); // [fallbacks]
+            args.Add(null); // [preimage]
+            args.Add(req.PrivateRouteHints);
+
+            bool usePlugin;
+            if (req.DescriptionHashOnly)
+            {
+                args.Add(null); // [cltv]
+                args.Add(true);
+                usePlugin = false;
+            }
+            else
+            {
+                usePlugin = req.DescriptionHash is not null;
+            }
+
+            // Pre 22.11, we needed to use a plugin to support bolt11 with description hash.
+            // This is not the case anymore, but we may fallback to using the plugin for old nodes.
+            CLightningInvoice invoice = null;
+            if (!usePlugin)
+            {
+                try
+                {
+                    invoice = await SendCommandAsync<CLightningInvoice>(
+                        "invoice",
+                        args.ToArray(),
+                        cancellation: cancellation);
+                }
+                // Old nodes doesn't support descriptionHashOnly
+                catch (LightningRPCException ex) when (req.DescriptionHashOnly && ex.Code == CLightningErrorCode.WRONG_PARAMETERS)
+                {
+                    // Remove two last parameters
+                    args.RemoveAt(args.Count - 1);
+                    args.RemoveAt(args.Count - 1);
+                    usePlugin = true;
+                }
+            }
+
+            if (usePlugin)
+            {
+                args[2] = req.DescriptionHash.ToString();
+                invoice = await SendCommandAsync<CLightningInvoice>(
+                        "invoicewithdescriptionhash",
+                        args.ToArray(),
+                        cancellation: cancellation);
+            }
+
+            if (invoice is null)
+                throw new InvalidOperationException("Bug in BTCPayServer.Lightning library, contact developers, code 52917");
+
             invoice.Label = id;
             invoice.MilliSatoshi = amount;
             invoice.Status = "unpaid";

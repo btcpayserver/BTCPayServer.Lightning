@@ -139,7 +139,7 @@ namespace BTCPayServer.Lightning.Tests
 
         private static async Task<PayResponse> Pay(ILightningClient sender, string payreq)
         {
-            using (var cts = new CancellationTokenSource(5000))
+            using (var cts = new CancellationTokenSource(30_000))
             {
 retry:
                 try

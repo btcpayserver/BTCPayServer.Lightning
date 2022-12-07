@@ -2,7 +2,7 @@
 
   <PropertyGroup>
     <TargetFrameworks>net6.0;netstandard2.0</TargetFrameworks>
-	  <Version>1.3.18</Version>
+	  <Version>1.3.19</Version>
 	  <LangVersion>10</LangVersion>
 	  <PackageId>BTCPayServer.Lightning.CLightning</PackageId>
 	  <Description>Client library for c-lightning to build Lightning Network Apps in C#.</Description>

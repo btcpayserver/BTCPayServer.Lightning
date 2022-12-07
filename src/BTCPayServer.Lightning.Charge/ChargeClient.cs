@@ -219,7 +219,7 @@ namespace BTCPayServer.Lightning.Charge
         }
         Task<LightningInvoice> ILightningClient.CreateInvoice(CreateInvoiceParams req, CancellationToken cancellation)
         {
-            if (req.DescriptionHash != null)
+            if (req.DescriptionHash is not null)
             {
                 throw new NotSupportedException("Lightning Charge does not support creating an invoice with description_hash");
             }
