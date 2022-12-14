@@ -80,7 +80,10 @@ namespace BTCPayServer.Lightning.Tests
                         continue;
                     }
 
+                    var connectedResult = sender.ConnectTo(destInfo.NodeInfoList.First());
+                    Logs.LogInformation($"Connection result: " + connectedResult);
                     Logs.LogInformation($"Opening channel to {destInfo.NodeInfoList[0]}");
+                    
                     var openChannel = await sender.OpenChannel(new OpenChannelRequest()
                     {
                         NodeInfo = destInfo.NodeInfoList[0],
