@@ -18,7 +18,6 @@ using NBitcoin.RPC;
 using Newtonsoft.Json.Linq;
 using Xunit;
 using Xunit.Abstractions;
-using Newtonsoft.Json;
 
 namespace BTCPayServer.Lightning.Tests
 {
@@ -68,6 +67,7 @@ namespace BTCPayServer.Lightning.Tests
                 retrievedInvoice = await client.Client.GetInvoice("lol");
                 Assert.Null(retrievedInvoice);
                 
+                await Task.Delay(1000);
                 var invoices = await client.Client.ListInvoices();
                 Assert.Contains(invoices, invoice => invoice.Id == createdInvoice.Id);
                 
@@ -407,17 +407,9 @@ namespace BTCPayServer.Lightning.Tests
                 {
                     case LndClient _:
                     case CLightningClient _:
+                    case EclairLightningClient _:
                         var response = await src.Pay(param);
                         Assert.Equal(PayResult.Ok, response.Result);
-
-                        var invoice = await dest.GetInvoice(Encoders.Hex.EncodeData(paymentHash.ToBytes()));
-                        //var payment = await src.GetPayment(paymentHash.ToString());
-                        break;
-                    
-                    case EclairLightningClient _:
-                        var resp = await src.Pay(param);
-                        // TODO: Fix route finding issue for Eclair
-                        Assert.IsType<PayResult>(resp.Result);
                         break;
 
                     default:
@@ -509,6 +501,8 @@ retry:
                 Assert.Equal(amount, paidInvoice.Amount);
                 Assert.Equal(amount, paidInvoice.AmountReceived);
 
+                await Task.Delay(1000);
+                
                 // check invoices lists: not present in pending, but in general list
                 var onlyPending = new ListInvoicesParams { PendingOnly = true };
                 var invoices = await test.Merchant.ListInvoices(onlyPending);

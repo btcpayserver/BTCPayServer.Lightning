@@ -31,9 +31,9 @@ namespace BTCPayServer.Lightning.Eclair.Models
         [JsonConverter(typeof(LightMoneyJsonConverter))]
         public LightMoney WaitForFundingConfirmed { get; set; }
         
-        [JsonProperty("waitForFundingLocked")]
+        [JsonProperty("waitForChannelReady")]
         [JsonConverter(typeof(LightMoneyJsonConverter))]
-        public LightMoney WaitForFundingLocked { get; set; }
+        public LightMoney WaitForChannelReady { get; set; }
         
         [JsonProperty("waitForPublishFutureCommitment")]
         [JsonConverter(typeof(LightMoneyJsonConverter))]

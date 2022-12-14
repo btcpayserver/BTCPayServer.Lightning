@@ -181,7 +181,7 @@ services:
   eclair:
     restart: unless-stopped
     stop_signal: SIGKILL
-    image: acinq/eclair:release-0.7.0
+    image: acinq/eclair:release-0.8.0
     environment:
       JAVA_OPTS: |
         -Xmx256m
@@ -206,6 +206,7 @@ services:
         -Don-chain-fees.feerate-tolerance.ratio-high=100.0
         -Declair.channel.mindepth-blocks=1
         -Declair.ping-disconnect=false
+        -Declair.features.keysend=optional
     ports:
       - "4570:8080" # api port
       - "9735:9735" # server port
@@ -222,7 +223,7 @@ services:
   eclair_dest:
     restart: unless-stopped
     stop_signal: SIGKILL
-    image: acinq/eclair:release-0.7.0
+    image: acinq/eclair:release-0.8.0
     environment:
       JAVA_OPTS: |
         -Xmx256m
@@ -247,6 +248,7 @@ services:
         -Don-chain-fees.feerate-tolerance.ratio-high=100.0
         -Declair.channel.mindepth-blocks=1
         -Declair.ping-disconnect=false
+        -Declair.features.keysend=optional
     ports:
       - "4571:8080" # api port
       - "9736:9736" # server port

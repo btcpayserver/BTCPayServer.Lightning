@@ -8,10 +8,8 @@ using System.Threading;
 using System.Threading.Tasks;
 using BTCPayServer.Lightning.Eclair.Models;
 using NBitcoin;
-using NBitcoin.Protocol;
 using Newtonsoft.Json;
 using Newtonsoft.Json.Linq;
-using Newtonsoft.Json.Serialization;
 
 namespace BTCPayServer.Lightning.Eclair
 {
@@ -21,7 +19,7 @@ namespace BTCPayServer.Lightning.Eclair
         private readonly string _username;
         private readonly string _password;
         private readonly HttpClient _httpClient;
-        private static readonly HttpClient SharedClient = new HttpClient();
+        private static readonly HttpClient SharedClient = new ();
 
         public Network Network { get; }
 
@@ -215,7 +213,7 @@ namespace BTCPayServer.Lightning.Eclair
             CancellationToken cts = default)
         {
             return await SendCommandAsync<GetReceivedInfoRequest, GetReceivedInfoResponse>("getreceivedinfo",
-                new GetReceivedInfoRequest()
+                new GetReceivedInfoRequest
                 {
                     PaymentHash = paymentHash,
                     Invoice = invoice

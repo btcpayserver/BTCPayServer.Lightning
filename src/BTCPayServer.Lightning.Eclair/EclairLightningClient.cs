@@ -1,16 +1,12 @@
 using System;
-using System.Collections.Concurrent;
-using System.Collections.Generic;
 using System.Linq;
 using System.Net.Http;
 using System.Net.Http.Headers;
-using System.Runtime.ExceptionServices;
 using System.Text;
 using System.Threading;
 using System.Threading.Tasks;
 using BTCPayServer.Lightning.Eclair.Models;
 using NBitcoin;
-using NBitcoin.RPC;
 
 namespace BTCPayServer.Lightning.Eclair
 {
@@ -106,18 +102,19 @@ namespace BTCPayServer.Lightning.Eclair
             var result = await _eclairClient.GetSentInfo(paymentHash, null, cancellation);
 
             var sentInfo = result.First();
+            var fees = sentInfo.Status.FeesPaid;
             var payment = new LightningPayment
             {
                 Id = sentInfo.Id.ToString(),
-                Preimage = sentInfo.Preimage,
+                Preimage = sentInfo.Status.PaymentPreimage,
                 PaymentHash = sentInfo.PaymentHash,
                 CreatedAt = sentInfo.CreatedAt,
                 Amount = sentInfo.Amount,
-                AmountSent = sentInfo.Amount + sentInfo.FeesPaid,
-                Fee = sentInfo.FeesPaid
+                AmountSent = sentInfo.Amount + fees,
+                Fee = fees
             };
 
-            switch (sentInfo.Status.type)
+            switch (sentInfo.Status.Type)
             {
                 case "pending":
                     payment.Status = LightningPaymentStatus.Pending;
@@ -222,7 +219,7 @@ namespace BTCPayServer.Lightning.Eclair
             {
                 Opening = 
                     global.Offchain.WaitForFundingConfirmed + 
-                    global.Offchain.WaitForFundingLocked + 
+                    global.Offchain.WaitForChannelReady + 
                     global.Offchain.WaitForPublishFutureCommitment,
                 Local = global.Offchain.Normal.ToLocal,
                 Remote = usable.Sum(channel => channel.CanReceive),
@@ -243,37 +240,49 @@ namespace BTCPayServer.Lightning.Eclair
 
         public async Task<PayResponse> Pay(string bolt11, PayInvoiceParams payParams, CancellationToken cancellation = default)
         {
+            // Pay the invoice - cancel after timeout, potentially caused by hold invoices
+            using var cts = CancellationTokenSource.CreateLinkedTokenSource(cancellation);
+            var timeout = payParams?.SendTimeout ?? PayInvoiceParams.DefaultSendTimeout;
+            cts.CancelAfter(timeout);
+
             try
             {
                 var req = new PayInvoiceRequest
                 {
                     Invoice = bolt11,
                     AmountMsat = payParams?.Amount?.MilliSatoshi,
-                    MaxFeePct = payParams?.MaxFeePercent != null ? (int)Math.Round(payParams.MaxFeePercent.Value) : null,
+                    MaxFeePct = payParams?.MaxFeePercent != null
+                        ? (int)Math.Round(payParams.MaxFeePercent.Value)
+                        : null,
                     MaxFeeFlatSat = payParams?.MaxFeeFlat?.Satoshi
                 };
-                var uuid = await _eclairClient.PayInvoice(req, cancellation);
-                while (!cancellation.IsCancellationRequested)
+                var uuid = await _eclairClient.PayInvoice(req, cts.Token);
+                while (!cts.Token.IsCancellationRequested)
                 {
-                    var status = await _eclairClient.GetSentInfo(null, uuid, cancellation);
+                    var status = await _eclairClient.GetSentInfo(null, uuid, cts.Token);
                     if (!status.Any())
                     {
                         continue;
                     }
 
                     var sentInfo = status.First();
-                    switch (sentInfo.Status.type)
+                    switch (sentInfo.Status.Type)
                     {
                         case "sent":
-                            return new PayResponse(PayResult.Ok, new PayDetails
-                            {
-                                TotalAmount = sentInfo.Amount,
-                                FeeAmount = sentInfo.FeesPaid
-                            });
+                            return new PayResponse(PayResult.Ok,
+                                new PayDetails
+                                {
+                                    TotalAmount = sentInfo.Amount,
+                                    FeeAmount = sentInfo.Status.FeesPaid
+                                });
                         case "failed":
-                            return new PayResponse(PayResult.CouldNotFindRoute);
+                            var failure = sentInfo.Status.Failures.First();
+                            var result = failure.FailureMessage.Contains("route")
+                                ? PayResult.CouldNotFindRoute
+                                : PayResult.Error;
+                            return new PayResponse(result, failure.FailureMessage);
                         case "pending":
-                            await Task.Delay(200, cancellation);
+                            await Task.Delay(200, cts.Token);
                             break;
                     }
                 }
@@ -282,46 +291,58 @@ namespace BTCPayServer.Lightning.Eclair
             {
                 return new PayResponse(PayResult.Error, exception.Message);
             }
-
-            return new PayResponse(PayResult.CouldNotFindRoute);
+            catch (Exception exception)
+            {
+                return cts.Token.IsCancellationRequested
+                    ? new PayResponse(PayResult.Unknown)
+                    : new PayResponse(PayResult.Error, exception.Message);
+            }
+            return new PayResponse(PayResult.Unknown);
         }
 
         public async Task<PayResponse> Pay(PayInvoiceParams payParams, CancellationToken cancellation = default)
         {
+            // Pay the invoice - cancel after timeout, potentially caused by hold invoices
+            using var cts = CancellationTokenSource.CreateLinkedTokenSource(cancellation);
+            var timeout = payParams?.SendTimeout ?? PayInvoiceParams.DefaultSendTimeout;
+            cts.CancelAfter(timeout);
+
             try
             {
-                var paymentHash = payParams.PaymentHash.ToString();
                 var req = new SendToNodeRequest
                 {
-                    NodeId = payParams.Destination.ToString(),
+                    NodeId = payParams.Destination?.ToString(),
                     AmountMsat = payParams.Amount?.MilliSatoshi,
-                    PaymentHash = paymentHash,
                     MaxFeePct = payParams.MaxFeePercent != null ? (int)Math.Round(payParams.MaxFeePercent.Value) : null,
                     MaxFeeFlatSat = payParams.MaxFeeFlat?.Satoshi,
 
                 };
-                var uuid = await _eclairClient.SendToNode(req, cancellation);
-                while (!cancellation.IsCancellationRequested)
+                var uuid = await _eclairClient.SendToNode(req, cts.Token);
+                while (!cts.Token.IsCancellationRequested)
                 {
-                    var status = await _eclairClient.GetSentInfo(paymentHash, uuid, cancellation);
+                    var status = await _eclairClient.GetSentInfo(null, uuid, cts.Token);
                     if (!status.Any())
                     {
                         continue;
                     }
 
                     var sentInfo = status.First();
-                    switch (sentInfo.Status.type)
+                    switch (sentInfo.Status.Type)
                     {
                         case "sent":
                             return new PayResponse(PayResult.Ok, new PayDetails
                             {
                                 TotalAmount = sentInfo.Amount,
-                                FeeAmount = sentInfo.FeesPaid
+                                FeeAmount = sentInfo.Status.FeesPaid
                             });
                         case "failed":
-                            return new PayResponse(PayResult.CouldNotFindRoute);
+                            var failure = sentInfo.Status.Failures.First();
+                            var result = failure.FailureMessage.Contains("route")
+                                ? PayResult.CouldNotFindRoute
+                                : PayResult.Error;
+                            return new PayResponse(result, failure.FailureMessage);
                         case "pending":
-                            await Task.Delay(200, cancellation);
+                            await Task.Delay(200, cts.Token);
                             break;
                     }
                 }
@@ -330,8 +351,13 @@ namespace BTCPayServer.Lightning.Eclair
             {
                 return new PayResponse(PayResult.Error, exception.Message);
             }
-
-            return new PayResponse(PayResult.CouldNotFindRoute);
+            catch (Exception exception)
+            {
+                return cts.Token.IsCancellationRequested
+                    ? new PayResponse(PayResult.Unknown)
+                    : new PayResponse(PayResult.Error, exception.Message);
+            }
+            return new PayResponse(PayResult.Unknown);
         }
 
         public async Task<OpenChannelResponse> OpenChannel(OpenChannelRequest openChannelRequest,
