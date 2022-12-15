@@ -46,6 +46,9 @@ namespace BTCPayServer.Lightning.CLightning
         [JsonConverter(typeof(NBitcoin.JsonConverters.DateTimeToUnixTimeConverter))]
         public DateTimeOffset? PaidAt { get; set; }
 
+        [JsonProperty("description")]
+        public string Description { get; set; }
+
 #pragma warning disable IDE0051
         // Legacy stuff
         [JsonProperty("msatoshi")]

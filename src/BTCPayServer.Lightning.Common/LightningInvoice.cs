@@ -14,5 +14,5 @@ public class LightningInvoice
     public DateTimeOffset ExpiresAt { get; set; }
     public LightMoney Amount { get; set; }
     public LightMoney AmountReceived { get; set; }
-    public Dictionary<ulong, string> CustomRecords { get; set; }
+    public Dictionary<ulong, byte[]> CustomRecords { get; set; }
 }

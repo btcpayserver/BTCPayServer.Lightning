@@ -15,7 +15,7 @@ public class PayInvoiceParams
 
     public uint256? PaymentHash { get; set; }
 
-    public Dictionary<ulong, string>? CustomRecords { get; set; }
+    public Dictionary<ulong, byte[]>? CustomRecords { get; set; }
     
     public TimeSpan? SendTimeout { get; set; }
     public static TimeSpan DefaultSendTimeout = TimeSpan.FromSeconds(30.0);

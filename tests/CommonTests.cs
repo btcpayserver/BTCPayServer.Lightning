@@ -381,43 +381,49 @@ namespace BTCPayServer.Lightning.Tests
                 var info = await dest.GetInfo();
                 var node = info.NodeInfoList.First();
                 
-                var amount = LightMoney.Satoshis(21);
-                var preimage = new byte[32];
-                new Random().NextBytes(preimage);
-                var paymentHash = new uint256(Hashes.SHA256(preimage));
+                var amount = LightMoney.Satoshis(6);
 
                 // https://github.com/satoshisstream/satoshis.stream/blob/main/TLV_registry.md
-                var val5482373484 = Encoders.Base64.EncodeData(preimage);
-                var val696969 = Encoders.Base64.EncodeData(Encoding.Default.GetBytes("123456"));
-                var val112111100 = Encoders.Base64.EncodeData(Encoding.Default.GetBytes("wal_hrDHs0RBEM576"));
-                var tlvData = new Dictionary<ulong,string>
+                var val696969 = Encoding.Default.GetBytes("123456");
+                var val112111100 = Encoding.Default.GetBytes("wal_hrDHs0RBEM576");
+                var tlvData = new Dictionary<ulong, byte[]>
                 {
                     { 696969, val696969 },
                     { 112111100, val112111100 },
-                    { 5482373484, val5482373484 }
                 };
                 var param = new PayInvoiceParams
                 {
                     Destination = node.NodeId,
-                    PaymentHash = paymentHash,
                     Amount = amount,
                     CustomRecords = tlvData
                 };
+                
                 Logs.Tester.LogInformation($"Test {src.GetType()}");
+
                 switch (src)
                 {
                     case LndClient _:
                     case CLightningClient _:
                     case EclairLightningClient _:
                         var response = await src.Pay(param);
-                        Assert.Equal(PayResult.Ok, response.Result);
                         Assert.Null(response.ErrorDetail);
+                        Assert.Equal(PayResult.Ok, response.Result);
                         Assert.NotNull(response.Details.PaymentHash);
                         var h1 = new uint256(Hashes.SHA256(response.Details.Preimage.ToBytes(false)), false);
                         var h2 = response.Details.PaymentHash;
                         Assert.Equal(h1, h2);
                         var invoice = await dest.GetInvoice(response.Details.PaymentHash);
                         Assert.NotNull(invoice);
+                
+                        // Check the custom records are present in the invoice
+                        // Only works for LND right now, Core Lightning support might come, see:
+                        // https://github.com/ElementsProject/lightning/issues/4470#issuecomment-873599548
+                        if (src is LndClient or CLightningClient)
+                        {
+                            Assert.NotNull(invoice.CustomRecords);
+                            Assert.Contains(invoice.CustomRecords, pair => pair.Key == 696969 && pair.Value == val696969);
+                            Assert.Contains(invoice.CustomRecords, pair => pair.Key == 112111100 && pair.Value == val112111100);
+                        }
                         break;
 
                     default:
@@ -426,19 +432,6 @@ namespace BTCPayServer.Lightning.Tests
                             await src.Pay(param);
                         });
                         break;
-                }
-                
-                // Check the custom records are present in the invoice
-                // Only works for LND right now, Core Lightning support might come, see:
-                // https://github.com/ElementsProject/lightning/issues/4470#issuecomment-873599548
-                if (src is LndClient)
-                {
-                    var invoiceId = Encoders.Hex.EncodeData(paymentHash.ToBytes());
-                    var invoice = await dest.GetInvoice(invoiceId);
-                    Assert.NotNull(invoice.CustomRecords);
-                    Assert.Contains(invoice.CustomRecords, pair => pair.Key == 696969 && pair.Value == val696969);
-                    Assert.Contains(invoice.CustomRecords, pair => pair.Key == 112111100 && pair.Value == val112111100);
-                    Assert.Contains(invoice.CustomRecords, pair => pair.Key == 5482373484 && pair.Value == val5482373484);
                 }
             }
         }

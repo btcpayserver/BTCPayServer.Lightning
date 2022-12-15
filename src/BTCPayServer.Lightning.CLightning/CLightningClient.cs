@@ -9,6 +9,7 @@ using System.Threading;
 using System.Threading.Tasks;
 using Mono.Unix;
 using NBitcoin;
+using NBitcoin.DataEncoders;
 using Newtonsoft.Json;
 using Newtonsoft.Json.Linq;
 
@@ -344,9 +345,21 @@ namespace BTCPayServer.Lightning.CLightning
                 }
 
                 var command = isKeysend ? "keysend" : "pay";
+                JObject extratlv = null;
+                if (isKeysend && payParams.CustomRecords != null)
+                {
+                    var data = new JObject();
+                    foreach (var r in payParams.CustomRecords)
+                    {
+                        data.Add(r.Key.ToString(), Encoders.Hex.EncodeData(r.Value));
+                    }
+
+                    var json = JsonConvert.SerializeObject(data);
+                    extratlv = new JObject { { "133773310", Encoders.Hex.EncodeData(Encoding.Default.GetBytes(json)) } };
+                }
                 var opts = isKeysend
                     // keysend: destination msatoshi [label] [maxfeepercent] [retry_for] [maxdelay] [exemptfee] [extratlvs]
-                    ? new object[] { payParams.Destination.ToHex(), explicitAmount.MilliSatoshi, null, feePercent }
+                    ? new object[] { payParams.Destination.ToHex(), explicitAmount.MilliSatoshi, null, feePercent, null, null, null, extratlv }
                     // pay: bolt11 [msatoshi] [label] [riskfactor] [maxfeepercent] [retry_for] [maxdelay] [exemptfee] [localinvreqid] [exclude] [maxfee] [description]
                     : new object[] { bolt11, explicitAmount?.MilliSatoshi, null, null, feePercent };
                 var response = await SendCommandAsync<CLightningPayResponse>(command, opts, false, cancellation: cts.Token);
@@ -541,8 +554,18 @@ namespace BTCPayServer.Lightning.CLightning
             return channels.ToArray();
         }
 
-        internal static LightningInvoice ToLightningInvoice(CLightningInvoice invoice) =>
-            new LightningInvoice
+        internal static LightningInvoice ToLightningInvoice(CLightningInvoice invoice)
+        {
+            Dictionary<ulong, byte[]> customRecords = null;
+            if (!string.IsNullOrEmpty(invoice.Description) && invoice.Description.Contains("keysend: {"))
+            {
+                var keysend = invoice.Description.Substring(9);
+                var obj = JsonConvert.DeserializeObject<JObject>(keysend);
+                customRecords = obj.Properties().ToDictionary(
+                    prop => ulong.Parse(prop.Name),
+                    prop => Encoders.Hex.DecodeData(prop.Value.ToString()));
+            }
+            return new LightningInvoice
             {
                 Id = invoice.Label,
                 PaymentHash = invoice.PaymentHash.ToString(),
@@ -552,8 +575,10 @@ namespace BTCPayServer.Lightning.CLightning
                 BOLT11 = invoice.BOLT11,
                 Status = ToInvoiceStatus(invoice.Status),
                 PaidAt = invoice.PaidAt,
-                ExpiresAt = invoice.ExpiryAt
+                ExpiresAt = invoice.ExpiryAt,
+                CustomRecords = customRecords
             };
+        }
 
         internal static LightningPayment ToLightningPayment(CLightningPayment payment) =>
             new LightningPayment

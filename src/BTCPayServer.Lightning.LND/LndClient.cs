@@ -571,7 +571,7 @@ namespace BTCPayServer.Lightning.LND
                     .SelectMany(htlc => htlc.CustomRecords)
                     .GroupBy(htlc => htlc.Key)
                     .Select(x => x.First())
-                    .ToDictionary(x => x.Key, y => y.Value);
+                    .ToDictionary(x => x.Key, y => Encoders.Base64.DecodeData(y.Value));
             }
             
             if (resp.Settled == true)
@@ -627,19 +627,26 @@ retry:
             
             try
             {
-                var req = !string.IsNullOrEmpty(bolt11)
-                    // regular payment request
-                    ? new LnrpcSendRequest
-                    {
-                        Payment_request = bolt11
-                    }
-                    // keysend payment
-                    : new LnrpcSendRequest
-                    {
-                        Dest = Encoders.Base64.EncodeData(payParams.Destination.ToBytes()),
-                        Payment_hash = Encoders.Base64.EncodeData(payParams.PaymentHash.ToBytes()),
-                        Dest_custom_records = payParams.CustomRecords
-                    };
+                var isKeysend = string.IsNullOrEmpty(bolt11);
+                var req = new LnrpcSendRequest { Payment_request = bolt11 };
+                if (isKeysend)
+                {
+                    // generate preimage
+                    var preimage = new byte[32];
+                    new Random().NextBytes(preimage);
+                    var paymentHash = new uint256(Hashes.SHA256(preimage));
+
+                    req.Dest = Encoders.Base64.EncodeData(payParams.Destination.ToBytes());
+                    req.Payment_hash = Encoders.Base64.EncodeData(paymentHash.ToBytes());
+                    req.Dest_custom_records = payParams?.CustomRecords != null
+                        ? payParams.CustomRecords.ToDictionary(
+                            r => r.Key,
+                            r => Encoders.Base64.EncodeData(r.Value))
+                        : new Dictionary<ulong, string>();
+                    
+                    // set preimage
+                    req.Dest_custom_records.Add(5482373484, Encoders.Base64.EncodeData(preimage));
+                }
                 
                 if (payParams?.MaxFeePercent > 0)
                 {
