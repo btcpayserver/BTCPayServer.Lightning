@@ -150,7 +150,11 @@ retry:
                 try
                 {
                     logs.LogInformation("Paying...");
-                    return await sender.Pay(payreq, cts.Token);
+                    var res = await sender.Pay(payreq, new PayInvoiceParams() { SendTimeout = TimeSpan.FromSeconds(10.0) }, cts.Token);
+                    if (res.Result == PayResult.Ok)
+                        return res;
+                    else
+                        goto retry;
                 }
                 catch (CLightning.LightningRPCException ex) when (ex.Message.Contains("WIRE_INCORRECT_OR_UNKNOWN_PAYMENT_DETAILS") &&
                                                                   !cts.IsCancellationRequested)
