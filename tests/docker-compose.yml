@@ -44,6 +44,7 @@ services:
         bitcoin-rpcconnect=bitcoind
         network=regtest
         announce-addr=lightningd:9735
+        watchtime-blocks=100
         log-level=debug
         dev-fast-gossip
         dev-bitcoind-poll=1
@@ -72,6 +73,7 @@ services:
         bitcoin-rpcconnect=bitcoind
         network=regtest
         announce-addr=lightningd_dest:9735
+        watchtime-blocks=100
         log-level=debug
         dev-fast-gossip
         dev-bitcoind-poll=1
