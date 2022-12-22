@@ -151,10 +151,13 @@ retry:
                 {
                     logs.LogInformation("Paying...");
                     var res = await sender.Pay(payreq, new PayInvoiceParams() { SendTimeout = TimeSpan.FromSeconds(10.0) }, cts.Token);
-                    if (res.Result == PayResult.Ok)
+                    if (res.Result == PayResult.Ok || res.Result == PayResult.CouldNotFindRoute)
                         return res;
                     else
+                    {
+                        cts.Token.ThrowIfCancellationRequested();
                         goto retry;
+                    }
                 }
                 catch (CLightning.LightningRPCException ex) when (ex.Message.Contains("WIRE_INCORRECT_OR_UNKNOWN_PAYMENT_DETAILS") &&
                                                                   !cts.IsCancellationRequested)
