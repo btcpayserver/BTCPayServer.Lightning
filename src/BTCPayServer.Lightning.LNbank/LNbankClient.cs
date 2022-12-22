@@ -1,6 +1,7 @@
 using System;
 using System.Collections.Generic;
 using System.Linq;
+using System.Net;
 using System.Net.Http;
 using System.Net.Http.Headers;
 using System.Text;
@@ -18,7 +19,7 @@ namespace BTCPayServer.Lightning.LNbank
         private readonly Uri _baseUri;
         private readonly HttpClient _httpClient;
         private readonly Network _network;
-        private static readonly HttpClient _sharedClient = new HttpClient();
+        private static readonly HttpClient _sharedClient = new ();
 
         public LNbankClient(Uri baseUri, string apiToken, Network network, HttpClient httpClient)
         {
@@ -172,7 +173,7 @@ namespace BTCPayServer.Lightning.LNbank
 
             if (!res.IsSuccessStatusCode)
             {
-                if (res.StatusCode.Equals(422))
+                if (res.StatusCode.Equals(422) || res.StatusCode.ToString().Equals("UnprocessableEntity"))
                 {
                     var validationErrors = JsonConvert.DeserializeObject<GreenfieldValidationErrorData[]>(str);
                     var message = string.Join(", ", validationErrors.Select(ve => $"{ve.Path}: {ve.Message}"));
