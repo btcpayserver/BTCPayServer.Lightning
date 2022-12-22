@@ -747,6 +747,7 @@ retry:
         {
             foreach (var client in Tester.GetTestedPairs())
             {
+                await EnsureConnectedToDestinations(client);
                 Logs.Tester.LogInformation(client.Customer.GetType().Name);
                 
                 switch (client.Customer)
