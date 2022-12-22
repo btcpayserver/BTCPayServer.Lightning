@@ -1,3 +1,4 @@
+using BTCPayServer.Lightning.Eclair.JsonConverters;
 using BTCPayServer.Lightning.JsonConverters;
 using NBitcoin;
 using Newtonsoft.Json;
@@ -28,19 +29,19 @@ namespace BTCPayServer.Lightning.Eclair.Models
     public class GlobalOffchainBalance
     {
         [JsonProperty("waitForFundingConfirmed")]
-        [JsonConverter(typeof(LightMoneyJsonConverter))]
+        [JsonConverter(typeof(EclairBtcJsonConverter))]
         public LightMoney WaitForFundingConfirmed { get; set; }
         
         [JsonProperty("waitForChannelReady")]
-        [JsonConverter(typeof(LightMoneyJsonConverter))]
+        [JsonConverter(typeof(EclairBtcJsonConverter))]
         public LightMoney WaitForChannelReady { get; set; }
         
         [JsonProperty("waitForPublishFutureCommitment")]
-        [JsonConverter(typeof(LightMoneyJsonConverter))]
+        [JsonConverter(typeof(EclairBtcJsonConverter))]
         public LightMoney WaitForPublishFutureCommitment { get; set; }
         
         [JsonProperty("negotiating")]
-        [JsonConverter(typeof(LightMoneyJsonConverter))]
+        [JsonConverter(typeof(EclairBtcJsonConverter))]
         public LightMoney Negotiating { get; set; }
         
         [JsonProperty("normal")]
@@ -72,7 +73,7 @@ namespace BTCPayServer.Lightning.Eclair.Models
     public class EclairChannelBalance
     {
         [JsonProperty("toLocal")]
-        [JsonConverter(typeof(LightMoneyJsonConverter))]
+        [JsonConverter(typeof(EclairBtcJsonConverter))]
         public LightMoney ToLocal { get; set; }
     }
 }
