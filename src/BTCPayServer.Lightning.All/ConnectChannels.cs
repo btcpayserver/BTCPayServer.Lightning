@@ -58,7 +58,7 @@ namespace BTCPayServer.Lightning.Tests
 
             while (true)
             {
-                var result = await Pay(sender, destInvoice.BOLT11);
+                var result = await Pay(sender, destInvoice.BOLT11, Logs);
                 Logs.LogInformation($"Pay Result: {result.Result} {result.ErrorDetail}");
                 if (result.Result == PayResult.Ok)
                 {
@@ -140,18 +140,20 @@ namespace BTCPayServer.Lightning.Tests
             }
         }
 
-        private static async Task<PayResponse> Pay(ILightningClient sender, string payreq)
+        private static async Task<PayResponse> Pay(ILightningClient sender, string payreq, ILogger logs)
         {
             using (var cts = new CancellationTokenSource(30_000))
             {
 retry:
                 try
                 {
+                    logs.LogInformation("Paying...");
                     return await sender.Pay(payreq, cts.Token);
                 }
                 catch (CLightning.LightningRPCException ex) when (ex.Message.Contains("WIRE_INCORRECT_OR_UNKNOWN_PAYMENT_DETAILS") &&
                                                                   !cts.IsCancellationRequested)
                 {
+                    logs.LogInformation("Error " + ex.ToString());
                     await Task.Delay(500, cts.Token);
                     goto retry;
                 }
