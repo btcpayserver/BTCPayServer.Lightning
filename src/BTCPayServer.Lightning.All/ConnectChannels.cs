@@ -52,6 +52,8 @@ namespace BTCPayServer.Lightning.Tests
         {
             // use arbitrary amount to check if channel exists and also push some funds over to the other side
             var amount = new LightMoney(123456789);
+            await WaitLNSynched(cashCow, sender);
+            await WaitLNSynched(cashCow, dest);
             var destInfo = await dest.GetInfo();
             var destInvoice = await dest.CreateInvoice(amount, "EnsureConnectedToDestination", TimeSpan.FromSeconds(5000));
             var payErrors = 0;
@@ -64,26 +66,39 @@ namespace BTCPayServer.Lightning.Tests
                 {
                     break;
                 }
-                if (result.Result == PayResult.CouldNotFindRoute || result.Result == PayResult.Error && result.ErrorDetail.StartsWith("not enough balance"))
+                if (result.Result == PayResult.CouldNotFindRoute || result.Result == PayResult.Error || result.Result == PayResult.Unknown && result.ErrorDetail.StartsWith("not enough balance"))
                 {
                     // check channels that are in process of opening, to prevent double channel open
                     await Task.Delay(100);
                     var pendingChannels = await sender.ListChannels();
-                    if (pendingChannels.Any(a => a.RemoteNode == destInfo.NodeInfoList[0].NodeId))
+                    var channel = pendingChannels.FirstOrDefault(a => a.RemoteNode == destInfo.NodeInfoList[0].NodeId);
+                    var channelDropped = false;
+                    if (channel != null)
                     {
-                        Logs.LogInformation($"Channel to {destInfo.NodeInfoList[0]} is already open(ing)");
-                        Logs.LogInformation($"Attempting to reconnect Result: {await sender.ConnectTo(destInfo.NodeInfoList.First())}");
+                        if (channel.IsActive)
+                        {
+                            Logs.LogInformation($"Channel to {destInfo.NodeInfoList[0]} is already open(ing)");
+                            Logs.LogInformation($"Attempting to reconnect Result: {await sender.ConnectTo(destInfo.NodeInfoList.First())}");
 
-                        await cashCow.GenerateAsync(1);
-                        await WaitLNSynched(cashCow, sender);
-                        await WaitLNSynched(cashCow, dest);
-                        continue;
+                            await cashCow.GenerateAsync(1);
+                            await WaitLNSynched(cashCow, sender);
+                            await WaitLNSynched(cashCow, dest);
+                            continue;
+                        }
+                        else
+                        {
+                            channelDropped = true;
+                            Logs.LogInformation($"Channel dropped");
+                            await cashCow.GenerateAsync(1);
+                        }
                     }
 
-                    var connectedResult = sender.ConnectTo(destInfo.NodeInfoList.First());
-                    Logs.LogInformation($"Connection result: " + connectedResult);
-                    Logs.LogInformation($"Opening channel to {destInfo.NodeInfoList[0]}");
-                    
+                    if (!channelDropped)
+                    {
+                        var connectedResult = sender.ConnectTo(destInfo.NodeInfoList.First());
+                        Logs.LogInformation($"Connection result: " + connectedResult);
+                        Logs.LogInformation($"Opening channel to {destInfo.NodeInfoList[0]}");
+                    }
                     var openChannel = await sender.OpenChannel(new OpenChannelRequest()
                     {
                         NodeInfo = destInfo.NodeInfoList[0],
@@ -147,7 +162,7 @@ namespace BTCPayServer.Lightning.Tests
 retry:
                 try
                 {
-                    return await sender.Pay(payreq, cts.Token);
+                    return await sender.Pay(payreq, new PayInvoiceParams() { SendTimeout = TimeSpan.FromSeconds(10.0)  }, cts.Token);
                 }
                 catch (CLightning.LightningRPCException ex) when (ex.Message.Contains("WIRE_INCORRECT_OR_UNKNOWN_PAYMENT_DETAILS") &&
                                                                   !cts.IsCancellationRequested)
