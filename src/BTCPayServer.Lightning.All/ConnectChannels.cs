@@ -4,6 +4,7 @@ using System.Linq;
 using System.Text;
 using System.Threading;
 using System.Threading.Tasks;
+using BTCPayServer.Lightning.CLightning;
 using Microsoft.Extensions.Logging;
 using NBitcoin;
 using NBitcoin.Logging;
@@ -142,6 +143,7 @@ namespace BTCPayServer.Lightning.Tests
 
         private static async Task<PayResponse> Pay(ILightningClient sender, string payreq, ILogger logs)
         {
+            CLightningClient.Logger = logs;
             using (var cts = new CancellationTokenSource(30_000))
             {
 retry:

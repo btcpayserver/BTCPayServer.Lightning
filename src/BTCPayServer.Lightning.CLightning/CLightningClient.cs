@@ -7,6 +7,7 @@ using System.Net.Sockets;
 using System.Text;
 using System.Threading;
 using System.Threading.Tasks;
+using Microsoft.Extensions.Logging;
 using Mono.Unix;
 using NBitcoin;
 using Newtonsoft.Json;
@@ -304,7 +305,7 @@ namespace BTCPayServer.Lightning.CLightning
 
             return payments.Select(ToLightningPayment).ToArray();
         }
-
+        public static ILogger Logger;
         private async Task<PayResponse> PayAsync(string bolt11, PayInvoiceParams payParams, CancellationToken cancellation = default)
         {
             if (bolt11 == null && payParams.Destination is null)
@@ -330,9 +331,10 @@ namespace BTCPayServer.Lightning.CLightning
 
                 var command = bolt11 == null ? "keysend" : "pay";
                 var destination = bolt11 ?? payParams.Destination.ToHex();
+                Logger.LogInformation("SendCommandAsync");
                 var response = await SendCommandAsync<CLightningPayResponse>(command,
                     new object[] { destination, explicitAmount?.MilliSatoshi, null, null, feePercent }, false, cancellation: cts.Token);
-
+                Logger.LogInformation("AfterSendCommandAsync");
                 return new PayResponse(PayResult.Ok, new PayDetails
                 {
                     TotalAmount = response.AmountSent,
