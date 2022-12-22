@@ -1,10 +1,9 @@
 using System;
-using System.Collections.Generic;
-using System.Linq;
 using System.Text;
-using System.Threading.Tasks;
+using BTCPayServer.Lightning.JsonConverters;
 using NBitcoin;
 using NBitcoin.Crypto;
+using Newtonsoft.Json;
 
 namespace BTCPayServer.Lightning
 {
@@ -21,6 +20,7 @@ namespace BTCPayServer.Lightning
             Description = description;
             Expiry = expiry;
         }
+        
         [Obsolete("Set the Description and turn DescriptionHashOnly to true instead")]
         public CreateInvoiceParams(LightMoney amount, uint256 descriptionHash, TimeSpan expiry)
         {
@@ -52,6 +52,8 @@ namespace BTCPayServer.Lightning
             }
         }
         public bool DescriptionHashOnly { get; set; }
+        
+        [JsonConverter(typeof(TimeSpanJsonConverter.Seconds))]
         public TimeSpan Expiry { get; set; }
         public bool PrivateRouteHints { get; set; }
     }
