@@ -101,10 +101,10 @@ namespace BTCPayServer.Lightning.Tests
                         }
                         catch (RPCException ex) when (ex.RPCCode == RPCErrorCode.RPC_WALLET_INSUFFICIENT_FUNDS || ex.RPCCode == RPCErrorCode.RPC_WALLET_ERROR)
                         {
-                            await cashCow.GenerateAsync(1);
+                            await GenerateAsync(cashCow, 1, Logs);
                             await cashCow.SendToAddressAsync(address, Money.Coins(1.0m), new SendToAddressParameters() { Replaceable = true });
                         }
-                        await cashCow.GenerateAsync(10);
+                        await GenerateAsync(cashCow, 10, Logs);
                         await WaitLNSynched(cashCow, sender);
                         await WaitLNSynched(cashCow, dest);
                     }
@@ -114,7 +114,7 @@ namespace BTCPayServer.Lightning.Tests
                     }
                     if (openChannel.Result == OpenChannelResult.NeedMoreConf)
                     {
-                        await cashCow.GenerateAsync(6);
+                        await GenerateAsync(cashCow, 6, Logs);
                         await WaitLNSynched(cashCow, sender);
                         await WaitLNSynched(cashCow, dest);
                     }
@@ -125,7 +125,7 @@ namespace BTCPayServer.Lightning.Tests
                     if (openChannel.Result == OpenChannelResult.Ok)
                     {
                         // generate one block and a bit more time to confirm channel opening
-                        await cashCow.GenerateAsync(1);
+                        await GenerateAsync(cashCow, 1, Logs);
                         await WaitLNSynched(cashCow, sender);
                         await WaitLNSynched(cashCow, dest);
                         await Task.Delay(500);
@@ -138,6 +138,14 @@ namespace BTCPayServer.Lightning.Tests
 
                     await Task.Delay(1000);
                 }
+            }
+        }
+
+        private static async Task GenerateAsync(RPCClient cashcow, int blocks, ILogger logs)
+        {
+            foreach (var b in await cashcow.GenerateAsync(blocks))
+            {
+                logs.LogInformation("Generated " + b);
             }
         }
 
