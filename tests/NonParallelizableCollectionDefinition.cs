@@ -8,7 +8,7 @@ using Xunit;
 namespace BTCPayServer.Lightning.Tests
 {
     [CollectionDefinition(nameof(NonParallelizableCollectionDefinition), DisableParallelization = true)]
-    internal class NonParallelizableCollectionDefinition
+    public class NonParallelizableCollectionDefinition
     {
     }
 }
