@@ -21,6 +21,7 @@ using Xunit.Abstractions;
 
 namespace BTCPayServer.Lightning.Tests
 {
+    [Collection(nameof(NonParallelizableCollectionDefinition))]
     public class CommonTests
     {
 #if DEBUG
