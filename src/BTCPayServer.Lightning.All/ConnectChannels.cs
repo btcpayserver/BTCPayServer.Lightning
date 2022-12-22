@@ -54,6 +54,8 @@ namespace BTCPayServer.Lightning.Tests
             // use arbitrary amount to check if channel exists and also push some funds over to the other side
             var amount = new LightMoney(123456789);
             var destInfo = await dest.GetInfo();
+            await WaitLNSynched(cashCow, sender);
+            await WaitLNSynched(cashCow, dest);
             var destInvoice = await dest.CreateInvoice(amount, "EnsureConnectedToDestination", TimeSpan.FromSeconds(5000));
             var payErrors = 0;
 
@@ -75,7 +77,7 @@ namespace BTCPayServer.Lightning.Tests
                         Logs.LogInformation($"Channel to {destInfo.NodeInfoList[0]} is already open(ing)");
                         Logs.LogInformation($"Attempting to reconnect Result: {await sender.ConnectTo(destInfo.NodeInfoList.First())}");
 
-                        await cashCow.GenerateAsync(1);
+                        await GenerateAsync(cashCow, 1, Logs);
                         await WaitLNSynched(cashCow, sender);
                         await WaitLNSynched(cashCow, dest);
                         continue;
