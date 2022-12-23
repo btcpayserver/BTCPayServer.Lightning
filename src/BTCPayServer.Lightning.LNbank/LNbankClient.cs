@@ -18,7 +18,7 @@ namespace BTCPayServer.Lightning.LNbank
         private readonly Uri _baseUri;
         private readonly HttpClient _httpClient;
         private readonly Network _network;
-        private static readonly HttpClient _sharedClient = new HttpClient();
+        private static readonly HttpClient _sharedClient = new ();
 
         public LNbankClient(Uri baseUri, string apiToken, Network network, HttpClient httpClient)
         {
@@ -172,7 +172,7 @@ namespace BTCPayServer.Lightning.LNbank
 
             if (!res.IsSuccessStatusCode)
             {
-                if (res.StatusCode.Equals(422))
+                if ((int)res.StatusCode == 422)
                 {
                     var validationErrors = JsonConvert.DeserializeObject<GreenfieldValidationErrorData[]>(str);
                     var message = string.Join(", ", validationErrors.Select(ve => $"{ve.Path}: {ve.Message}"));

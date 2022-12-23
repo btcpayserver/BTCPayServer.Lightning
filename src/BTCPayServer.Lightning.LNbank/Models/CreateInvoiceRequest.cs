@@ -16,6 +16,7 @@ namespace BTCPayServer.Lightning.LNbank.Models
         [JsonConverter(typeof(LightMoneyJsonConverter))]
         public LightMoney Amount { get; set; }
 
+        [JsonConverter(typeof(TimeSpanJsonConverter.Seconds))]
         public TimeSpan Expiry { get; set; }
         public bool PrivateRouteHints { get; set; }
     }

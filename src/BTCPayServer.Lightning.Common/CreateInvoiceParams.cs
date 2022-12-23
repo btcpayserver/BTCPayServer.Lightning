@@ -1,8 +1,5 @@
 using System;
-using System.Collections.Generic;
-using System.Linq;
 using System.Text;
-using System.Threading.Tasks;
 using NBitcoin;
 using NBitcoin.Crypto;
 
@@ -21,6 +18,7 @@ namespace BTCPayServer.Lightning
             Description = description;
             Expiry = expiry;
         }
+        
         [Obsolete("Set the Description and turn DescriptionHashOnly to true instead")]
         public CreateInvoiceParams(LightMoney amount, uint256 descriptionHash, TimeSpan expiry)
         {
