@@ -1,9 +1,7 @@
 using System;
 using System.Text;
-using BTCPayServer.Lightning.JsonConverters;
 using NBitcoin;
 using NBitcoin.Crypto;
-using Newtonsoft.Json;
 
 namespace BTCPayServer.Lightning
 {
@@ -52,8 +50,6 @@ namespace BTCPayServer.Lightning
             }
         }
         public bool DescriptionHashOnly { get; set; }
-        
-        [JsonConverter(typeof(TimeSpanJsonConverter.Seconds))]
         public TimeSpan Expiry { get; set; }
         public bool PrivateRouteHints { get; set; }
     }
