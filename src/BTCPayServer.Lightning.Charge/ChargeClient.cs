@@ -158,9 +158,12 @@ namespace BTCPayServer.Lightning.Charge
         async Task<LightningInvoice> ILightningClient.GetInvoice(string invoiceId, CancellationToken cancellation)
         {
             var invoice = await GetInvoice(invoiceId, cancellation);
-            if (invoice == null)
-                return null;
-            return ToLightningInvoice(invoice);
+            return invoice == null ? null : ToLightningInvoice(invoice);
+        }
+
+        Task<LightningInvoice> ILightningClient.GetInvoice(uint256 paymentHash, CancellationToken cancellation)
+        {
+            throw new NotSupportedException();
         }
 
         async Task<LightningInvoice[]> ILightningClient.ListInvoices(CancellationToken cancellation)

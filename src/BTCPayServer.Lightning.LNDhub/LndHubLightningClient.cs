@@ -70,9 +70,14 @@ namespace BTCPayServer.Lightning.LndHub
             return data == null ? null : LndHubUtil.ToLightningInvoice(data);
         }
 
-        public Task<LightningInvoice[]> ListInvoices(CancellationToken cancellation = default)
+        public async Task<LightningInvoice> GetInvoice(uint256 paymentHash, CancellationToken cancellation = default)
         {
-            return ListInvoices(null, cancellation);
+            return await GetInvoice(paymentHash.ToString(), cancellation);
+        }
+
+        public async Task<LightningInvoice[]> ListInvoices(CancellationToken cancellation = default)
+        {
+            return await ListInvoices(null, cancellation);
         }
 
         public async Task<LightningInvoice[]> ListInvoices(ListInvoicesParams request, CancellationToken cancellation = default)
@@ -144,7 +149,9 @@ namespace BTCPayServer.Lightning.LndHub
                 return new PayResponse(PayResult.Ok, new PayDetails
                 {
                     TotalAmount = totalAmount,
-                    FeeAmount = feeAmount
+                    FeeAmount = feeAmount,
+                    Preimage = response.PaymentPreimage,
+                    Status = LightningPaymentStatus.Complete
                 });
             }
             catch (LndHubClient.LndHubApiException exception)

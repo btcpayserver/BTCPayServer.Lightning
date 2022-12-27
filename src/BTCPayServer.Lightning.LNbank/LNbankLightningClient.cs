@@ -70,6 +70,11 @@ namespace BTCPayServer.Lightning.LNbank
             }
         }
 
+        public async Task<LightningInvoice> GetInvoice(uint256 paymentHash, CancellationToken cancellation = default)
+        {
+            return await GetInvoice(paymentHash.ToString(), cancellation);
+        }
+
         public Task<LightningInvoice[]> ListInvoices(CancellationToken cancellation = default)
         {
             return ListInvoices(null, cancellation);

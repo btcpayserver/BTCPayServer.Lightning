@@ -267,6 +267,12 @@ namespace BTCPayServer.Lightning.CLightning
             return invoices.Length == 0 ? null : ToLightningInvoice(invoices[0]);
         }
 
+        async Task<LightningInvoice> ILightningClient.GetInvoice(uint256 paymentHash, CancellationToken cancellation)
+        {
+            var invoices = await SendCommandAsync<CLightningInvoice[]>("listinvoices", new[] { null, null, paymentHash.ToString() }, false, true, cancellation);
+            return invoices.Length == 0 ? null : ToLightningInvoice(invoices[0]);
+        }
+
         async Task<LightningInvoice[]> ILightningClient.ListInvoices(CancellationToken cancellation)
         {
             return await ListInvoices(null, cancellation);
@@ -289,7 +295,7 @@ namespace BTCPayServer.Lightning.CLightning
         async Task<LightningPayment[]> ILightningClient.ListPayments(CancellationToken cancellation)
         {
             return await ListPayments(null, cancellation);
-            }
+        }
 
         public async Task<LightningPayment[]> ListPayments(ListPaymentsParams request, CancellationToken cancellation)
         {
@@ -307,8 +313,11 @@ namespace BTCPayServer.Lightning.CLightning
 
         private async Task<PayResponse> PayAsync(string bolt11, PayInvoiceParams payParams, CancellationToken cancellation = default)
         {
-            if (bolt11 == null && payParams.Destination is null)
-                throw new ArgumentNullException(nameof(bolt11));
+            var isKeysend = bolt11 == null;
+            if (isKeysend && payParams.Destination is null)
+                throw new ArgumentNullException(nameof(payParams.Destination));
+            if (isKeysend && payParams.Amount is null)
+                throw new ArgumentNullException(nameof(payParams.Amount));
             
             bolt11 = bolt11?.Replace("lightning:", "").Replace("LIGHTNING:", "");
                 
@@ -328,15 +337,21 @@ namespace BTCPayServer.Lightning.CLightning
                     feePercent = (double)(m.Satoshi / amountSat) * 100;
                 }
 
-                var command = bolt11 == null ? "keysend" : "pay";
-                var destination = bolt11 ?? payParams.Destination.ToHex();
-                var response = await SendCommandAsync<CLightningPayResponse>(command,
-                    new object[] { destination, explicitAmount?.MilliSatoshi, null, null, feePercent }, false, cancellation: cts.Token);
+                var command = isKeysend ? "keysend" : "pay";
+                var opts = isKeysend
+                    // keysend: destination msatoshi [label] [maxfeepercent] [retry_for] [maxdelay] [exemptfee] [extratlvs]
+                    ? new object[] { payParams.Destination.ToHex(), explicitAmount.MilliSatoshi, null, feePercent }
+                    // pay: bolt11 [msatoshi] [label] [riskfactor] [maxfeepercent] [retry_for] [maxdelay] [exemptfee] [localinvreqid] [exclude] [maxfee] [description]
+                    : new object[] { bolt11, explicitAmount?.MilliSatoshi, null, null, feePercent };
+                var response = await SendCommandAsync<CLightningPayResponse>(command, opts, false, cancellation: cts.Token);
 
                 return new PayResponse(PayResult.Ok, new PayDetails
                 {
                     TotalAmount = response.AmountSent,
-                    FeeAmount = response.AmountSent - response.Amount
+                    FeeAmount = response.AmountSent - response.Amount,
+                    PaymentHash = response.PaymentHash,
+                    Preimage = response.PaymentPreImage,
+                    Status = ToPaymentStatus(response.Status)
                 });
             }
             catch (LightningRPCException ex) when (
@@ -346,7 +361,7 @@ namespace BTCPayServer.Lightning.CLightning
                 ex.Code == CLightningErrorCode.WRONG_PARAMETERS || ex.Code == CLightningErrorCode.GENERAL_ERROR)
             {
                 var routingError = ex.Code == CLightningErrorCode.ROUTE_NOT_FOUND ||
-                                   ex.Code == CLightningErrorCode.STOPPED_RETRYING ||
+                                   (ex.Code == CLightningErrorCode.STOPPED_RETRYING && !ex.Message.Contains("invalid payload")) ||
                                    (ex.Code == CLightningErrorCode.WRONG_PARAMETERS && ex.Message.Contains("Self-payment"));
                 var result =
                     routingError
@@ -375,7 +390,10 @@ namespace BTCPayServer.Lightning.CLightning
                             return new PayResponse(PayResult.Ok, new PayDetails
                             {
                                 TotalAmount = response.AmountSent,
-                                FeeAmount = response.Fee
+                                FeeAmount = response.Fee,
+                                PaymentHash = new uint256(response.PaymentHash),
+                                Preimage = new uint256(response.Preimage),
+                                Status = response.Status
                             });
                         default:
                             throw new ArgumentOutOfRangeException();
