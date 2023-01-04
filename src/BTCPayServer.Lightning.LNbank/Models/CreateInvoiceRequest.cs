@@ -12,6 +12,7 @@ namespace BTCPayServer.Lightning.LNbank.Models
 
         [JsonConverter(typeof(UInt256JsonConverter))]
         public uint256 DescriptionHash { get; set; }
+        public bool DescriptionHashOnly { get; set; }
 
         [JsonConverter(typeof(LightMoneyJsonConverter))]
         public LightMoney Amount { get; set; }
