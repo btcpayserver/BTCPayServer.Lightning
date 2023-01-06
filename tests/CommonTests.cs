@@ -215,9 +215,9 @@ namespace BTCPayServer.Lightning.Tests
             ILightningClientFactory factory = new LightningClientFactory(network);
                 
             var connectionStrings = new List<string>
-                {
-                    "lndhub://login:password@http://server.onion"
-                };
+            {
+                "lndhub://login:password@http://server.onion"
+            };
             
             var clientTypes = Tester.GetLightningClients().Select(l => l.Client.GetType()).ToArray();
             foreach (var connectionString in connectionStrings)
@@ -292,7 +292,7 @@ namespace BTCPayServer.Lightning.Tests
                         Assert.InRange(balance.OffchainBalance.Remote, lowerBound, upperBound);
                         Assert.Equal(LightMoney.Zero, balance.OffchainBalance.Closing);
                         Logs.Tester.LogInformation($"{test.Name}: {Pretty(balance)}");
-                        if (!(client is EclairLightningClient))
+                        if (client is not EclairLightningClient)
                         {
                             // make sure we catch msat/sat bugs
                             // Eclair can't check this, because it uses the same wallet as bitcoin core
@@ -403,7 +403,7 @@ namespace BTCPayServer.Lightning.Tests
                     Amount = amount,
                     CustomRecords = tlvData
                 };
-
+                Logs.Tester.LogInformation($"Test {src.GetType()}");
                 switch (src)
                 {
                     case LndClient _:
@@ -411,6 +411,13 @@ namespace BTCPayServer.Lightning.Tests
                     case EclairLightningClient _:
                         var response = await src.Pay(param);
                         Assert.Equal(PayResult.Ok, response.Result);
+                        Assert.Null(response.ErrorDetail);
+                        Assert.NotNull(response.Details.PaymentHash);
+                        var h1 = new uint256(Hashes.SHA256(response.Details.Preimage.ToBytes(false)), false);
+                        var h2 = response.Details.PaymentHash;
+                        Assert.Equal(h1, h2);
+                        var invoice = await dest.GetInvoice(response.Details.PaymentHash);
+                        Assert.NotNull(invoice);
                         break;
 
                     default:

@@ -1,13 +1,16 @@
 using System;
+using System.Collections.Generic;
 using System.Globalization;
 using System.IO;
 using System.Linq;
 using System.Net.Http;
 using System.Runtime.ExceptionServices;
+using System.Text;
 using System.Threading;
 using System.Threading.Channels;
 using System.Threading.Tasks;
 using NBitcoin;
+using NBitcoin.Crypto;
 using NBitcoin.DataEncoders;
 using Newtonsoft.Json.Linq;
 
@@ -441,7 +444,7 @@ namespace BTCPayServer.Lightning.LND
             return new LightningNodeBalance(onchain, offchain);
         }
 
-        async Task<LightningInvoice> ILightningClient.GetInvoice(string invoiceId, CancellationToken cancellation)
+        async Task<LightningInvoice> GetInvoice(string invoiceId, CancellationToken cancellation)
         {
             try
             {
@@ -458,6 +461,17 @@ namespace BTCPayServer.Lightning.LND
             {
                 return null;
             }
+        }
+
+        async Task<LightningInvoice> ILightningClient.GetInvoice(string invoiceId, CancellationToken cancellation)
+        {
+            return await GetInvoice(invoiceId, cancellation);
+        }
+
+        async Task<LightningInvoice> ILightningClient.GetInvoice(uint256 paymentHash, CancellationToken cancellation)
+        {
+            var invoiceId = Encoders.Hex.EncodeData(paymentHash.ToBytes(false));
+            return await GetInvoice(invoiceId, cancellation);
         }
 
         public async Task<LightningInvoice[]> ListInvoices(CancellationToken cancellation = default)
@@ -643,7 +657,10 @@ retry:
                         return new PayResponse(PayResult.Ok, new PayDetails
                         {
                             TotalAmount = new LightMoney(response.Payment_route.Total_amt_msat),
-                            FeeAmount = new LightMoney(response.Payment_route.Total_fees_msat)
+                            FeeAmount = new LightMoney(response.Payment_route.Total_fees_msat),
+                            PaymentHash = new uint256(response.Payment_hash, false),
+                            Preimage = new uint256(response.Payment_preimage, false),
+                            Status = LightningPaymentStatus.Complete
                         });
                     }
 
@@ -708,7 +725,10 @@ retry:
                             return new PayResponse(PayResult.Ok, new PayDetails
                             {
                                 TotalAmount = response.AmountSent,
-                                FeeAmount = response.Fee
+                                FeeAmount = response.Fee,
+                                PaymentHash = new uint256(response.PaymentHash),
+                                Preimage = new uint256(response.Preimage),
+                                Status = LightningPaymentStatus.Complete
                             });
                         default:
                             throw new ArgumentOutOfRangeException();

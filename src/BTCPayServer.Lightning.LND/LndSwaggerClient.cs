@@ -8906,6 +8906,7 @@ namespace BTCPayServer.Lightning.LND
     public partial class LnrpcSendResponse : System.ComponentModel.INotifyPropertyChanged
     {
         private string _payment_error;
+        private byte[] _payment_hash;
         private byte[] _payment_preimage;
         private LnrpcRoute _payment_route;
 
@@ -8932,6 +8933,20 @@ namespace BTCPayServer.Lightning.LND
                 if (_payment_preimage != value)
                 {
                     _payment_preimage = value;
+                    RaisePropertyChanged();
+                }
+            }
+        }
+
+        [Newtonsoft.Json.JsonProperty("payment_hash", Required = Newtonsoft.Json.Required.Default, NullValueHandling = Newtonsoft.Json.NullValueHandling.Ignore)]
+        public byte[] Payment_hash
+        {
+            get { return _payment_hash; }
+            set
+            {
+                if (_payment_hash != value)
+                {
+                    _payment_hash = value;
                     RaisePropertyChanged();
                 }
             }

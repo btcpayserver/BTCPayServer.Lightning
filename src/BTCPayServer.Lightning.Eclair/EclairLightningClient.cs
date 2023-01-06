@@ -48,6 +48,9 @@ namespace BTCPayServer.Lightning.Eclair
                 return null;
             }
         }
+        
+        public async Task<LightningInvoice> GetInvoice(uint256 paymentHash, CancellationToken cancellation = default) =>
+            await GetInvoice(paymentHash.ToString(), cancellation);
 
         public async Task<LightningInvoice[]> ListInvoices(CancellationToken cancellation = default) =>
             await ListInvoices(null, cancellation);
@@ -273,7 +276,10 @@ namespace BTCPayServer.Lightning.Eclair
                                 new PayDetails
                                 {
                                     TotalAmount = sentInfo.Amount,
-                                    FeeAmount = sentInfo.Status.FeesPaid
+                                    FeeAmount = sentInfo.Status.FeesPaid,
+                                    PaymentHash = new uint256(sentInfo.PaymentHash),
+                                    Preimage = new uint256(sentInfo.Status.PaymentPreimage),
+                                    Status = LightningPaymentStatus.Complete
                                 });
                         case "failed":
                             var failure = sentInfo.Status.Failures.First();
@@ -333,7 +339,10 @@ namespace BTCPayServer.Lightning.Eclair
                             return new PayResponse(PayResult.Ok, new PayDetails
                             {
                                 TotalAmount = sentInfo.Amount,
-                                FeeAmount = sentInfo.Status.FeesPaid
+                                FeeAmount = sentInfo.Status.FeesPaid,
+                                PaymentHash = new uint256(sentInfo.PaymentHash),
+                                Preimage = new uint256(sentInfo.Status.PaymentPreimage),
+                                Status = LightningPaymentStatus.Complete
                             });
                         case "failed":
                             var failure = sentInfo.Status.Failures.First();

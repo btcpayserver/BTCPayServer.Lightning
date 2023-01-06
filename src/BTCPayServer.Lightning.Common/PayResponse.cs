@@ -1,4 +1,7 @@
+using System;
+using NBitcoin;
 using Newtonsoft.Json;
+using Newtonsoft.Json.Converters;
 
 namespace BTCPayServer.Lightning
 {
@@ -44,5 +47,14 @@ namespace BTCPayServer.Lightning
         
         [JsonConverter(typeof(JsonConverters.LightMoneyJsonConverter))]
         public LightMoney FeeAmount { get; set; }
+        
+        [JsonConverter(typeof(StringEnumConverter))]
+        public LightningPaymentStatus Status { get; set; }
+        
+        [JsonConverter(typeof(NBitcoin.JsonConverters.UInt256JsonConverter))]
+        public uint256 Preimage { get; set; }
+        
+        [JsonConverter(typeof(NBitcoin.JsonConverters.UInt256JsonConverter))]
+        public uint256 PaymentHash { get; set; }
     }
 }
