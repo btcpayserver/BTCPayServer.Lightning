@@ -470,7 +470,7 @@ namespace BTCPayServer.Lightning.LND
 
         async Task<LightningInvoice> ILightningClient.GetInvoice(uint256 paymentHash, CancellationToken cancellation)
         {
-            var invoiceId = Encoders.Hex.EncodeData(paymentHash.ToBytes());
+            var invoiceId = Encoders.Hex.EncodeData(paymentHash.ToBytes(false));
             return await GetInvoice(invoiceId, cancellation);
         }
 
@@ -658,8 +658,8 @@ retry:
                         {
                             TotalAmount = new LightMoney(response.Payment_route.Total_amt_msat),
                             FeeAmount = new LightMoney(response.Payment_route.Total_fees_msat),
-                            PaymentHash = new uint256(response.Payment_hash),
-                            Preimage = new uint256(response.Payment_preimage),
+                            PaymentHash = new uint256(response.Payment_hash, false),
+                            Preimage = new uint256(response.Payment_preimage, false),
                             Status = LightningPaymentStatus.Complete
                         });
                     }

@@ -403,7 +403,7 @@ namespace BTCPayServer.Lightning.Tests
                     Amount = amount,
                     CustomRecords = tlvData
                 };
-
+                Logs.Tester.LogInformation($"Test {src.GetType()}");
                 switch (src)
                 {
                     case LndClient _:
