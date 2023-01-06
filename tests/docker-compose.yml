@@ -49,6 +49,7 @@ services:
         dev-fast-gossip
         dev-bitcoind-poll=1
         database-upgrade=true
+        accept-htlc-tlv-types=696969,112111100
     ports:
       - "48532:9835" # api port
     expose:
@@ -78,6 +79,7 @@ services:
         dev-fast-gossip
         dev-bitcoind-poll=1
         database-upgrade=true
+        accept-htlc-tlv-types=696969,112111100
     ports:
       - "42549:9835" # api port
     expose:

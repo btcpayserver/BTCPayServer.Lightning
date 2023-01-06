@@ -348,14 +348,11 @@ namespace BTCPayServer.Lightning.CLightning
                 JObject extratlv = null;
                 if (isKeysend && payParams.CustomRecords != null)
                 {
-                    var data = new JObject();
+                    extratlv = new JObject();
                     foreach (var r in payParams.CustomRecords)
                     {
-                        data.Add(r.Key.ToString(), Encoders.Hex.EncodeData(r.Value));
+                        extratlv.Add(r.Key.ToString(), Encoders.Hex.EncodeData(r.Value));
                     }
-
-                    var json = JsonConvert.SerializeObject(data);
-                    extratlv = new JObject { { "133773310", Encoders.Hex.EncodeData(Encoding.Default.GetBytes(json)) } };
                 }
                 var opts = isKeysend
                     // keysend: destination msatoshi [label] [maxfeepercent] [retry_for] [maxdelay] [exemptfee] [extratlvs]
