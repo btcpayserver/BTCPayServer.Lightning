@@ -413,7 +413,9 @@ namespace BTCPayServer.Lightning.Tests
                         Assert.Equal(PayResult.Ok, response.Result);
                         Assert.Null(response.ErrorDetail);
                         Assert.NotNull(response.Details.PaymentHash);
-                        
+                        var h1 = new uint256(Hashes.SHA256(response.Details.Preimage.ToBytes(false)), false);
+                        var h2 = response.Details.PaymentHash;
+                        Assert.Equal(h1, h2);
                         var invoice = await dest.GetInvoice(response.Details.PaymentHash);
                         Assert.NotNull(invoice);
                         break;
