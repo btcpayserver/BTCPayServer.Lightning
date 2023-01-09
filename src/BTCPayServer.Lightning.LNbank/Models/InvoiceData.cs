@@ -8,6 +8,8 @@ namespace BTCPayServer.Lightning.LNbank.Models
     public class InvoiceData
     {
         public string Id { get; set; }
+        public string PaymentHash { get; set; }
+        public string Preimage { get; set; }
 
         [JsonConverter(typeof(StringEnumConverter))]
         public LightningInvoiceStatus Status { get; set; }

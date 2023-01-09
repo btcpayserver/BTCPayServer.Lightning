@@ -489,6 +489,10 @@ retry:
                 var expiry = TimeSpan.FromSeconds(5000);
                 var amount = LightMoney.Satoshis(21);
                 var invoice = await test.Merchant.CreateInvoice(amount, "CanPayInvoiceAndReceive", expiry);
+                
+                Assert.NotNull(invoice.Id);
+                Assert.NotNull(invoice.PaymentHash);
+                Assert.Null(invoice.PaidAt);
 
                 if (test.Customer is LndHubLightningClient)
                 {
@@ -508,6 +512,24 @@ retry:
                 Assert.Equal(LightningInvoiceStatus.Paid, paidInvoice.Status);
                 Assert.Equal(amount, paidInvoice.Amount);
                 Assert.Equal(amount, paidInvoice.AmountReceived);
+                
+                Assert.NotNull(paidReply.Details.Preimage);
+                Assert.NotNull(paidReply.Details.PaymentHash);
+                Assert.NotNull(paidInvoice.Id);
+                Assert.NotNull(paidInvoice.PaymentHash);
+                Assert.NotNull(paidInvoice.PaidAt);
+                Assert.Equal(paidInvoice.PaymentHash, paidReply.Details.PaymentHash.ToString());
+
+                if (test.Customer is not LndHubLightningClient)
+                {
+                    // LNDhub doesn't have the preimage in the invoice response
+                    Assert.NotNull(paidInvoice.Preimage);
+                    Assert.Equal(paidInvoice.Preimage, paidReply.Details.Preimage.ToString());
+                }
+                
+                // check payment hash corresponds to preimage
+                var hashedPreimage = new uint256(Hashes.SHA256(paidReply.Details.Preimage.ToBytes(false)), false);
+                Assert.Equal(hashedPreimage, paidReply.Details.PaymentHash);
 
                 await Task.Delay(1000);
                 

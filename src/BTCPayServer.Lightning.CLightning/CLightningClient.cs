@@ -539,6 +539,8 @@ namespace BTCPayServer.Lightning.CLightning
             new LightningInvoice
             {
                 Id = invoice.Label,
+                PaymentHash = invoice.PaymentHash.ToString(),
+                Preimage = invoice.PaymentPreimage?.ToString() ?? invoice.PaymentSecret?.ToString(),
                 Amount = invoice.MilliSatoshi,
                 AmountReceived = invoice.MilliSatoshiReceived,
                 BOLT11 = invoice.BOLT11,
