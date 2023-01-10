@@ -2,7 +2,7 @@
 
     <PropertyGroup>
         <TargetFrameworks>net6.0;netstandard2.0</TargetFrameworks>
-        <Version>1.3.22</Version>
+        <Version>1.3.23</Version>
         <PackageId>BTCPayServer.Lightning.LNBank</PackageId>
         <Description>Client library for LNBank to build Lightning Network Apps in C#.</Description>
         <PackageProjectUrl>https://github.com/btcpayserver/BTCPayServer.Lightning</PackageProjectUrl>
