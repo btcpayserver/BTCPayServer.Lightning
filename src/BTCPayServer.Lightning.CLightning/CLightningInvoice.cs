@@ -11,6 +11,16 @@ namespace BTCPayServer.Lightning.CLightning
         [JsonConverter(typeof(NBitcoin.JsonConverters.UInt256JsonConverter))]
         [JsonProperty("payment_hash")]
         public uint256 PaymentHash { get; set; }
+        
+        // this is used by the invoice endpoint
+        [JsonConverter(typeof(NBitcoin.JsonConverters.UInt256JsonConverter))]
+        [JsonProperty("payment_secret")]
+        public uint256 PaymentSecret { get; set; }
+        
+        // this is used by the waitanyinvoice and listinvoices endpoints
+        [JsonConverter(typeof(NBitcoin.JsonConverters.UInt256JsonConverter))]
+        [JsonProperty("payment_preimage")]
+        public uint256 PaymentPreimage { get; set; }
 
         [JsonProperty("amount_msat")]
         [JsonConverter(typeof(JsonConverters.LightMoneyJsonConverter))]
@@ -35,7 +45,6 @@ namespace BTCPayServer.Lightning.CLightning
         [JsonProperty("paid_at")]
         [JsonConverter(typeof(NBitcoin.JsonConverters.DateTimeToUnixTimeConverter))]
         public DateTimeOffset? PaidAt { get; set; }
-
 
 #pragma warning disable IDE0051
         // Legacy stuff

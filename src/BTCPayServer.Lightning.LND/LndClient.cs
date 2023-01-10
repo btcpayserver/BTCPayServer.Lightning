@@ -343,7 +343,8 @@ namespace BTCPayServer.Lightning.LND
                 Amount = req.Amount,
                 BOLT11 = resp.Payment_request,
                 Status = LightningInvoiceStatus.Unpaid,
-                ExpiresAt = DateTimeOffset.UtcNow + req.Expiry
+                ExpiresAt = DateTimeOffset.UtcNow + req.Expiry,
+                PaymentHash = new uint256(resp.R_hash, false).ToString()
             };
             return invoice;
         }
@@ -537,8 +538,9 @@ namespace BTCPayServer.Lightning.LND
         {
             var invoice = new LightningInvoice
             {
-                // TODO: Verify id corresponds to R_hash
                 Id = BitString(resp.R_hash),
+                PaymentHash = new uint256(resp.R_hash, false).ToString(),
+                Preimage = new uint256(resp.R_preimage, false).ToString(),
                 Amount = new LightMoney(ConvertInv.ToInt64(resp.ValueMSat), LightMoneyUnit.MilliSatoshi),
                 AmountReceived = string.IsNullOrWhiteSpace(resp.AmountPaid) ? null : new LightMoney(ConvertInv.ToInt64(resp.AmountPaid), LightMoneyUnit.MilliSatoshi),
                 BOLT11 = resp.Payment_request,

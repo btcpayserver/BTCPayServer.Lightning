@@ -19,7 +19,8 @@ namespace BTCPayServer.Lightning.LndHub
                 Status = status,
                 ExpiresAt = expiresAt.GetValueOrDefault(),
                 Amount = data.Amount,
-                AmountReceived = data.IsPaid ? data.Amount : null
+                AmountReceived = data.IsPaid ? data.Amount : null,
+                PaymentHash = data.PaymentHash
             };
 
             if (data.IsPaid)

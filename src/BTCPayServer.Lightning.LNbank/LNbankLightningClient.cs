@@ -251,7 +251,9 @@ namespace BTCPayServer.Lightning.LNbank
             ExpiresAt = invoice.ExpiresAt,
             BOLT11 = invoice.BOLT11,
             Status = invoice.Status,
-            AmountReceived = invoice.AmountReceived
+            AmountReceived = invoice.AmountReceived,
+            PaymentHash = invoice.PaymentHash,
+            Preimage = invoice.Preimage
         };
         
         private static LightningPayment ToLightningPayment(PaymentData payment) => new()

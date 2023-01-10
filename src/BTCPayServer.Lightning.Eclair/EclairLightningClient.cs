@@ -72,6 +72,7 @@ namespace BTCPayServer.Lightning.Eclair
             var lnInvoice = new LightningInvoice
             {
                 Id = invoiceId,
+                PaymentHash = invoice.PaymentHash,
                 Amount = parsed.MinimumAmount,
                 ExpiresAt = parsed.ExpiryDate,
                 BOLT11 = invoice.Serialized
@@ -95,6 +96,7 @@ namespace BTCPayServer.Lightning.Eclair
                 lnInvoice.AmountReceived = info.Status.Amount;
                 lnInvoice.Status = info.Status.Amount >= parsed.MinimumAmount ? LightningInvoiceStatus.Paid : LightningInvoiceStatus.Unpaid;
                 lnInvoice.PaidAt = info.Status.ReceivedAt;
+                lnInvoice.Preimage = info.PaymentPreimage;
             }
 
             return lnInvoice;
@@ -155,13 +157,14 @@ namespace BTCPayServer.Lightning.Eclair
                 Convert.ToInt32(expiry.TotalSeconds), null, cancellation);
 
             var parsed = BOLT11PaymentRequest.Parse(result.Serialized, _network);
-            var invoice = new LightningInvoice()
+            var invoice = new LightningInvoice
             {
                 BOLT11 = result.Serialized,
                 Amount = amount,
                 Id = result.PaymentHash,
                 Status = LightningInvoiceStatus.Unpaid,
-                ExpiresAt = parsed.ExpiryDate
+                ExpiresAt = parsed.ExpiryDate,
+                PaymentHash = result.PaymentHash
             };
             return invoice;
         }

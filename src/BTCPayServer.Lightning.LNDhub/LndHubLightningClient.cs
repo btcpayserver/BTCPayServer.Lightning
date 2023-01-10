@@ -151,6 +151,7 @@ namespace BTCPayServer.Lightning.LndHub
                     TotalAmount = totalAmount,
                     FeeAmount = feeAmount,
                     Preimage = response.PaymentPreimage,
+                    PaymentHash = response.PaymentHash ?? pr.PaymentHash,
                     Status = LightningPaymentStatus.Complete
                 });
             }
