@@ -540,7 +540,7 @@ namespace BTCPayServer.Lightning.LND
             {
                 Id = BitString(resp.R_hash),
                 PaymentHash = new uint256(resp.R_hash, false).ToString(),
-                Preimage = new uint256(resp.R_preimage, false).ToString(),
+                Preimage = resp.R_preimage != null && resp.R_preimage.Length == 32 ? new uint256(resp.R_preimage, false).ToString() : null,
                 Amount = new LightMoney(ConvertInv.ToInt64(resp.ValueMSat), LightMoneyUnit.MilliSatoshi),
                 AmountReceived = string.IsNullOrWhiteSpace(resp.AmountPaid) ? null : new LightMoney(ConvertInv.ToInt64(resp.AmountPaid), LightMoneyUnit.MilliSatoshi),
                 BOLT11 = resp.Payment_request,

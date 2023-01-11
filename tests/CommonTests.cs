@@ -493,6 +493,16 @@ retry:
                 Assert.NotNull(invoice.Id);
                 Assert.NotNull(invoice.PaymentHash);
                 Assert.Null(invoice.PaidAt);
+                
+                var invoiceFetchedById = await test.Merchant.GetInvoice(invoice.Id);
+                Assert.NotNull(invoiceFetchedById);
+                Assert.Equal(invoice.Id, invoiceFetchedById.Id);
+                Assert.Equal(invoice.PaymentHash, invoiceFetchedById.PaymentHash);
+                
+                var invoiceFetchedByPaymentHash = await test.Merchant.GetInvoice(invoice.PaymentHash);
+                Assert.NotNull(invoiceFetchedByPaymentHash);
+                Assert.Equal(invoice.Id, invoiceFetchedByPaymentHash.Id);
+                Assert.Equal(invoice.PaymentHash, invoiceFetchedByPaymentHash.PaymentHash);
 
                 if (test.Customer is LndHubLightningClient)
                 {
@@ -538,7 +548,9 @@ retry:
                 var invoices = await test.Merchant.ListInvoices(onlyPending);
                 Assert.DoesNotContain(invoices, i => i.Id == paidInvoice.Id);
                 invoices = await test.Merchant.ListInvoices();
-                Assert.Contains(invoices, i => i.Id == paidInvoice.Id);
+                // if the test ran too many times the invoice might be on a later page
+                if (invoices.Length < 100)
+                    Assert.Contains(invoices, i => i.Id == paidInvoice.Id);
                 
                 // check payment
                 var hash = GetInvoicePaymentHash(invoice).ToString();
