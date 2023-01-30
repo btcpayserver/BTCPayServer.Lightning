@@ -526,7 +526,7 @@ namespace BTCPayServer.Lightning.CLightning
             {
                 foreach (var channel in peer.Channels)
                 {
-                    channels.Add(new LightningChannel()
+                    channels.Add(new LightningChannel
                     {
                         RemoteNode = new PubKey(peer.Id),
                         IsPublic = !channel.Private,
@@ -545,7 +545,7 @@ namespace BTCPayServer.Lightning.CLightning
             {
                 Id = invoice.Label,
                 PaymentHash = invoice.PaymentHash.ToString(),
-                Preimage = invoice.PaymentPreimage?.ToString() ?? invoice.PaymentSecret?.ToString(),
+                Preimage = invoice.PaymentPreimage?.ToString(),
                 Amount = invoice.MilliSatoshi,
                 AmountReceived = invoice.MilliSatoshiReceived,
                 BOLT11 = invoice.BOLT11,
