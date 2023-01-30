@@ -41,7 +41,8 @@ namespace BTCPayServer.Lightning.LNbank
 
                 _connection.On<TransactionUpdateEvent>("transaction-update", async data =>
                 {
-                    invoice = await _lightningClient.GetInvoice(data.InvoiceId, cancellation);
+                    var id = data.PaymentHash ?? data.InvoiceId;
+                    invoice = await _lightningClient.GetInvoice(id, cancellation);
 
                     if (invoice != null)
                         tcs.SetResult(invoice);

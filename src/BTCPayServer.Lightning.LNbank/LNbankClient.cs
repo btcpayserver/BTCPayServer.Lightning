@@ -38,9 +38,9 @@ namespace BTCPayServer.Lightning.LNbank
             return await Get<LightningNodeBalance>("balance", cancellation);
         }
 
-        public async Task<InvoiceData> GetInvoice(string invoiceId, CancellationToken cancellation)
+        public async Task<InvoiceData> GetInvoice(string paymentHashOrInvoiceId, CancellationToken cancellation)
         {
-            return await Get<InvoiceData>($"invoice/{invoiceId}", cancellation);
+            return await Get<InvoiceData>($"invoice/{paymentHashOrInvoiceId}", cancellation);
         }
 
         public async Task<InvoiceData[]> ListInvoices(ListInvoicesParams param, CancellationToken cancellation)
