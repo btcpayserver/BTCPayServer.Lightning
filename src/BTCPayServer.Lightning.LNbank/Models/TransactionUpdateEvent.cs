@@ -4,6 +4,7 @@ namespace BTCPayServer.Lightning.LNbank.Models
     {
         public string TransactionId { get; set; }
         public string InvoiceId { get; set; }
+        public string PaymentHash { get; set; }
         public string Status { get; set; }
         public string Event { get; set; }
         public bool IsPaid { get; set; }

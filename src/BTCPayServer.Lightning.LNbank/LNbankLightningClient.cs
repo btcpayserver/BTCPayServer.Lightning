@@ -57,11 +57,11 @@ namespace BTCPayServer.Lightning.LNbank
             }
         }
 
-        public async Task<LightningInvoice> GetInvoice(string invoiceId, CancellationToken cancellation = default)
+        public async Task<LightningInvoice> GetInvoice(string paymentHash, CancellationToken cancellation = default)
         {
             try
             {
-                var invoice = await _client.GetInvoice(invoiceId, cancellation);
+                var invoice = await _client.GetInvoice(paymentHash, cancellation);
                 return ToLightningInvoice(invoice);
             }
             catch (LNbankClient.LNbankApiException)
