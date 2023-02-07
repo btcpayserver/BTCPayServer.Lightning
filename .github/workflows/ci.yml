@@ -49,11 +49,11 @@ jobs:
                     TAG_COMMIT: true
                     TAG_FORMAT: CLightning/v*
             #Common nuget    
-            -   name: Publish NuGet for BTCPayServer.Common
+            -   name: Publish NuGet for BTCPayServer.Lightning.Common
                 if: ${{ github.ref == 'refs/heads/master' }} # Publish only when the push is on master
                 uses: Rebel028/publish-nuget@v2.7.0
                 with:
-                    PROJECT_FILE_PATH: src/BTCPayServer.Common/BTCPayServer.Common.csproj
+                    PROJECT_FILE_PATH: src/BTCPayServer.Lightning.Common/BTCPayServer.Lightning.Common.csproj
                     NUGET_KEY: ${{secrets.NUGET_KEY}}
                     INCLUDE_SYMBOLS: true
                     VERSION_REGEX: ^\s*<Version>(.*)<\/Version>\s*$
