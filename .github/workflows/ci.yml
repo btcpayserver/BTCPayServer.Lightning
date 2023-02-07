@@ -22,7 +22,6 @@ jobs:
                 with:
                     PROJECT_FILE_PATH: src/BTCPayServer.Lightning.All/BTCPayServer.Lightning.All.csproj
                     NUGET_KEY: ${{secrets.NUGET_KEY}}
-                    PACKAGE_NAME: BTCPayServer.Lightning.All
                     INCLUDE_SYMBOLS: true
                     VERSION_REGEX: ^\s*<Version>(.*)<\/Version>\s*$
                     TAG_COMMIT: true
@@ -34,7 +33,6 @@ jobs:
                 with:
                     PROJECT_FILE_PATH: src/BTCPayServer.Lightning.Charge/BTCPayServer.Lightning.Charge.csproj
                     NUGET_KEY: ${{secrets.NUGET_KEY}}
-                    PACKAGE_NAME: BTCPayServer.Lightning.Charge
                     INCLUDE_SYMBOLS: true
                     VERSION_REGEX: ^\s*<Version>(.*)<\/Version>\s*$
                     TAG_COMMIT: true
@@ -46,7 +44,6 @@ jobs:
                 with:
                     PROJECT_FILE_PATH: src/BTCPayServer.Lightning.CLightning/BTCPayServer.Lightning.CLightning.csproj
                     NUGET_KEY: ${{secrets.NUGET_KEY}}
-                    PACKAGE_NAME: BTCPayServer.Lightning.CLightning
                     INCLUDE_SYMBOLS: true
                     VERSION_REGEX: ^\s*<Version>(.*)<\/Version>\s*$
                     TAG_COMMIT: true
@@ -58,7 +55,6 @@ jobs:
                 with:
                     PROJECT_FILE_PATH: src/BTCPayServer.Common/BTCPayServer.Common.csproj
                     NUGET_KEY: ${{secrets.NUGET_KEY}}
-                    PACKAGE_NAME: BTCPayServer.Lightning.Eclair
                     INCLUDE_SYMBOLS: true
                     VERSION_REGEX: ^\s*<Version>(.*)<\/Version>\s*$
                     TAG_COMMIT: true
@@ -70,7 +66,6 @@ jobs:
                 with:
                     PROJECT_FILE_PATH: src/BTCPayServer.Lightning.Eclair/BTCPayServer.Lightning.Eclair.csproj
                     NUGET_KEY: ${{secrets.NUGET_KEY}}
-                    PACKAGE_NAME: BTCPayServer.Lightning.Eclair
                     INCLUDE_SYMBOLS: true
                     VERSION_REGEX: ^\s*<Version>(.*)<\/Version>\s*$
                     TAG_COMMIT: true
@@ -82,7 +77,6 @@ jobs:
                 with:
                     PROJECT_FILE_PATH: src/BTCPayServer.Lightning.LNbank/BTCPayServer.Lightning.LNbank.csproj
                     NUGET_KEY: ${{secrets.NUGET_KEY}}
-                    PACKAGE_NAME: BTCPayServer.Lightning.LNbank
                     INCLUDE_SYMBOLS: true
                     VERSION_REGEX: ^\s*<Version>(.*)<\/Version>\s*$
                     TAG_COMMIT: true
@@ -94,7 +88,6 @@ jobs:
                 with:
                     PROJECT_FILE_PATH: src/BTCPayServer.Lightning.LND/BTCPayServer.Lightning.LND.csproj
                     NUGET_KEY: ${{secrets.NUGET_KEY}}
-                    PACKAGE_NAME: BTCPayServer.Lightning.LND
                     INCLUDE_SYMBOLS: true
                     VERSION_REGEX: ^\s*<Version>(.*)<\/Version>\s*$
                     TAG_COMMIT: true
@@ -106,7 +99,6 @@ jobs:
                 with:
                     PROJECT_FILE_PATH: src/BTCPayServer.Lightning.LNDhub/BTCPayServer.Lightning.LNDhub.csproj
                     NUGET_KEY: ${{secrets.NUGET_KEY}}
-                    PACKAGE_NAME: BTCPayServer.Lightning.LNDhub
                     INCLUDE_SYMBOLS: true
                     VERSION_REGEX: ^\s*<Version>(.*)<\/Version>\s*$
                     TAG_COMMIT: true
