@@ -51,6 +51,18 @@ jobs:
                     VERSION_REGEX: ^\s*<Version>(.*)<\/Version>\s*$
                     TAG_COMMIT: true
                     TAG_FORMAT: CLightning/v*
+            #Common nuget    
+            -   name: Publish NuGet for BTCPayServer.Common
+                if: ${{ github.ref == 'refs/heads/master' }} # Publish only when the push is on master
+                uses: Rebel028/publish-nuget@v2.7.0
+                with:
+                    PROJECT_FILE_PATH: src/BTCPayServer.Common/BTCPayServer.Common.csproj
+                    NUGET_KEY: ${{secrets.NUGET_KEY}}
+                    PACKAGE_NAME: BTCPayServer.Lightning.Eclair
+                    INCLUDE_SYMBOLS: true
+                    VERSION_REGEX: ^\s*<Version>(.*)<\/Version>\s*$
+                    TAG_COMMIT: true
+                    TAG_FORMAT: Common/v*
             #Eclair nuget    
             -   name: Publish NuGet for BTCPayServer.Lightning.Eclair
                 if: ${{ github.ref == 'refs/heads/master' }} # Publish only when the push is on master
@@ -74,7 +86,7 @@ jobs:
                     INCLUDE_SYMBOLS: true
                     VERSION_REGEX: ^\s*<Version>(.*)<\/Version>\s*$
                     TAG_COMMIT: true
-                    TAG_FORMAT: BTCPayServer.Lightning.LNbank/v*
+                    TAG_FORMAT: LNbank/v*
             #LND nuget    
             -   name: Publish NuGet for BTCPayServer.Lightning.LND
                 if: ${{ github.ref == 'refs/heads/master' }} # Publish only when the push is on master
@@ -87,3 +99,15 @@ jobs:
                     VERSION_REGEX: ^\s*<Version>(.*)<\/Version>\s*$
                     TAG_COMMIT: true
                     TAG_FORMAT: LND/v*
+            #LNDhub nuget    
+            -   name: Publish NuGet for BTCPayServer.Lightning.LNDhub
+                if: ${{ github.ref == 'refs/heads/master' }} # Publish only when the push is on master
+                uses: Rebel028/publish-nuget@v2.7.0
+                with:
+                    PROJECT_FILE_PATH: src/BTCPayServer.Lightning.LNDhub/BTCPayServer.Lightning.LNDhub.csproj
+                    NUGET_KEY: ${{secrets.NUGET_KEY}}
+                    PACKAGE_NAME: BTCPayServer.Lightning.LNDhub
+                    INCLUDE_SYMBOLS: true
+                    VERSION_REGEX: ^\s*<Version>(.*)<\/Version>\s*$
+                    TAG_COMMIT: true
+                    TAG_FORMAT: LNDhub/v*
