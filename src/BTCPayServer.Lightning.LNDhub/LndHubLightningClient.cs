@@ -96,7 +96,7 @@ namespace BTCPayServer.Lightning.LndHub
         public async Task<LightningPayment> GetPayment(string paymentHash, CancellationToken cancellation = default)
         {
             var payments = await _client.GetTransactions(cancellation);
-            var data = payments.FirstOrDefault(i => i.PaymentHash.ToString() == paymentHash);
+            var data = payments.FirstOrDefault(i => i.PaymentHash?.ToString() == paymentHash);
             return data == null ? null : LndHubUtil.ToLightningPayment(data);
         }
 
