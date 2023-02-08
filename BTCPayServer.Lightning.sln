@@ -26,6 +26,11 @@ Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "BTCPayServer.Lightning.LNba
 EndProject
 Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "BTCPayServer.Lightning.LNDhub", "src\BTCPayServer.Lightning.LNDhub\BTCPayServer.Lightning.LNDhub.csproj", "{B024DBD2-FCF4-4C48-9EBE-09AA7AAF36FB}"
 EndProject
+Project("{2150E333-8FDC-42A3-9474-1A3956D46DE8}") = "misc", "misc", "{216059DB-7E3A-4CAF-A273-AB43BAAFDB28}"
+	ProjectSection(SolutionItems) = preProject
+		src\Build\Common.csproj = src\Build\Common.csproj
+	EndProjectSection
+EndProject
 Global
 	GlobalSection(SolutionConfigurationPlatforms) = preSolution
 		Debug|Any CPU = Debug|Any CPU

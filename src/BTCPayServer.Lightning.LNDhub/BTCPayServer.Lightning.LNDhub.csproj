@@ -1,4 +1,5 @@
 ﻿<Project Sdk="Microsoft.NET.Sdk">
+    <Import Project="../Build/Common.csproj"></Import>
     <PropertyGroup>
         <TargetFrameworks>net6.0;netstandard2.0</TargetFrameworks>
         <Version>1.0.18</Version>
@@ -11,7 +12,7 @@
         <LangVersion>10</LangVersion>
     	<PackageLicenseExpression>MIT</PackageLicenseExpression>
     </PropertyGroup>
-    <Import Project="../BTCPayServer.Lightning.Common/Common.csproj"/>
+    <Import Project="../BTCPayServer.Lightning.Common/Common.csproj" />
     <ItemGroup>
       <ProjectReference Include="..\BTCPayServer.Lightning.Common\BTCPayServer.Lightning.Common.csproj" />
     </ItemGroup>
