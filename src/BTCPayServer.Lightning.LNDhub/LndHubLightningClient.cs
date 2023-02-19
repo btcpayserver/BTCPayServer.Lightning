@@ -128,7 +128,7 @@ namespace BTCPayServer.Lightning.LndHub
             var invoice = await _client.CreateInvoice(req, cancellation);
 
             // the response to addinvoice is incomplete, fetch the invoice to return that data
-            return await GetInvoice(invoice.Id.ToString(), cancellation);
+            return await GetInvoice(invoice.Id, cancellation);
         }
 
         public async Task<PayResponse> Pay(string bolt11, CancellationToken cancellation = default)
