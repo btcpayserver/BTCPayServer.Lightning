@@ -14,12 +14,18 @@ namespace BTCPayServer.Lightning.LNDhub.JsonConverters
 
         public override object ReadJson(JsonReader reader, Type objectType, object existingValue, JsonSerializer serializer)
         {
-            if (reader.TokenType != JsonToken.StartObject) return null;
-        
-            var obj = JObject.Load(reader);
-            return obj["type"]?.Value<string>() == "Buffer" && obj["data"] != null
-                ? new uint256(BitString(obj["data"].ToObject<byte[]>()))
-                : null;
+            switch (reader.TokenType)
+            {
+                case JsonToken.String:
+                    return uint256.Parse((string)reader.Value);
+                case JsonToken.StartObject:
+                    var obj = JObject.Load(reader);
+                    return obj["type"]?.Value<string>() == "Buffer" && obj["data"] != null
+                        ? new uint256(BitString(obj["data"].ToObject<byte[]>()))
+                        : null;
+                default:
+                    return null;
+            };
         }
 
         public override void WriteJson(JsonWriter writer, object value, JsonSerializer serializer)
