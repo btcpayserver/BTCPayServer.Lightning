@@ -34,7 +34,7 @@ services:
   lightningd:
     restart: unless-stopped
     stop_signal: SIGKILL
-    image: btcpayserver/lightning:v22.11.1-dev
+    image: btcpayserver/lightning:v23.02-dev
     environment:
       EXPOSE_TCP: "true"
       LIGHTNINGD_NETWORK: regtest
@@ -63,7 +63,7 @@ services:
   lightningd_dest:
     restart: unless-stopped
     stop_signal: SIGKILL
-    image: btcpayserver/lightning:v22.11.1-dev
+    image: btcpayserver/lightning:v23.02-dev
     environment:
       EXPOSE_TCP: "true"
       LIGHTNINGD_NETWORK: regtest
