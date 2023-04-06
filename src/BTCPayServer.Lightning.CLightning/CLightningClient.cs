@@ -258,7 +258,7 @@ namespace BTCPayServer.Lightning.CLightning
         async Task<LightningPayment> GetPayment(string paymentHash, CancellationToken cancellation)
         {
             var payments = await SendCommandAsync<CLightningPayment[]>("listpays", new[] { null, paymentHash }, false, true, cancellation);
-            return payments.Length == 0 ? null : ToLightningPayment(payments[0]);
+            return payments.Length == 0 ? null : ToLightningPayment(payments.Last());
         }
 
         async Task<LightningInvoice> ILightningClient.GetInvoice(string invoiceId, CancellationToken cancellation)
