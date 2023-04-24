@@ -466,6 +466,8 @@ namespace BTCPayServer.Lightning.LND
 
         async Task<LightningInvoice> ILightningClient.GetInvoice(string invoiceId, CancellationToken cancellation)
         {
+            if (invoiceId.Length != 64)
+                return null;
             return await GetInvoice(invoiceId, cancellation);
         }
 
