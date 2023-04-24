@@ -1,9 +1,9 @@
-﻿<Project Sdk="Microsoft.NET.Sdk">
+<Project Sdk="Microsoft.NET.Sdk">
   <Import Project="../Build/Common.csproj"></Import>
 	<PropertyGroup>
 		<TargetFrameworks>net6.0;netstandard2.0</TargetFrameworks>
 		<RootNamespace>BTCPayServer.Lightning</RootNamespace>
-		<Version>1.4.22</Version>
+		<Version>1.4.23</Version>
 		<LangVersion>10</LangVersion>
 		<PackageId>BTCPayServer.Lightning.All</PackageId>
 		<Description>Client library for lightning network implementations to build Lightning Network Apps in C#.</Description>
