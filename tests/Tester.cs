@@ -82,7 +82,8 @@ namespace BTCPayServer.Lightning.Tests
 
 		public static IEnumerable<(string Name, ILightningClient Client)> GetLightningClients()
 		{
-			yield return ("Charge (Client)", CreateChargeClient());
+            // Lightning charge isn't compatible with some breaking changes of Core lightning v23.5
+			// yield return ("Charge (Client)", CreateChargeClient());
 			yield return ("C-Lightning (Client)", CreateCLightningClient());
 			yield return ("LND (Client)", CreateLndClient());
 			yield return ("Eclair (Client)", CreateEclairClient());
