@@ -22,11 +22,47 @@ namespace BTCPayServer.Lightning.CLightning
 
         [JsonProperty("msatoshi_to_us")]
         [JsonConverter(typeof(JsonConverters.LightMoneyJsonConverter))]
-        public LightMoney ToUs { get; set; }
+        [Obsolete("Use ToUs instead")]
+        public LightMoney OldToUs { get; set; }
 
         [JsonProperty("msatoshi_total")]
         [JsonConverter(typeof(JsonConverters.LightMoneyJsonConverter))]
-        public LightMoney Total { get; set; }
+        [Obsolete("Use Total instead")]
+        public LightMoney OldTotal { get; set; }
+
+        LightMoney _ToUs;
+        [JsonProperty("to_us_msat")]
+        [JsonConverter(typeof(JsonConverters.LightMoneyJsonConverter))]
+        public LightMoney ToUs
+        {
+            get
+            {
+#pragma warning disable CS0618 // Type or member is obsolete
+                return _ToUs ?? OldToUs;
+#pragma warning restore CS0618 // Type or member is obsolete
+            }
+            set
+            {
+                _ToUs = value;
+            }
+        }
+
+        LightMoney _Total;
+        [JsonProperty("total_msat")]
+        [JsonConverter(typeof(JsonConverters.LightMoneyJsonConverter))]
+        public LightMoney Total
+        {
+            get
+            {
+#pragma warning disable CS0618 // Type or member is obsolete
+                return _Total ?? OldTotal;
+#pragma warning restore CS0618 // Type or member is obsolete
+            }
+            set
+            {
+                _Total = value;
+            }
+        }
 
         [JsonProperty("dust_limit_satoshis")]
         [JsonConverter(typeof(NBitcoin.JsonConverters.MoneyJsonConverter))]
