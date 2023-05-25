@@ -1,5 +1,6 @@
 using System;
 using System.Threading;
+using System.Threading.Channels;
 using System.Threading.Tasks;
 using BTCPayServer.Lightning.LNbank.Models;
 using Microsoft.AspNetCore.SignalR.Client;
@@ -10,13 +11,10 @@ namespace BTCPayServer.Lightning.LNbank
     {
         private readonly LNbankLightningClient _lightningClient;
         private readonly HubConnection _connection;
-        private readonly CancellationToken _cancellationToken;
-        private readonly CancellationTokenSource _cts = new CancellationTokenSource();
 
-        public LNbankHubClient(Uri baseUri, string apiToken, LNbankLightningClient lightningClient, CancellationToken cancellation)
+        public LNbankHubClient(Uri baseUri, string apiToken, LNbankLightningClient lightningClient)
         {
             _lightningClient = lightningClient;
-            _cancellationToken = cancellation;
             _connection = new HubConnectionBuilder()
                 .WithUrl($"{baseUri.AbsoluteUri}plugins/lnbank/hubs/transaction", options =>
                 {
@@ -26,46 +24,52 @@ namespace BTCPayServer.Lightning.LNbank
                 .Build();
         }
 
+        Channel<LightningInvoice> _Invoices = Channel.CreateUnbounded<LightningInvoice>();
         public async Task Start(CancellationToken cancellation)
         {
             await _connection.StartAsync(cancellation);
+            _connection.On<TransactionUpdateEvent>("transaction-update", async data =>
+            {
+                var id = data.PaymentHash ?? data.InvoiceId;
+                var invoice = await _lightningClient.GetInvoice(id, cancellation);
+                _Invoices.Writer.TryWrite(invoice);
+            });
+            _connection.Closed += (ex) =>
+            {
+                _Invoices.Writer.TryComplete(ex);
+                return Task.CompletedTask;
+            };
         }
 
         public async Task<LightningInvoice> WaitInvoice(CancellationToken cancellation)
         {
-            try
-            {
-                LightningInvoice invoice;
-
-                var tcs = new TaskCompletionSource<LightningInvoice>(cancellation);
-
-                _connection.On<TransactionUpdateEvent>("transaction-update", async data =>
-                {
-                    var id = data.PaymentHash ?? data.InvoiceId;
-                    invoice = await _lightningClient.GetInvoice(id, cancellation);
-
-                    if (invoice != null)
-                        tcs.SetResult(invoice);
-                });
-
-                return await tcs.Task;
-            }
-            catch (Exception) when (_cts.IsCancellationRequested)
-            {
-                throw new OperationCanceledException(_cts.Token);
-            }
+            var canRead = await _Invoices.Reader.WaitToReadAsync(cancellation);
+            if (!canRead || !_Invoices.Reader.TryRead(out var invoice))
+                // All the channel completions should throw exception on the WaitToRead
+                throw new InvalidOperationException("BUG 390902: This should never happen");
+            return invoice;
         }
 
-        public async void Dispose()
+        public void Dispose()
         {
-            await DisposeAsync();
+            _ = DisposeAsync();
         }
 
         private async Task DisposeAsync()
         {
-            await _connection.StopAsync(_cancellationToken);
-            await _connection.DisposeAsync();
-            _cts.Cancel();
+            _Invoices.Writer.TryComplete(new ObjectDisposedException("The connection to LNBank got disposed"));
+            try
+            {
+                await _connection.StopAsync();
+            }
+            catch
+            {
+                try
+                {
+                    await _connection.DisposeAsync();
+                }
+                catch { }
+            }
         }
     }
 }

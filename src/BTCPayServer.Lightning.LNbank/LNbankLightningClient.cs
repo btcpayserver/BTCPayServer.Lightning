@@ -236,7 +236,7 @@ namespace BTCPayServer.Lightning.LNbank
 
         public async Task<ILightningInvoiceListener> Listen(CancellationToken cancellation = default)
         {
-            var listener = new LNbankHubClient(_baseUri, _apiToken, this, cancellation);
+            var listener = new LNbankHubClient(_baseUri, _apiToken, this);
 
             await listener.Start(cancellation);
 
