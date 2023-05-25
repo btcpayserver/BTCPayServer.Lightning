@@ -447,7 +447,7 @@ namespace BTCPayServer.Lightning.Eclair
             return channels.Select(response =>
             {
                 var outpointStr = response.Data?.Commitments?.CommitInput?.OutPoint?.Replace(":", "-");
-                OutPoint? outPoint = null;
+                OutPoint outPoint = null;
                 if (outpointStr != null)
                     OutPoint.TryParse(outpointStr, out outPoint);
 
