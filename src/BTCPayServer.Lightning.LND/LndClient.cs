@@ -553,7 +553,10 @@ namespace BTCPayServer.Lightning.LND
             if (resp.Htlcs != null && resp.Htlcs.Any())
             {
                 invoice.CustomRecords = resp.Htlcs
+                    .Where(htlc => htlc.State.ToUpperInvariant() == "SETTLED")
                     .SelectMany(htlc => htlc.CustomRecords)
+                    .GroupBy(htlc => htlc.Key)
+                    .Select(x => x.First())
                     .ToDictionary(x => x.Key, y => y.Value);
             }
             
