@@ -27,6 +27,8 @@ namespace BTCPayServer.Lightning.LndHub
         public async Task<LightningNodeInformation> GetInfo(CancellationToken cancellation = default)
         {
             var data = await _client.GetInfo(cancellation);
+            if (data == null)
+                throw new NotSupportedException("The LNDHub instance does not support GetInfo");
 
             var nodeInfo = new LightningNodeInformation
             {
@@ -39,12 +41,15 @@ namespace BTCPayServer.Lightning.LndHub
                 InactiveChannelsCount = data.InactiveChannelsCount,
                 PendingChannelsCount = data.PendingChannelsCount
             };
-            foreach (var nodeUri in data.Uris)
+            if (data.Uris != null && data.Uris.Any())
             {
-                if (NodeInfo.TryParse(nodeUri, out var info))
-                    nodeInfo.NodeInfoList.Add(info);
+                foreach (var nodeUri in data.Uris)
+                {
+                    if (NodeInfo.TryParse(nodeUri, out var info))
+                        nodeInfo.NodeInfoList.Add(info);
+                }
             }
-
+            
             return nodeInfo;
         }
 
