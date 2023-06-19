@@ -41,7 +41,7 @@ namespace BTCPayServer.Lightning.LndHub
                 InactiveChannelsCount = data.InactiveChannelsCount,
                 PendingChannelsCount = data.PendingChannelsCount
             };
-            if (data.Uris != null && data.Uris.Any())
+            if (data.Uris != null)
             {
                 foreach (var nodeUri in data.Uris)
                 {
@@ -49,7 +49,7 @@ namespace BTCPayServer.Lightning.LndHub
                         nodeInfo.NodeInfoList.Add(info);
                 }
             }
-            
+
             return nodeInfo;
         }
 
