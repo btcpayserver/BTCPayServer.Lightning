@@ -10,6 +10,7 @@ using Newtonsoft.Json.Linq;
 using System.Diagnostics;
 using NBitcoin;
 using NBitcoin.DataEncoders;
+using System.Text;
 
 namespace BTCPayServer.Lightning.LND
 {
@@ -1565,9 +1566,9 @@ namespace BTCPayServer.Lightning.LND
         /// returned.</summary>
         /// <param name="r_hash">/ The payment hash of the invoice to be looked up.</param>
         /// <exception cref="SwaggerException">A server side error occurred.</exception>
-        public System.Threading.Tasks.Task<LnrpcInvoice> LookupInvoiceAsync(string r_hash_str, byte[] r_hash)
+        public System.Threading.Tasks.Task<LnrpcInvoice> LookupInvoiceAsync(byte[] r_hash)
         {
-            return LookupInvoiceAsync(r_hash_str, r_hash, System.Threading.CancellationToken.None);
+            return LookupInvoiceAsync(r_hash, System.Threading.CancellationToken.None);
         }
 
         /// <summary>* lncli: `lookupinvoice`
@@ -1577,15 +1578,14 @@ namespace BTCPayServer.Lightning.LND
         /// <param name="r_hash">/ The payment hash of the invoice to be looked up.</param>
         /// <param name="cancellationToken">A cancellation token that can be used by other objects or threads to receive notice of cancellation.</param>
         /// <exception cref="SwaggerException">A server side error occurred.</exception>
-        public async System.Threading.Tasks.Task<LnrpcInvoice> LookupInvoiceAsync(string r_hash_str, byte[] r_hash, System.Threading.CancellationToken cancellationToken)
+        public async System.Threading.Tasks.Task<LnrpcInvoice> LookupInvoiceAsync(byte[] r_hash, System.Threading.CancellationToken cancellationToken)
         {
-            if (r_hash_str == null)
-                throw new System.ArgumentNullException("r_hash_str");
-
+            if (r_hash is null)
+                throw new ArgumentNullException(nameof(r_hash));
             var urlBuilder_ = new System.Text.StringBuilder();
-            urlBuilder_.Append(BaseUrl).Append("/v1/invoice/{r_hash_str}?");
-            urlBuilder_.Replace("{r_hash_str}", System.Uri.EscapeDataString(System.Convert.ToString(r_hash_str, System.Globalization.CultureInfo.InvariantCulture)));
-            if (r_hash != null) urlBuilder_.Append("r_hash=").Append(System.Uri.EscapeDataString(System.Convert.ToString(r_hash, System.Globalization.CultureInfo.InvariantCulture))).Append("&");
+            urlBuilder_.Append(BaseUrl).Append($"/v1/invoice/?");
+            var b64 = Convert.ToBase64String(r_hash);
+            urlBuilder_.Append("r_hash=").Append(b64.Replace("+", "-").Replace("/", "_")).Append("&");
             urlBuilder_.Length--;
 
             var client_ = _httpClient;

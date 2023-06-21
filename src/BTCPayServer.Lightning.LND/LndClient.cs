@@ -339,7 +339,7 @@ namespace BTCPayServer.Lightning.LND
 
             var invoice = new LightningInvoice
             {
-                Id = BitString(resp.R_hash),
+                Id = Encoders.Hex.EncodeData(resp.R_hash),
                 Amount = req.Amount,
                 BOLT11 = resp.Payment_request,
                 Status = LightningInvoiceStatus.Unpaid,
@@ -351,10 +351,12 @@ namespace BTCPayServer.Lightning.LND
 
         public async Task CancelInvoice(string invoiceId, CancellationToken cancellation = default)
         {
-            var resp = await SwaggerClient.LookupInvoiceAsync(invoiceId, null, cancellation);
+            var h = InvoiceIdToRHash(invoiceId);
+            if (h is null)
+                return;
             await SwaggerClient.CancelInvoiceAsync(new InvoicesrpcCancelInvoiceMsg
             {
-                Payment_hash = resp.R_hash
+                Payment_hash = h
             }, cancellation);
         }
 
@@ -445,11 +447,11 @@ namespace BTCPayServer.Lightning.LND
             return new LightningNodeBalance(onchain, offchain);
         }
 
-        async Task<LightningInvoice> GetInvoice(string invoiceId, CancellationToken cancellation)
+        async Task<LightningInvoice> GetInvoice(byte[] invoiceId, CancellationToken cancellation)
         {
             try
             {
-                var resp = await SwaggerClient.LookupInvoiceAsync(invoiceId, null, cancellation);
+                var resp = await SwaggerClient.LookupInvoiceAsync(invoiceId, cancellation);
                 return resp.State?.Equals("CANCELED", StringComparison.InvariantCultureIgnoreCase) is true ? null : ConvertLndInvoice(resp);
             }
             catch (SwaggerException ex) when
@@ -466,14 +468,26 @@ namespace BTCPayServer.Lightning.LND
 
         async Task<LightningInvoice> ILightningClient.GetInvoice(string invoiceId, CancellationToken cancellation)
         {
-            if (invoiceId.Length != 64)
+            var h = InvoiceIdToRHash(invoiceId);
+            if (h is null)
                 return null;
-            return await GetInvoice(invoiceId, cancellation);
+            return await GetInvoice(h, cancellation);
+        }
+        byte[] InvoiceIdToRHash(string invoiceId)
+        {
+            try
+            {
+                var hash = Encoders.Hex.DecodeData(invoiceId);
+                if (hash.Length != 32)
+                    return null;
+                return hash;
+            }
+            catch { return null; }
         }
 
         async Task<LightningInvoice> ILightningClient.GetInvoice(uint256 paymentHash, CancellationToken cancellation)
         {
-            var invoiceId = Encoders.Hex.EncodeData(paymentHash.ToBytes(false));
+            var invoiceId = paymentHash.ToBytes(false);
             return await GetInvoice(invoiceId, cancellation);
         }
 
@@ -540,7 +554,7 @@ namespace BTCPayServer.Lightning.LND
         {
             var invoice = new LightningInvoice
             {
-                Id = BitString(resp.R_hash),
+                Id = Encoders.Hex.EncodeData(resp.R_hash),
                 PaymentHash = new uint256(resp.R_hash, false).ToString(),
                 Preimage = resp.R_preimage != null && resp.R_preimage.Length == 32 ? new uint256(resp.R_preimage, false).ToString() : null,
                 Amount = new LightMoney(ConvertInv.ToInt64(resp.ValueMSat), LightMoneyUnit.MilliSatoshi),
@@ -599,14 +613,6 @@ namespace BTCPayServer.Lightning.LND
             };
 
             return payment;
-        }
-
-        // utility static methods... maybe move to separate class
-        private static string BitString(byte[] bytes)
-        {
-            return BitConverter.ToString(bytes)
-                .Replace("-", "")
-                .ToLower(CultureInfo.InvariantCulture);
         }
 
         private async Task<PayResponse> PayAsync(string bolt11, PayInvoiceParams payParams, CancellationToken cancellation)
