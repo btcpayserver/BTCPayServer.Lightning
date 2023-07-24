@@ -333,11 +333,12 @@ namespace BTCPayServer.Lightning.CLightning
             
             try
             {
-                var explicitAmount = payParams?.Amount;
+                var pr = bolt11 is null ? null : BOLT11PaymentRequest.Parse(bolt11, Network);
+                // cln doesn't like using an explicit amount if it's the bolt's minimum amount for some reason
+                var explicitAmount = pr?.MinimumAmount == payParams?.Amount ? null : payParams?.Amount;
                 var feePercent = payParams?.MaxFeePercent;
-                if (feePercent is null && payParams?.MaxFeeFlat is Money m)
+                if (feePercent is null && payParams?.MaxFeeFlat is Money m && pr is not null)
                 {
-                    var pr = BOLT11PaymentRequest.Parse(bolt11, Network);
                     var amountSat = (explicitAmount ?? pr.MinimumAmount).ToUnit(LightMoneyUnit.Satoshi);
                     feePercent = (double)(m.Satoshi / amountSat) * 100;
                 }
