@@ -100,7 +100,7 @@ namespace BTCPayServer.Lightning.LndHub
             };
 
             if (payParams?.Amount != null)
-                payload.Amount = (long)payParams.Amount.ToUnit(LightMoneyUnit.Satoshi);
+                payload.Amount = payParams.Amount;
 
             return await Post<PayInvoiceRequest, PaymentResponse>("payinvoice", payload, cancellation);
         }
