@@ -52,22 +52,14 @@ namespace BTCPayServer.Lightning
         {
             if (str == null)
                 throw new ArgumentNullException(nameof(str));
-
-            if (supportLegacy)
-            {
-                var parsed = TryParseLegacy(str, out connectionString, out error);
-                if (!parsed)
-                {
-                    parsed = TryParseNewFormat(str, out connectionString, out error);
-                }
-                return parsed;
-            }
-
             if (str.StartsWith("lndhub://"))
             {
                 return TryParseLNDhub(str, out connectionString, out error);
             }
-            
+            if (supportLegacy && TryParseLegacy(str, out connectionString, out error))
+            {
+                return true;
+            }
             return TryParseNewFormat(str, out connectionString, out error);
         }
 
