@@ -342,15 +342,15 @@ namespace BTCPayServer.Lightning.Tests
                 switch (client.Client)
                 {
                     case LndClient _:
-                    case CLightningClient _:
                     case EclairLightningClient _:
                         var response = await client.Client.Pay(invoice.BOLT11);
                         Assert.Equal(PayResult.CouldNotFindRoute, response.Result);
                         break;
-
+                    case CLightningClient _:
                     case LndHubLightningClient _:
                         // The senders LNDhub wallet needs some initial funds.
-                        await FundLndHubWallet(client.Client, amount + 10);
+                        if (client.Client is LndHubLightningClient)
+                            await FundLndHubWallet(client.Client, amount + 10);
                         // LNDhub handles self-payment internally
                         var res = await client.Client.Pay(invoice.BOLT11);
                         Assert.Equal(PayResult.Ok, res.Result);
