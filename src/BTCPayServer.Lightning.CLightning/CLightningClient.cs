@@ -337,18 +337,14 @@ namespace BTCPayServer.Lightning.CLightning
                 // cln doesn't like using an explicit amount if it's the bolt's minimum amount for some reason
                 var explicitAmount = pr?.MinimumAmount == payParams?.Amount ? null : payParams?.Amount;
                 var feePercent = payParams?.MaxFeePercent;
-                if (feePercent is null && payParams?.MaxFeeFlat is Money m && pr is not null)
-                {
-                    var amountSat = (explicitAmount ?? pr.MinimumAmount).ToUnit(LightMoneyUnit.Satoshi);
-                    feePercent = (double)(m.Satoshi / amountSat) * 100;
-                }
+                var maxFeeFlat = payParams?.MaxFeeFlat.Satoshi*1000;
 
                 var command = isKeysend ? "keysend" : "pay";
                 var opts = isKeysend
                     // keysend: destination msatoshi [label] [maxfeepercent] [retry_for] [maxdelay] [exemptfee] [extratlvs]
                     ? new object[] { payParams.Destination.ToHex(), explicitAmount.MilliSatoshi, null, feePercent }
                     // pay: bolt11 [msatoshi] [label] [riskfactor] [maxfeepercent] [retry_for] [maxdelay] [exemptfee] [localinvreqid] [exclude] [maxfee] [description]
-                    : new object[] { bolt11, explicitAmount?.MilliSatoshi, null, null, feePercent };
+                    : new object[] { bolt11, explicitAmount?.MilliSatoshi, null, null, feePercent, null, null, null, null, null, maxFeeFlat };
                 var response = await SendCommandAsync<CLightningPayResponse>(command, opts, false, cancellation: cts.Token);
 
                 return new PayResponse(PayResult.Ok, new PayDetails
