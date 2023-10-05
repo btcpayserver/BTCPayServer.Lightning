@@ -1,5 +1,6 @@
 using BTCPayServer.Lightning.Eclair.JsonConverters;
 using BTCPayServer.Lightning.JsonConverters;
+using BTCPayServer.Lightning.LNDhub.JsonConverters;
 using Newtonsoft.Json;
 using Xunit;
 
@@ -20,6 +21,14 @@ namespace BTCPayServer.Lightning.Tests
 
             var eclairConverter = new EclairBtcJsonConverter();
             Assert.Equal(89997146000, JsonConvert.DeserializeObject<LightMoney>("0.89997146", eclairConverter).MilliSatoshi);
+            
+            // LNDhub: "All amounts are satoshis (int)"
+            // https://github.com/BlueWallet/LndHub/blob/master/doc/Send-requirements.md
+            var lndhubConverter = new LndHubLightMoneyJsonConverter();
+            Assert.Equal(615000, JsonConvert.DeserializeObject<LightMoney>("615", lndhubConverter).MilliSatoshi);
+            Assert.Equal("615", JsonConvert.SerializeObject(LightMoney.Satoshis(615), lndhubConverter));
+            Assert.Equal("615", JsonConvert.SerializeObject(LightMoney.MilliSatoshis(615021), lndhubConverter));
+            Assert.Equal("616", JsonConvert.SerializeObject(LightMoney.MilliSatoshis(615521), lndhubConverter));
         }
     }
 }
