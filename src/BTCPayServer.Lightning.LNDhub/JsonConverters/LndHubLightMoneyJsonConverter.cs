@@ -37,7 +37,12 @@ namespace BTCPayServer.Lightning.LNDhub.JsonConverters
         public override void WriteJson(JsonWriter writer, object value, JsonSerializer serializer)
         {
             if (value != null)
-                writer.WriteValue(((LightMoney)value).ToUnit(LightMoneyUnit.Satoshi));
+            {
+                // LNDhub: "All amounts are satoshis (int)"
+                // https://github.com/BlueWallet/LndHub/blob/master/doc/Send-requirements.md
+                var sats = ((LightMoney)value).ToUnit(LightMoneyUnit.Satoshi);
+                writer.WriteValue((int)Math.Round(sats));
+            }
             else
                 writer.WriteNull();
         }
