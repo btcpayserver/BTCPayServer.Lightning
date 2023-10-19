@@ -11,10 +11,16 @@ namespace BTCPayServer.Lightning.LndHub
     public class LndHubLightningClient : ILightningClient
     {
         private readonly LndHubClient _client;
+        internal readonly Uri _baseUri;
+        internal readonly string _login;
+        internal readonly string _password;
         private readonly Network _network;
 
         public LndHubLightningClient(Uri baseUri, string login, string password, Network network, HttpClient httpClient = null)
         {
+            _baseUri = baseUri;
+            _login = login;
+            _password = password;
             _network = network;
             _client = new LndHubClient(baseUri, login, password, network, httpClient);
         }
@@ -196,6 +202,18 @@ namespace BTCPayServer.Lightning.LndHub
         public Task<LightningChannel[]> ListChannels(CancellationToken cancellation = default)
         {
             throw new NotSupportedException();
+        }
+
+        public override string ToString()
+        {
+            var builder = new UriBuilder(_baseUri)
+            {
+                UserName = "",
+                Password = ""
+            };
+            builder.UserName = _login;
+            builder.Password = _password;
+            return $"type=lndhub;server={builder.Uri.AbsoluteUri}{(builder.Scheme != "https" ? ";allowinsecure=true" : "")}";
         }
     }
 }

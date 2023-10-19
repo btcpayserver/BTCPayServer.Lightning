@@ -879,5 +879,33 @@ retry:
                 return d.ToString(CultureInfo.InvariantCulture);
             }
         }
+
+        public override string ToString()
+        {
+            var builder = new StringBuilder();
+            builder.Append($"type=lnd-rest;server={SwaggerClient._LndSettings.Uri}");
+            if (SwaggerClient._LndSettings.Macaroon != null)
+            {
+                builder.Append($";macaroon={ConvertHelper.ToHexString(SwaggerClient._LndSettings.Macaroon)}");
+            }
+            if (SwaggerClient._LndSettings.MacaroonFilePath != null)
+            {
+                builder.Append($";macaroonfilepath={SwaggerClient._LndSettings.MacaroonFilePath}");
+            }
+            if (SwaggerClient._LndSettings.MacaroonDirectoryPath != null)
+            {
+                builder.Append($";macaroondirectorypath={SwaggerClient._LndSettings.MacaroonDirectoryPath}");
+            }
+            if (SwaggerClient._LndSettings.CertificateThumbprint != null)
+            {
+                builder.Append($";certthumbprint={ConvertHelper.ToHexString(SwaggerClient._LndSettings.CertificateThumbprint)}");
+            }
+            if (SwaggerClient._LndSettings.AllowInsecure)
+            {
+                builder.Append($";allowinsecure=true");
+            }
+
+            return builder.ToString();
+        }
     }
 }

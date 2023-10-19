@@ -737,6 +737,11 @@ retry:
 
             return new LightningNodeBalance(onchain, offchain);
         }
+
+        public override string ToString()
+        {
+            return $"type=clightning;server={Address}";
+        }
     }
 
     class CLightningInvoiceListener : ILightningInvoiceListener
