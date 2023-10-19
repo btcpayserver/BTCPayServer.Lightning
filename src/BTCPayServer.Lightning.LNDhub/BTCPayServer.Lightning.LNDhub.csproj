@@ -20,5 +20,9 @@
     <ItemGroup>
       <PackageReference Include="System.Threading.Channels" Version="4.5.0" />
     </ItemGroup>
-
+  <ItemGroup>
+    <AssemblyAttribute Include="System.Runtime.CompilerServices.InternalsVisibleTo">
+      <_Parameter1>BTCPayServer.Lightning.Tests</_Parameter1>
+    </AssemblyAttribute>
+  </ItemGroup>
 </Project>

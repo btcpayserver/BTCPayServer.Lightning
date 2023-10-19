@@ -16,9 +16,11 @@ namespace BTCPayServer.Lightning.Charge
     public class ChargeClient : ILightningClient
     {
         private Uri _Uri;
+        private readonly string _cookieFilePath;
         public Uri Uri => _Uri;
         private Network _Network;
         private HttpClient _Client;
+        private readonly bool _allowInsecure;
         private static readonly HttpClient SharedClient = new HttpClient();
 
         public ChargeClient(Uri uri, Network network, HttpClient httpClient = null, bool allowInsecure = false)
@@ -29,6 +31,7 @@ namespace BTCPayServer.Lightning.Charge
                 throw new ArgumentNullException(nameof(network));
             httpClient = CreateHttpClient(uri, allowInsecure, httpClient ?? SharedClient);
             _Client = httpClient;
+            _allowInsecure = allowInsecure;
             this._Uri = uri;
             this._Network = network;
             if (uri.UserInfo == null)
@@ -50,7 +53,9 @@ namespace BTCPayServer.Lightning.Charge
             httpClient = CreateHttpClient(uri, allowInsecure, httpClient ?? SharedClient);
             _Client = httpClient;
             this._Uri = uri;
+            _cookieFilePath = cookieFilePath;
             this._Network = network;
+            _allowInsecure = allowInsecure;
             ChargeAuthentication = new ChargeAuthentication.CookieFileAuthentication(cookieFilePath);
         }
 
@@ -298,6 +303,34 @@ namespace BTCPayServer.Lightning.Charge
         public Task<LightningPayment[]> ListPayments(ListPaymentsParams request, CancellationToken cancellation = default)
         {
             throw new NotSupportedException();
+        }
+
+        public override string ToString()
+        {
+            var uri = new UriBuilder(_Uri) {UserName = "", Password = ""};
+           
+           
+            var res=  $"type=charge;server={uri.Uri}";
+            if(ChargeAuthentication is ChargeAuthentication.UserPasswordAuthentication userPasswordAuthentication)
+            {
+                if (userPasswordAuthentication.NetworkCredential.UserName != "api-token")
+                {
+           
+           
+                    res=  $"type=charge;server={_Uri}";
+                }
+                else
+                {
+                    res += $";api-token={userPasswordAuthentication.NetworkCredential.Password}";
+                }
+            }
+            
+            if (_cookieFilePath is not null)
+                res += $";cookiefilepath={_cookieFilePath}";
+            
+            if (_allowInsecure)
+                res += $";allowinsecure=true";
+            return res;
         }
     }
 }

@@ -194,7 +194,7 @@ namespace BTCPayServer.Lightning.Tests
             foreach (var connectionString in connectionStrings)
             {
                 // check connection string can be parsed and turned into a string again
-                LightningConnectionString.TryParse(connectionString, false, out var parsed);
+                factory.TryCreate(connectionString, out var parsed, out _);
                 Assert.NotNull(parsed.ToString());
                 
                 // apply connection string and create invoice   
@@ -223,7 +223,7 @@ namespace BTCPayServer.Lightning.Tests
             foreach (var connectionString in connectionStrings)
             {
                 // check connection string can be parsed and turned into a string again
-                LightningConnectionString.TryParse(connectionString, false, out var parsed);
+                factory.TryCreate(connectionString, out var parsed, out _);
                 Assert.NotNull(parsed.ToString());
                 
                 // apply connection string and check client
@@ -1061,87 +1061,42 @@ retry:
             Assert.Equal($"{pkObj}@[2a03:4000:2:b2::2]:9735", ipv6.ToString());
         }
 
+        private void ParseCreateAndCheckConsistency(ILightningClientFactory lightningClientFactory,
+            string connectionStringToCheck, string expectedConnectionString)
+        {
+            
+            Assert.True(lightningClientFactory.TryCreate(connectionStringToCheck, out var conn,out _));
+            Assert.Equal(expectedConnectionString, conn.ToString());
+            Assert.True(lightningClientFactory.TryCreate(conn.ToString(), out conn,out _));
+            Assert.Equal(expectedConnectionString, conn.ToString());
+        }
+
         [Fact]
         public void CanParseLightningURL()
         {
-            Assert.True(LightningConnectionString.TryParse("/test/a", true, out var conn));
-            for (var i = 0; i < 2; i++)
-            {
-                if (i == 1)
-                    Assert.True(LightningConnectionString.TryParse(conn.ToString(), false, out conn));
-                Assert.Equal(i == 0, conn.IsLegacy);
-                Assert.Equal("type=clightning;server=unix://test/a", conn.ToString());
-                Assert.Equal("unix://test/a", conn.ToUri(true).AbsoluteUri);
-                Assert.Equal("unix://test/a", conn.ToUri(false).AbsoluteUri);
-                Assert.Equal(LightningConnectionType.CLightning, conn.ConnectionType);
-            }
+            
+            var network = Tester.Network;
+            ILightningClientFactory factory = new LightningClientFactory(network);
+            
+            ParseCreateAndCheckConsistency(factory, "/test/a", "type=clightning;server=unix://test/a");
+            ParseCreateAndCheckConsistency(factory, "unix://test/a", "type=clightning;server=unix://test/a");
+            ParseCreateAndCheckConsistency(factory, "tcp://test/a", "type=clightning;server=tcp://test/a");
+            ParseCreateAndCheckConsistency(factory, "http://aaa:bbb@test/a", "type=charge;server=http://aaa:bbb@test/a;allowinsecure=true");
+            ParseCreateAndCheckConsistency(factory, "http://api-token:bbb@test/a", "type=charge;server=http://test/a;api-token=bbb;allowinsecure=true");
+            
+            
 
-            Assert.True(LightningConnectionString.TryParse("unix://test/a", true, out conn));
-            for (var i = 0; i < 2; i++)
-            {
-                if (i == 1)
-                    Assert.True(LightningConnectionString.TryParse(conn.ToString(), false, out conn));
-                Assert.Equal("type=clightning;server=unix://test/a", conn.ToString());
-                Assert.Equal("unix://test/a", conn.ToUri(true).AbsoluteUri);
-                Assert.Equal("unix://test/a", conn.ToUri(false).AbsoluteUri);
-                Assert.Equal(LightningConnectionType.CLightning, conn.ConnectionType);
-            }
-
-            Assert.True(LightningConnectionString.TryParse("unix://test/a", true, out conn));
-            for (var i = 0; i < 2; i++)
-            {
-                if (i == 1)
-                    Assert.True(LightningConnectionString.TryParse(conn.ToString(), false, out conn));
-                Assert.Equal("type=clightning;server=unix://test/a", conn.ToString());
-                Assert.Equal("unix://test/a", conn.ToUri(true).AbsoluteUri);
-                Assert.Equal("unix://test/a", conn.ToUri(false).AbsoluteUri);
-                Assert.Equal(LightningConnectionType.CLightning, conn.ConnectionType);
-            }
-
-            Assert.True(LightningConnectionString.TryParse("tcp://test/a", true, out conn));
-            for (var i = 0; i < 2; i++)
-            {
-                if (i == 1)
-                    Assert.True(LightningConnectionString.TryParse(conn.ToString(), false, out conn));
-                Assert.Equal("type=clightning;server=tcp://test/a", conn.ToString());
-                Assert.Equal("tcp://test/a", conn.ToUri(true).AbsoluteUri);
-                Assert.Equal("tcp://test/a", conn.ToUri(false).AbsoluteUri);
-                Assert.Equal(LightningConnectionType.CLightning, conn.ConnectionType);
-            }
-
-            Assert.True(LightningConnectionString.TryParse("http://aaa:bbb@test/a", true, out conn));
-            for (var i = 0; i < 2; i++)
-            {
-                if (i == 1)
-                    Assert.True(LightningConnectionString.TryParse(conn.ToString(), false, out conn));
-                Assert.Equal("type=charge;server=http://aaa:bbb@test/a;allowinsecure=true", conn.ToString());
-                Assert.Equal("http://aaa:bbb@test/a", conn.ToUri(true).AbsoluteUri);
-                Assert.Equal("http://test/a", conn.ToUri(false).AbsoluteUri);
-                Assert.Equal(LightningConnectionType.Charge, conn.ConnectionType);
-                Assert.Equal("aaa", conn.Username);
-                Assert.Equal("bbb", conn.Password);
-            }
-
-            Assert.True(LightningConnectionString.TryParse("http://api-token:bbb@test/a", true, out conn));
-            for (var i = 0; i < 2; i++)
-            {
-                if (i == 1)
-                    Assert.True(LightningConnectionString.TryParse(conn.ToString(), false, out conn));
-                Assert.Equal("type=charge;server=http://test/a;api-token=bbb;allowinsecure=true", conn.ToString());
-            }
-
-            Assert.False(LightningConnectionString.TryParse("lol://aaa:bbb@test/a", true, out conn));
-            Assert.False(LightningConnectionString.TryParse("https://test/a", true, out conn));
-            Assert.False(LightningConnectionString.TryParse("unix://dwewoi:dwdwqd@test/a", true, out conn));
-            Assert.False(LightningConnectionString.TryParse("tcp://test/a", false, out conn));
-            Assert.False(LightningConnectionString.TryParse("type=charge;server=http://aaa:bbb@test/a;unk=lol", false, out conn));
-            Assert.False(LightningConnectionString.TryParse("type=charge;server=tcp://aaa:bbb@test/a", false, out conn));
-            Assert.False(LightningConnectionString.TryParse("type=charge", false, out conn));
-            Assert.False(LightningConnectionString.TryParse("type=clightning", false, out conn));
-            Assert.True(LightningConnectionString.TryParse("type=clightning;server=tcp://aaa:bbb@test/a", false, out conn));
-            Assert.True(LightningConnectionString.TryParse("type=clightning;server=/aaa:bbb@test/a", false, out conn));
-            Assert.True(LightningConnectionString.TryParse("type=clightning;server=unix://aaa:bbb@test/a", false, out conn));
-            Assert.False(LightningConnectionString.TryParse("type=clightning;server=wtf://aaa:bbb@test/a", false, out conn));
+            Assert.False(factory.TryCreate("lol://aaa:bbb@test/a", out var conn, out _));
+            Assert.False(factory.TryCreate("https://test/a",out conn, out _));
+            Assert.False(factory.TryCreate("unix://dwewoi:dwdwqd@test/a",  out conn, out _));
+            Assert.False(factory.TryCreate("type=charge;server=http://aaa:bbb@test/a;unk=lol",  out conn, out _));
+            Assert.False(factory.TryCreate("type=charge;server=tcp://aaa:bbb@test/a",  out conn, out _));
+            Assert.False(factory.TryCreate("type=charge", out conn, out _));
+            Assert.False(factory.TryCreate("type=clightning",  out conn, out _));
+            Assert.True(factory.TryCreate("type=clightning;server=tcp://aaa:bbb@test/a",  out conn, out _));
+            Assert.True(factory.TryCreate("type=clightning;server=/aaa:bbb@test/a",  out conn, out _));
+            Assert.True(factory.TryCreate("type=clightning;server=unix://aaa:bbb@test/a",  out conn, out _));
+            Assert.False(factory.TryCreate("type=clightning;server=wtf://aaa:bbb@test/a",  out conn, out _));
 
             var macaroon = "0201036c6e640247030a10b0dbbde28f009f83d330bde05075ca251201301a160a0761646472657373120472656164120577726974651a170a08696e766f6963657312047265616412057772697465000006200ae088692e67cf14e767c3d2a4a67ce489150bf810654ff980e1b7a7e263d5e8";
             var restrictedmacaroon = "0301036c6e640247030a10b0dbbde28f009f83d330bde05075ca251201301a160a0761646472657373120472656164120577726974651a170a08696e766f6963657312047265616412057772697465000006200ae088692e67cf14e767c3d2a4a67ce489150bf810654ff980e1b7a7e263d5e8";
@@ -1159,43 +1114,46 @@ retry:
             var certificateHash = new X509Certificate2(Encoders.Hex.DecodeData("2d2d2d2d2d424547494e2043455254494649434154452d2d2d2d2d0a4d494942396a4343415a7967417749424167495156397a62474252724e54716b4e4b55676d72524d377a414b42676771686b6a4f50515144416a41784d5238770a485159445651514b45785a73626d5167595856306232646c626d56795958526c5a43426a5a584a304d51347744415944565151444577564754304e56557a41650a467730784f4441304d6a55794d7a517a4d6a4261467730784f5441324d6a41794d7a517a4d6a42614d444578487a416442674e5642416f54466d78755a4342680a645852765a3256755a584a686447566b49474e6c636e5178446a414d42674e5642414d5442555a50513156544d466b77457759484b6f5a497a6a3043415159490a4b6f5a497a6a304441516344516741454b7557424568564f75707965434157476130766e713262712f59396b41755a78616865646d454553482b753936436d450a397577486b4b2b4a7667547a66385141783550513741357254637155374b57595170303175364f426c5443426b6a414f42674e56485138424166384542414d430a4171517744775944565230544151482f42415577417745422f7a427642674e56485245456144426d6767564754304e565534494a6247396a5957786f62334e300a6877522f4141414268784141414141414141414141414141414141414141414268775373474f69786877514b41457342687753702f717473687754417141724c0a687753702f6d4a72687753702f754f77687753702f714e59687753702f6874436877514b70514157687753702f6c42514d416f4743437147534d343942414d430a413067414d45554349464866716d595a5043647a4a5178386b47586859473834394c31766541364c784d6f7a4f5774356d726835416945413662756e51556c710a6558553070474168776c3041654d726a4d4974394c7652736179756162565a593278343d0a2d2d2d2d2d454e442043455254494649434154452d2d2d2d2d0a"))
                             .GetCertHash(HashAlgorithmName.SHA256);
 
-            Assert.True(LightningConnectionString.TryParse(lndUri, false, out conn));
-            Assert.True(LightningConnectionString.TryParse(lndUri2, false, out var conn2));
-            Assert.True(LightningConnectionString.TryParse(lndUri3, false, out var conn3));
-            Assert.True(LightningConnectionString.TryParse(lndUri4, false, out var conn4));
+            Assert.True(factory.TryCreate(lndUri, out  conn, out _));
+            Assert.True(factory.TryCreate(lndUri2, out var conn2, out _));
+            Assert.True(factory.TryCreate(lndUri3, out var conn3, out _));
+            Assert.True(factory.TryCreate(lndUri4, out var conn4, out _));
             Assert.Equal(lndUri4, conn4.ToString());
+            Assert.Equal("path", Assert.IsType<LndClient>(conn4).SwaggerClient._LndSettings.MacaroonDirectoryPath);
             Assert.Equal(conn2.ToString(), conn.ToString());
             Assert.Equal(lndUri, conn.ToString());
-            Assert.Equal(LightningConnectionType.LndREST, conn.ConnectionType);
-            Assert.Equal(macaroon, Encoders.Hex.EncodeData(conn.Macaroon));
-            Assert.Equal(certthumbprint.Replace(":", "", StringComparison.OrdinalIgnoreCase).ToLowerInvariant(), Encoders.Hex.EncodeData(conn.CertificateThumbprint));
-            Assert.True(certificateHash.SequenceEqual(conn.CertificateThumbprint));
+            // Assert.Equal(LightningConnectionType.LndREST, conn.ConnectionType);
+            
+            Assert.Equal(macaroon, Encoders.Hex.EncodeData(Assert.IsType<LndClient>(conn).SwaggerClient._LndSettings.Macaroon));
+            Assert.Equal(certthumbprint.Replace(":", "", StringComparison.OrdinalIgnoreCase).ToLowerInvariant(), Encoders.Hex.EncodeData(Assert.IsType<LndClient>(conn).SwaggerClient._LndSettings.CertificateThumbprint));
+            Assert.True(certificateHash.SequenceEqual(Assert.IsType<LndClient>(conn).SwaggerClient._LndSettings.CertificateThumbprint));
 
             // AllowInsecure can be set to allow http
-            Assert.False(LightningConnectionString.TryParse($"type=lnd-rest;server=http://127.0.0.1:53280/;macaroon={macaroon};allowinsecure=false", false, out conn2));
-            Assert.True(LightningConnectionString.TryParse($"type=lnd-rest;server=http://127.0.0.1:53280/;macaroon={macaroon};allowinsecure=true", false, out conn2));
-            Assert.True(LightningConnectionString.TryParse($"type=lnd-rest;server=http://127.0.0.1:53280/;macaroon={macaroon};allowinsecure=true", false, out conn2));
-            Assert.True(LightningConnectionString.TryParse("type=charge;server=http://test/a;cookiefilepath=path;allowinsecure=true", false, out conn));
-            Assert.Equal("path", conn.CookieFilePath);
+            Assert.False(factory.TryCreate($"type=lnd-rest;server=http://127.0.0.1:53280/;macaroon={macaroon};allowinsecure=false", out  conn2, out _));
+            Assert.True(factory.TryCreate($"type=lnd-rest;server=http://127.0.0.1:53280/;macaroon={macaroon};allowinsecure=true", out  conn2, out _));
+            Assert.True(factory.TryCreate($"type=lnd-rest;server=http://127.0.0.1:53280/;macaroon={macaroon};allowinsecure=true", out  conn2, out _));
+            Assert.True(factory.TryCreate("type=charge;server=http://test/a;cookiefilepath=path;allowinsecure=true", out  conn, out _));
+            Assert.Equal("path", Assert.IsType<ChargeAuthentication.CookieFileAuthentication>(Assert.IsType<ChargeClient>(conn).ChargeAuthentication).FilePath);
             Assert.Equal("type=charge;server=http://test/a;cookiefilepath=path;allowinsecure=true", conn.ToString());
 
             // Should not have cookiefilepath and api-token at once
-            Assert.False(LightningConnectionString.TryParse("type=charge;server=http://test/a;cookiefilepath=path;api-token=abc", false, out conn));
+            Assert.False(factory.TryCreate("type=charge;server=http://test/a;cookiefilepath=path;api-token=abc", out  conn, out _));
 
             // Should not have cookiefilepath and api-token at once
-            Assert.False(LightningConnectionString.TryParse("type=charge;server=http://api-token:blah@test/a;cookiefilepath=path", false, out conn));
-            Assert.True(LightningConnectionString.TryParse("type=charge;server=http://api-token:foiewnccewuify@127.0.0.1:54938/;allowinsecure=true", out conn));
+            Assert.False(factory.TryCreate("type=charge;server=http://api-token:blah@test/a;cookiefilepath=path", out  conn, out _));
+            Assert.True(factory.TryCreate("type=charge;server=http://api-token:foiewnccewuify@127.0.0.1:54938/;allowinsecure=true", out conn, out _));
             Assert.Equal("type=charge;server=http://127.0.0.1:54938/;api-token=foiewnccewuify;allowinsecure=true", conn.ToString());
-            Assert.True(LightningConnectionString.TryParse("type=lnbank;server=https://mybtcpay.com/;api-token=myapitoken", false, out conn));
+            Assert.True(factory.TryCreate("type=lnbank;server=https://mybtcpay.com/;api-token=myapitoken", out  conn, out _));
             
-            Assert.True(LightningConnectionString.TryParse("type=lndhub;server=https://mylndhub:password@lndhub.io/", false, out conn));
-            Assert.Equal("mylndhub", conn.Username);
-            Assert.Equal("password", conn.Password);
+            Assert.True(factory.TryCreate("type=lndhub;server=https://mylndhub:password@lndhub.io/", out  conn, out _));
+            Assert.Equal("https://lndhub.io/", new UriBuilder(Assert.IsType<LndHubLightningClient>(conn)._baseUri){ UserName = "", Password = ""}.Uri.ToString());
+            Assert.Equal("mylndhub", Assert.IsType<LndHubLightningClient>(conn)._login);
+            Assert.Equal("password", Assert.IsType<LndHubLightningClient>(conn)._password);
             
             // Allow insecure checks
-            Assert.False(LightningConnectionString.TryParse("type=lndhub;server=http://mylndhub:password@lndhub.io/", false, out conn));
-            Assert.True(LightningConnectionString.TryParse("type=lndhub;server=http://mylndhub:password@lndhub.io/;allowinsecure=true", false, out conn));
-            Assert.True(LightningConnectionString.TryParse("type=lndhub;server=http://mylndhub:password@lndhubviator.onion/", false, out conn));
+            Assert.False(factory.TryCreate("type=lndhub;server=http://mylndhub:password@lndhub.io/", out  conn, out _));
+            Assert.True(factory.TryCreate("type=lndhub;server=http://mylndhub:password@lndhub.io/;allowinsecure=true", out  conn, out _));
+            Assert.True(factory.TryCreate("type=lndhub;server=http://mylndhub:password@lndhubviator.onion/", out  conn, out _));
         }
 
         private static async Task<RPCClient> GetRPCClient()
