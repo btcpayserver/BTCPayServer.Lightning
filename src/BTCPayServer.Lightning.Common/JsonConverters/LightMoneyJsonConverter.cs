@@ -28,7 +28,10 @@ namespace BTCPayServer.Lightning.JsonConverters
                     JsonToken.Float => new LightMoney(Convert.ToInt64(reader.Value)),
                     JsonToken.String =>
                         // some of the c-lightning values have a trailing "msat" that we need to remove before parsing
-                        new LightMoney(long.Parse(((string)reader.Value).Replace("msat", ""), CultureInfo.InvariantCulture)),
+                        // some of the charge values have a trailing ".0" that we need to remove before parsing
+                        new LightMoney(long.Parse(((string)reader.Value)
+                            .Replace("msat", "")
+                            .Replace(".0", ""), CultureInfo.InvariantCulture)),
                     // Fix for Eclair having empty objects for zero amount cases, see https://acinq.github.io/eclair/#globalbalance
                     JsonToken.StartObject => JObject.Load(reader) != null ? LightMoney.Zero : null,
                     _ => null
