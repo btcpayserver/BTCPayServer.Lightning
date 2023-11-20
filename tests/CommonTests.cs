@@ -1074,17 +1074,14 @@ retry:
         [Fact]
         public void CanParseLightningURL()
         {
-            
             var network = Tester.Network;
             ILightningClientFactory factory = new LightningClientFactory(network);
-            
+
             ParseCreateAndCheckConsistency(factory, "/test/a", "type=clightning;server=unix://test/a");
             ParseCreateAndCheckConsistency(factory, "unix://test/a", "type=clightning;server=unix://test/a");
             ParseCreateAndCheckConsistency(factory, "tcp://test/a", "type=clightning;server=tcp://test/a");
             ParseCreateAndCheckConsistency(factory, "http://aaa:bbb@test/a", "type=charge;server=http://aaa:bbb@test/a;allowinsecure=true");
             ParseCreateAndCheckConsistency(factory, "http://api-token:bbb@test/a", "type=charge;server=http://test/a;api-token=bbb;allowinsecure=true");
-            
-            
 
             Assert.False(factory.TryCreate("lol://aaa:bbb@test/a", out var conn, out _));
             Assert.False(factory.TryCreate("https://test/a",out conn, out _));
@@ -1154,6 +1151,14 @@ retry:
             Assert.False(factory.TryCreate("type=lndhub;server=http://mylndhub:password@lndhub.io/", out  conn, out _));
             Assert.True(factory.TryCreate("type=lndhub;server=http://mylndhub:password@lndhub.io/;allowinsecure=true", out  conn, out _));
             Assert.True(factory.TryCreate("type=lndhub;server=http://mylndhub:password@lndhubviator.onion/", out  conn, out _));
+            
+            // lndhub scheme - https
+            Assert.True(factory.TryCreate("lndhub://mylndhub:password@https://lndhub.io", out conn, out _));
+            Assert.Equal("type=lndhub;server=https://mylndhub:password@lndhub.io/", conn.ToString());
+            
+            // lndhub scheme - http
+            Assert.True(factory.TryCreate("lndhub://mylndhub:password@http://lndhub.io", out conn, out _));
+            Assert.Equal("type=lndhub;server=http://mylndhub:password@lndhub.io/;allowinsecure=true", conn.ToString());
         }
 
         private static async Task<RPCClient> GetRPCClient()

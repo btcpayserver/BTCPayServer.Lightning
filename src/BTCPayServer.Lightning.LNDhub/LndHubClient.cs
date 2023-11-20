@@ -139,7 +139,7 @@ namespace BTCPayServer.Lightning.LndHub
             req.Headers.Accept.Add(new MediaTypeWithQualityHeaderValue("application/json"));
             req.Headers.Add("User-Agent", "BTCPayServer.Lightning.LndHubClient");
 
-            if (path != "auth" && path != "create")
+            if (!path.StartsWith("auth") && path != "create")
             {
                 if (string.IsNullOrEmpty(AccessToken))
                 {
