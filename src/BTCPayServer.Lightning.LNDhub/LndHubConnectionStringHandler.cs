@@ -1,4 +1,4 @@
-﻿using System;
+using System;
 using System.Linq;
 using System.Net.Http;
 using BTCPayServer.Lightning.LndHub;
@@ -54,7 +54,6 @@ public class LndHubConnectionStringHandler : ILightningConnectionStringHandler
             error = "The key 'server' should be an URI starting by http:// or https://";
             return null;
         }
-
 
         bool allowInsecure = false;
         if (kv.TryGetValue("allowinsecure", out var allowinsecureStr))
