@@ -26,7 +26,7 @@ namespace BTCPayServer.Lightning.LndHub
         private readonly string _password;
         private readonly JsonSerializer _serializer;
         private readonly Network _network;
-        private static readonly HttpClient _sharedClient = new HttpClient();
+        private static readonly HttpClient _sharedClient = new ();
 
         private string AccessToken { get; set; }
         private string RefreshToken { get; set; }
@@ -131,7 +131,7 @@ namespace BTCPayServer.Lightning.LndHub
 
             var req = new HttpRequestMessage
             {
-                RequestUri = new Uri($"{_baseUri}{path}"),
+                RequestUri = new Uri($"{WithTrailingSlash(_baseUri.ToString())}{path}"),
                 Method = method,
                 Content = content
             };
@@ -197,7 +197,7 @@ namespace BTCPayServer.Lightning.LndHub
         private async Task<bool> Authorize(CancellationToken cancellation = default)
         {
             var payload = new AuthRequest { Login = _login, Password = _password };
-            var response = await Post<AuthRequest, AuthResponse>("auth", payload, cancellation);
+            var response = await Post<AuthRequest, AuthResponse>("auth?type=auth", payload, cancellation);
 
             AccessToken = response.AccessToken;
             RefreshToken = response.RefreshToken;
@@ -206,7 +206,7 @@ namespace BTCPayServer.Lightning.LndHub
         }
 
         private static string WithTrailingSlash(string str) =>
-            str.EndsWith("/", StringComparison.InvariantCulture) ? str :str + "/";
+            str.EndsWith("/", StringComparison.InvariantCulture) ? str : str + "/";
 
         private class EmptyRequestModel
         {
