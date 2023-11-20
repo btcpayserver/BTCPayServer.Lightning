@@ -1,4 +1,4 @@
-using System;
+﻿using System;
 using System.Linq;
 using System.Net.Http;
 using BTCPayServer.Lightning.LndHub;
@@ -25,10 +25,11 @@ public class LndHubConnectionStringHandler : ILightningConnectionStringHandler
         }
             
         // transform into connection string format
-        transformedConnectionString = $"type=lndhub;server={uri.AbsoluteUri}";
+        transformedConnectionString = $"type=lndhub;server={uri.AbsoluteUri}" + (uri.Scheme == "http" ? ";allowinsecure=true" : "");
         error = null;
         return true; 
     }
+
     public ILightningClient Create(string connectionString, Network network, out string error)
     {
         if(connectionString.StartsWith("lndhub://", StringComparison.OrdinalIgnoreCase))
@@ -48,8 +49,7 @@ public class LndHubConnectionStringHandler : ILightningConnectionStringHandler
             return null;
         }
 
-        if (!Uri.TryCreate(server, UriKind.Absolute, out var uri)
-            || uri.Scheme != "http" && uri.Scheme != "https")
+        if (!Uri.TryCreate(server, UriKind.Absolute, out var uri) || uri.Scheme != "http" && uri.Scheme != "https")
         {
             error = "The key 'server' should be an URI starting by http:// or https://";
             return null;
