@@ -1,6 +1,5 @@
 using System;
 using BTCPayServer.Lightning.LNDhub.Models;
-using NBitcoin;
 
 namespace BTCPayServer.Lightning.LndHub
 {

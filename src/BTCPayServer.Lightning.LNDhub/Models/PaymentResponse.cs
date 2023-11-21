@@ -1,4 +1,3 @@
-using System;
 using System.Collections.Generic;
 using BTCPayServer.Lightning.JsonConverters;
 using BTCPayServer.Lightning.LNDhub.JsonConverters;
