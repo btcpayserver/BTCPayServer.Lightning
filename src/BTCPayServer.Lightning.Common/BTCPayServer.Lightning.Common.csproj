@@ -2,7 +2,7 @@
   <Import Project="../Build/Common.csproj"></Import>
 	<PropertyGroup>
 		<RootNamespace>BTCPayServer.Lightning</RootNamespace>
-		<Version>1.5.0</Version>
+		<Version>1.5.1</Version>
 		<LangVersion>10</LangVersion>
 		<PackageId>BTCPayServer.Lightning.Common</PackageId>
 		<Description>Client library for lightning network implementations to build Lightning Network Apps in C#.</Description>
