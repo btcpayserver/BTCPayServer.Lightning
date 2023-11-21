@@ -13,7 +13,7 @@
 	</PropertyGroup>
     <Import Project="../BTCPayServer.Lightning.Common/Common.csproj" />
 	<ItemGroup>
-		<PackageReference Include="System.Threading.Channels" Version="4.5.0" />
+		<PackageReference Include="System.Threading.Channels" Version="8.0.0" />
 	</ItemGroup>
 
 	<ItemGroup>
