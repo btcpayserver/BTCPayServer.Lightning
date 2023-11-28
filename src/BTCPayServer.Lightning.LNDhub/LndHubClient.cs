@@ -1,12 +1,16 @@
 using System;
+using System.Collections.Concurrent;
+using System.Collections.Generic;
 using System.Linq;
 using System.Net.Http;
 using System.Net.Http.Headers;
+using System.Security.Claims;
 using System.Text;
 using System.Threading;
 using System.Threading.Tasks;
 using BTCPayServer.Lightning.LNDhub.Models;
 using NBitcoin;
+using NBitcoin.Crypto;
 using NBitcoin.JsonConverters;
 using Newtonsoft.Json;
 using Newtonsoft.Json.Linq;
@@ -24,12 +28,11 @@ namespace BTCPayServer.Lightning.LndHub
         private readonly HttpClient _httpClient;
         private readonly string _login;
         private readonly string _password;
-        private readonly JsonSerializer _serializer;
         private readonly Network _network;
         private static readonly HttpClient _sharedClient = new ();
-
-        private string AccessToken { get; set; }
-        private string RefreshToken { get; set; }
+        private static readonly ConcurrentDictionary<string, AuthResponse> _cache = new();
+        public readonly string CacheKey;
+        private readonly AsyncDuplicateLock _locker = new();
 
         public LndHubClient(Uri baseUri, string login, string password, Network network, HttpClient httpClient)
         {
@@ -39,10 +42,7 @@ namespace BTCPayServer.Lightning.LndHub
             _baseUri = baseUri;
             _httpClient = httpClient ?? _sharedClient;
 
-            // JSON
-            var serializerSettings = new JsonSerializerSettings();
-            Serializer.RegisterFrontConverters(serializerSettings, network);
-            _serializer = JsonSerializer.Create(serializerSettings);
+            CacheKey = ConvertHelper.ToHexString(Hashes.SHA256(Encoding.UTF8.GetBytes(_baseUri+ _login + _password)));
         }
 
         public async Task<CreateAccountResponse> CreateAccount(CancellationToken cancellation)
@@ -131,7 +131,7 @@ namespace BTCPayServer.Lightning.LndHub
 
             var req = new HttpRequestMessage
             {
-                RequestUri = new Uri($"{WithTrailingSlash(_baseUri.ToString())}{path}"),
+                RequestUri = new Uri($"{_baseUri}{path}"),
                 Method = method,
                 Content = content
             };
@@ -141,11 +141,7 @@ namespace BTCPayServer.Lightning.LndHub
 
             if (!path.StartsWith("auth") && path != "create")
             {
-                if (string.IsNullOrEmpty(AccessToken))
-                {
-                    await Authorize(cancellation);
-                }
-                req.Headers.Authorization = new AuthenticationHeaderValue("Bearer", AccessToken);
+                req.Headers.Authorization = new AuthenticationHeaderValue("Bearer", await GetAccessToken(cancellation));
             }
 
             var res = await _httpClient.SendAsync(req, cancellation);
@@ -155,9 +151,8 @@ namespace BTCPayServer.Lightning.LndHub
             {
                 var exception = new LndHubApiException(str);
                 if (!exception.AuthenticationFailed || isAuthRetry) throw exception;
-                
-                // unset auth tokens and retry
-                AccessToken = RefreshToken = null;
+
+                await ClearAccessToken();
                 return await Send<TRequest, TResponse>(method, path, payload, true, cancellation);
             }
 
@@ -183,26 +178,76 @@ namespace BTCPayServer.Lightning.LndHub
 
         public async Task<ILightningInvoiceListener> CreateInvoiceSession(CancellationToken cancellation = default)
         {
-            if (await Authorize(cancellation))
-            {
-                var streamUrl = WithTrailingSlash(_baseUri.ToString()) + "invoices/stream";
-                var session = new LndHubInvoiceListener(this);
-                await session.StartListening(streamUrl, AccessToken, cancellation);
-                return session;
-            }
-
-            return null;
+            var at = await GetAccessToken(cancellation);
+            if (at is null) return null;
+            var session = new LndHubInvoiceListener(this, cancellation);
+            return session;
         }
 
-        private async Task<bool> Authorize(CancellationToken cancellation = default)
+        private async Task ClearAccessToken()
         {
-            var payload = new AuthRequest { Login = _login, Password = _password };
-            var response = await Post<AuthRequest, AuthResponse>("auth?type=auth", payload, cancellation);
+            using var release = await _locker.LockAsync(CacheKey);
+            _cache.TryRemove(CacheKey, out _);
+        }
 
-            AccessToken = response.AccessToken;
-            RefreshToken = response.RefreshToken;
+        public async Task<string> GetAccessToken(CancellationToken cancellation = default)
+        {
+            using var release = await _locker.LockAsync(CacheKey);
+            AuthResponse response;
+            if (_cache.TryGetValue(CacheKey, out var cached))
+            {
+                if (cached.Expiry <= DateTimeOffset.UtcNow)
+                {
+                    _cache.TryRemove(CacheKey, out _);
+                }
+                else if ((cached.Expiry - DateTimeOffset.UtcNow) > TimeSpan.FromMinutes(5))
+                {
+                    return cached.AccessToken;
+                }
 
-            return !string.IsNullOrEmpty(AccessToken);
+                response = await Post<AuthRequest, AuthResponse>("auth?type=refresh_token",
+                    new AuthRequest {RefreshToken = cached.RefreshToken}, cancellation);
+                
+            }
+            else
+            {
+                response = await Post<AuthRequest, AuthResponse>("auth?type=auth",
+                    new AuthRequest {Login = _login, Password = _password}, cancellation);
+            }
+
+            if (response.Expiry is null)
+            {
+                try
+                {
+                    response.Expiry = DateTimeOffset.FromUnixTimeSeconds(
+                        long.Parse(ParseClaimsFromJwt(response.AccessToken).First(claim => claim.Type == "exp").Value));
+                }
+                catch (Exception e)
+                {
+                    //it's ok if we dont parse it, once auth fails we try again
+                }
+            }
+            
+            
+            _cache.AddOrReplace(CacheKey, response);
+            return response.AccessToken;
+        }
+        private static IEnumerable<Claim> ParseClaimsFromJwt(string jwt)
+        {
+            var payload = jwt.Split('.')[1];
+            var jsonBytes = ParseBase64WithoutPadding(payload);
+            var keyValuePairs = JObject.Parse(Encoding.UTF8.GetString(jsonBytes)).ToObject<Dictionary<string, object>>();
+            return keyValuePairs.Select(kvp => new Claim(kvp.Key, kvp.Value.ToString()));
+        }
+
+        private static byte[] ParseBase64WithoutPadding(string base64)
+        {
+            switch (base64.Length % 4)
+            {
+                case 2: base64 += "=="; break;
+                case 3: base64 += "="; break;
+            }
+            return Convert.FromBase64String(base64);
         }
 
         private static string WithTrailingSlash(string str) =>

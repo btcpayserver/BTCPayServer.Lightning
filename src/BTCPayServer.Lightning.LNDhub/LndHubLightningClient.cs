@@ -10,29 +10,29 @@ namespace BTCPayServer.Lightning.LndHub
 {
     public class LndHubLightningClient : ILightningClient
     {
-        private readonly LndHubClient _client;
+        public  readonly LndHubClient Client;
         internal readonly Uri _baseUri;
         internal readonly string _login;
         internal readonly string _password;
         private readonly Network _network;
 
-        public LndHubLightningClient(Uri baseUri, string login, string password, Network network, HttpClient httpClient = null)
+        public LndHubLightningClient(Uri baseUri, string login, string password, Network network, HttpClient httpClient = null )
         {
             _baseUri = baseUri;
             _login = login;
             _password = password;
             _network = network;
-            _client = new LndHubClient(baseUri, login, password, network, httpClient);
+            Client = new LndHubClient(baseUri, login, password, network, httpClient);
         }
 
         public async Task<CreateAccountResponse> CreateAccount(CancellationToken cancellation = default)
         {
-            return await _client.CreateAccount(cancellation);
+            return await Client.CreateAccount(cancellation);
         }
 
         public async Task<LightningNodeInformation> GetInfo(CancellationToken cancellation = default)
         {
-            var data = await _client.GetInfo(cancellation);
+            var data = await Client.GetInfo(cancellation);
             if (data == null)
                 throw new NotSupportedException("The LNDHub instance does not support GetInfo");
 
@@ -61,7 +61,7 @@ namespace BTCPayServer.Lightning.LndHub
 
         public async Task<LightningNodeBalance> GetBalance(CancellationToken cancellation = default)
         {
-            var balance = await _client.GetBalance(cancellation);
+            var balance = await Client.GetBalance(cancellation);
             var offchain = new OffchainBalance
             {
                 Local = balance.BTC.AvailableBalance
@@ -71,12 +71,12 @@ namespace BTCPayServer.Lightning.LndHub
 
         public async Task<BitcoinAddress> GetDepositAddress(CancellationToken cancellation = default)
         {
-            return await _client.GetDepositAddress(cancellation);
+            return await Client.GetDepositAddress(cancellation);
         }
 
         public async Task<LightningInvoice> GetInvoice(string invoiceId, CancellationToken cancellation = default)
         {
-            var invoices = await _client.GetInvoices(cancellation);
+            var invoices = await Client.GetInvoices(cancellation);
             var data = invoices.FirstOrDefault(i => i.Id.ToString() == invoiceId);
             return data == null ? null : LndHubUtil.ToLightningInvoice(data);
         }
@@ -93,7 +93,7 @@ namespace BTCPayServer.Lightning.LndHub
 
         public async Task<LightningInvoice[]> ListInvoices(ListInvoicesParams request, CancellationToken cancellation = default)
         {
-            var invoices = await _client.GetInvoices(cancellation);
+            var invoices = await Client.GetInvoices(cancellation);
             if (request != null)
             {
                 // we need to filter client-side, because LNDhub does not support these filters
@@ -106,7 +106,7 @@ namespace BTCPayServer.Lightning.LndHub
 
         public async Task<LightningPayment> GetPayment(string paymentHash, CancellationToken cancellation = default)
         {
-            var payments = await _client.GetTransactions(cancellation);
+            var payments = await Client.GetTransactions(cancellation);
             var data = payments.FirstOrDefault(i => i.PaymentHash?.ToString() == paymentHash);
             return data == null ? null : LndHubUtil.ToLightningPayment(data);
         }
@@ -118,7 +118,7 @@ namespace BTCPayServer.Lightning.LndHub
 
         public async Task<LightningPayment[]> ListPayments(ListPaymentsParams request, CancellationToken cancellation = default)
         {
-            var payments = await _client.GetTransactions(cancellation);
+            var payments = await Client.GetTransactions(cancellation);
             if (request != null)
             {
                 // we need to filter client-side, because LNDhub does not support these filters
@@ -136,7 +136,7 @@ namespace BTCPayServer.Lightning.LndHub
 
         public async Task<LightningInvoice> CreateInvoice(CreateInvoiceParams req, CancellationToken cancellation = default)
         {
-            var invoice = await _client.CreateInvoice(req, cancellation);
+            var invoice = await Client.CreateInvoice(req, cancellation);
 
             // the response to addinvoice is incomplete, fetch the invoice to return that data
             return await GetInvoice(invoice.Id, cancellation);
@@ -153,7 +153,7 @@ namespace BTCPayServer.Lightning.LndHub
             {
                 var pr = BOLT11PaymentRequest.Parse(bolt11, _network);
                 var payAmount = payParams?.Amount ?? pr.MinimumAmount;
-                var response = await _client.Pay(bolt11, payParams, cancellation);
+                var response = await Client.Pay(bolt11, payParams, cancellation);
                 var totalAmount = response.Decoded?.Amount;
                 var feeAmount = response.PaymentRoute?.FeeMsat ?? totalAmount - payAmount;
                 
@@ -181,7 +181,7 @@ namespace BTCPayServer.Lightning.LndHub
 
         async Task<ILightningInvoiceListener> ILightningClient.Listen(CancellationToken cancellation)
         {
-            return await _client.CreateInvoiceSession(cancellation);
+            return await Client.CreateInvoiceSession(cancellation);
         }
 
         public Task<OpenChannelResponse> OpenChannel(OpenChannelRequest openChannelRequest, CancellationToken cancellation = default)
