@@ -1,4 +1,5 @@
-﻿using System;
+﻿#nullable enable
+using System;
 using System.Collections.Generic;
 using System.Threading;
 using System.Threading.Tasks;
@@ -62,7 +63,8 @@ public sealed class AsyncDuplicateLock
             _semaphoreSlims = semaphoreSlims;
             Key = key;
         }
-        public object Key { get; set; }
+
+        private object Key { get; set; }
 
         public void Dispose()
         {

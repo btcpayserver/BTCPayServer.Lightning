@@ -473,7 +473,7 @@ retry:
                 {
                     if (realException != null)
                         Logs.Tester.LogInformation(realException.ToString());
-                    Assert.False(true, $"{name}: The server could not be started");
+                    Assert.Fail($"{name}: The server could not be started");
                 }
             }
         }
@@ -764,7 +764,7 @@ retry:
                 await Task.Delay(100, waitToken);
                 listener.Dispose();
                 Logs.Tester.LogInformation($"{test.Name}: Listener disposed, should throw exception");
-                Assert.Throws<OperationCanceledException>(() => waitTask3.GetAwaiter().GetResult());
+                await Assert.ThrowsAsync<OperationCanceledException>(async () => await waitTask3);
             }
         }
 

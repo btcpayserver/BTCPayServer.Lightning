@@ -222,13 +222,12 @@ namespace BTCPayServer.Lightning.LndHub
                     response.Expiry = DateTimeOffset.FromUnixTimeSeconds(
                         long.Parse(ParseClaimsFromJwt(response.AccessToken).First(claim => claim.Type == "exp").Value));
                 }
-                catch (Exception e)
+                catch (Exception)
                 {
                     //it's ok if we dont parse it, once auth fails we try again
                 }
             }
-            
-            
+
             _cache.AddOrReplace(CacheKey, response);
             return response.AccessToken;
         }
