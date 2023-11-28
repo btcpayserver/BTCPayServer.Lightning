@@ -30,7 +30,6 @@ namespace BTCPayServer.Lightning.LndHub
             _client = lndHubClient;
             _paidInvoiceIds = new List<string>();
             _listenLoop = ListenLoop();
-            
         }
 
         public async Task<LightningInvoice> WaitInvoice(CancellationToken cancellation)
@@ -60,7 +59,6 @@ namespace BTCPayServer.Lightning.LndHub
         
         private async Task ListenLoop()
         {
-            
             try
             {
                 var releaser = await  _locker.LockOrBustAsync(_client.CacheKey, _cts.Token);
@@ -70,7 +68,7 @@ namespace BTCPayServer.Lightning.LndHub
                     {
                         if (_activeListeners.TryGetValue(_client.CacheKey, out var invoicesData))
                         {
-                            await HandleInvociesData(invoicesData);
+                            await HandleInvoicesData(invoicesData);
                         }
                         releaser = await  _locker.LockOrBustAsync(_client.CacheKey, _cts.Token);
                         
@@ -85,7 +83,7 @@ namespace BTCPayServer.Lightning.LndHub
                     {
                         var invoicesData = await _client.GetInvoices(_cts.Token);
                         _activeListeners.AddOrReplace(_client.CacheKey, invoicesData);
-                        await HandleInvociesData(invoicesData);
+                        await HandleInvoicesData(invoicesData);
 
                         await Task.Delay(2500, _cts.Token);
                     }
@@ -105,7 +103,7 @@ namespace BTCPayServer.Lightning.LndHub
             }
         }
 
-        private async Task HandleInvociesData(InvoiceData[] invoicesData)
+        private async Task HandleInvoicesData(IEnumerable<InvoiceData> invoicesData)
         {
             foreach (var data in invoicesData)
             {
