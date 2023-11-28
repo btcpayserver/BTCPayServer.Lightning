@@ -11,7 +11,6 @@ using System.Threading.Tasks;
 using BTCPayServer.Lightning.LNDhub.Models;
 using NBitcoin;
 using NBitcoin.Crypto;
-using NBitcoin.JsonConverters;
 using Newtonsoft.Json;
 using Newtonsoft.Json.Linq;
 
@@ -179,9 +178,7 @@ namespace BTCPayServer.Lightning.LndHub
         public async Task<ILightningInvoiceListener> CreateInvoiceSession(CancellationToken cancellation = default)
         {
             var at = await GetAccessToken(cancellation);
-            if (at is null) return null;
-            var session = new LndHubInvoiceListener(this, cancellation);
-            return session;
+            return at is null ? null : new LndHubInvoiceListener(this, cancellation);
         }
 
         private async Task ClearAccessToken()
@@ -190,9 +187,9 @@ namespace BTCPayServer.Lightning.LndHub
             _cache.TryRemove(CacheKey, out _);
         }
 
-        public async Task<string> GetAccessToken(CancellationToken cancellation = default)
+        private async Task<string> GetAccessToken(CancellationToken cancellation = default)
         {
-            using var release = await _locker.LockAsync(CacheKey);
+            using var release = await _locker.LockAsync(CacheKey, cancellation);
             AuthResponse response;
             if (_cache.TryGetValue(CacheKey, out var cached))
             {
@@ -200,14 +197,13 @@ namespace BTCPayServer.Lightning.LndHub
                 {
                     _cache.TryRemove(CacheKey, out _);
                 }
-                else if ((cached.Expiry - DateTimeOffset.UtcNow) > TimeSpan.FromMinutes(5))
+                else if (cached.Expiry - DateTimeOffset.UtcNow > TimeSpan.FromMinutes(5))
                 {
                     return cached.AccessToken;
                 }
 
                 response = await Post<AuthRequest, AuthResponse>("auth?type=refresh_token",
                     new AuthRequest {RefreshToken = cached.RefreshToken}, cancellation);
-                
             }
             else
             {

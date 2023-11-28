@@ -21,11 +21,11 @@ public sealed class AsyncDuplicateLock
         public T Value { get; private set; }
     }
 
-    private readonly Dictionary<object, RefCounted<SemaphoreSlim>> _semaphoreSlims = new();
+    private readonly Dictionary<object, RefCounted<SemaphoreSlim>?> _semaphoreSlims = new();
 
     private SemaphoreSlim GetOrCreate(object key)
     {
-        RefCounted<SemaphoreSlim> item;
+        RefCounted<SemaphoreSlim>? item;
         lock (_semaphoreSlims)
         {
             if (_semaphoreSlims.TryGetValue(key, out item))
@@ -56,9 +56,9 @@ public sealed class AsyncDuplicateLock
     }
     private sealed class Releaser : IDisposable
     {
-        private readonly Dictionary<object, RefCounted<SemaphoreSlim>> _semaphoreSlims;
+        private readonly Dictionary<object, RefCounted<SemaphoreSlim>?> _semaphoreSlims;
 
-        public Releaser(Dictionary<object, RefCounted<SemaphoreSlim>> semaphoreSlims, object key)
+        public Releaser(Dictionary<object, RefCounted<SemaphoreSlim>?> semaphoreSlims, object key)
         {
             _semaphoreSlims = semaphoreSlims;
             Key = key;
@@ -68,7 +68,7 @@ public sealed class AsyncDuplicateLock
 
         public void Dispose()
         {
-            RefCounted<SemaphoreSlim> item;
+            RefCounted<SemaphoreSlim>? item;
             lock (_semaphoreSlims)
             {
                 item = _semaphoreSlims[Key];
