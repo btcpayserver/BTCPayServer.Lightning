@@ -120,8 +120,9 @@ namespace BTCPayServer.Lightning.LndHub
 
         private void Dispose(bool waitLoop)
         {
-            if(_cts.IsCancellationRequested)
+            if (_cts.IsCancellationRequested)
                 return;
+            _cts.Cancel();
             _reader?.Dispose();
             _reader = null;
             _body?.Dispose();
