@@ -130,7 +130,7 @@ namespace BTCPayServer.Lightning.LndHub
 
             var req = new HttpRequestMessage
             {
-                RequestUri = new Uri($"{_baseUri}{path}"),
+                RequestUri = new Uri($"{WithTrailingSlash(_baseUri.ToString())}{path}"),
                 Method = method,
                 Content = content
             };
