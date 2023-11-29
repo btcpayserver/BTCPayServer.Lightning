@@ -1,3 +1,4 @@
+using System;
 using Newtonsoft.Json;
 
 namespace BTCPayServer.Lightning.LNDhub.Models
@@ -9,5 +10,8 @@ namespace BTCPayServer.Lightning.LNDhub.Models
         
         [JsonProperty("refresh_token")]
         public string RefreshToken { get; set; }
+        
+        [JsonProperty("expiry")]
+        public DateTimeOffset? Expiry { get; set; }
     }
 }
