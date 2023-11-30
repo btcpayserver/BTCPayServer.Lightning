@@ -3,6 +3,7 @@ using BTCPayServer.Lightning.JsonConverters;
 using BTCPayServer.Lightning.LNDhub.JsonConverters;
 using NBitcoin;
 using Newtonsoft.Json;
+using Newtonsoft.Json.Linq;
 
 namespace BTCPayServer.Lightning.LNDhub.Models
 {
@@ -27,6 +28,11 @@ namespace BTCPayServer.Lightning.LNDhub.Models
         
         [JsonProperty("decoded")]
         public PaymentData Decoded { get; set; }
+        
+        [JsonExtensionData]
+        public IDictionary<string, JToken> AdditionalProperties { get; set; }
+        
+        
     }
     
     public class PaymentRoute
