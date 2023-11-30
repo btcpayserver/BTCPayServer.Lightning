@@ -155,7 +155,8 @@ namespace BTCPayServer.Lightning.LndHub
                 var payAmount = payParams?.Amount ?? pr.MinimumAmount;
                 var response = await Client.Pay(bolt11, payParams, cancellation);
                 var totalAmount = response.Decoded?.Amount;
-                var feeAmount = response.PaymentRoute?.FeeMsat ?? totalAmount - payAmount;
+                var feeAmount = response.PaymentRoute?.FeeMsat ??
+                                (totalAmount is null ? null : totalAmount - payAmount);
                 
                 return new PayResponse(PayResult.Ok, new PayDetails
                 {
