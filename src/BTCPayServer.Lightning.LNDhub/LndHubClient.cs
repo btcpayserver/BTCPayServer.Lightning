@@ -32,7 +32,7 @@ namespace BTCPayServer.Lightning.LndHub
         private static readonly HttpClient _sharedClient = new ();
         private static readonly ConcurrentDictionary<string, AuthResponse> _cache = new();
         public readonly string CacheKey;
-        private readonly AsyncDuplicateLock _locker = new();
+        private static readonly AsyncDuplicateLock _locker = new();
 
         public LndHubClient(Uri baseUri, string login, string password, Network network, HttpClient httpClient)
         {
