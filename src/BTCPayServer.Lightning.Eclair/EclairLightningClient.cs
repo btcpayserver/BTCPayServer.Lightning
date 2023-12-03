@@ -430,7 +430,11 @@ namespace BTCPayServer.Lightning.Eclair
                     return ConnectionResult.Ok;
                 return ConnectionResult.CouldNotConnect;
             }
-            catch (Exception)
+            catch (System.TimeoutException)
+            {
+                return ConnectionResult.CouldNotConnect;
+            }
+            catch (EclairClient.EclairApiException)
             {
                 return ConnectionResult.CouldNotConnect;
             }
