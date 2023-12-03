@@ -170,17 +170,22 @@ namespace BTCPayServer.Lightning.LndHub
                     PaymentError = "",
                     Decoded = JsonConvert.DeserializeObject<PaymentData>(str)
                 };
-                if (resp.PaymentRoute.Fee is null && resp.AdditionalProperties?.TryGetValue("fee", out var weirdlyPlaceFeeProp) is true)
+                if (resp.PaymentRoute?.Fee is null && resp.AdditionalProperties?.TryGetValue("fee", out var weirdlyPlaceFeeProp) is true)
                 {
-                    resp.PaymentRoute.Fee = weirdlyPlaceFeeProp.Type switch
+                    var fee = weirdlyPlaceFeeProp.Type switch
                     {
                         JTokenType.Integer => new LightMoney(weirdlyPlaceFeeProp.Value<long>(),
                             LightMoneyUnit.Satoshi),
                         JTokenType.Float => new LightMoney((long)weirdlyPlaceFeeProp.Value<double>(),
                             LightMoneyUnit.Satoshi),
-                        JTokenType.String =>  LightMoney.Satoshis(long.Parse(weirdlyPlaceFeeProp.Value<string>())),
-                        _ => resp.PaymentRoute.Fee
+                        JTokenType.String => LightMoney.Satoshis(long.Parse(weirdlyPlaceFeeProp.Value<string>())),
+                        _ => null
                     };
+                    if (fee != null)
+                    {
+                        resp.PaymentRoute ??= new PaymentRoute();
+                        resp.PaymentRoute.Fee = fee;
+                    }
                 }
                 
                 return (TResponse)Convert.ChangeType(resp, typeof(TResponse));
