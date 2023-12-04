@@ -1,4 +1,4 @@
-﻿#nullable enable
+#nullable enable
 using System;
 using System.Collections.Concurrent;
 using System.Collections.Generic;
@@ -29,7 +29,7 @@ public sealed class AsyncDuplicateLock
         RefCounted<SemaphoreSlim>? item;
         lock (_semaphoreSlims)
         {
-            if (_semaphoreSlims.TryGetValue(key, out item))
+            if (_semaphoreSlims.TryGetValue(key, out item) && item is { })
             {
                 ++item.RefCount;
             }
@@ -75,12 +75,14 @@ public sealed class AsyncDuplicateLock
             RefCounted<SemaphoreSlim>? item;
             lock (_semaphoreSlims)
             {
-                item = _semaphoreSlims[Key];
-                --item.RefCount;
-                if (item.RefCount == 0)
-                    _semaphoreSlims.TryRemove(Key, out _);
+                if (_semaphoreSlims.TryGetValue(Key, out item) && item is { })
+                {
+                    --item.RefCount;
+                    if (item.RefCount == 0)
+                        _semaphoreSlims.TryRemove(Key, out _);
+                }
             }
-            item.Value.Release();
+            item?.Value.Release();
         }
     }
 }
