@@ -1,5 +1,6 @@
 ﻿#nullable enable
 using System;
+using System.Collections.Concurrent;
 using System.Collections.Generic;
 using System.Threading;
 using System.Threading.Tasks;
@@ -21,7 +22,7 @@ public sealed class AsyncDuplicateLock
         public T Value { get; private set; }
     }
 
-    private readonly Dictionary<object, RefCounted<SemaphoreSlim>?> _semaphoreSlims = new();
+    private readonly ConcurrentDictionary<object, RefCounted<SemaphoreSlim>?> _semaphoreSlims = new();
 
     private SemaphoreSlim GetOrCreate(object key)
     {
@@ -40,25 +41,28 @@ public sealed class AsyncDuplicateLock
         }
         return item.Value;
     }
+    
+    // get a lock for a specific key, and wait until it is available
     public async Task<IDisposable> LockAsync(object key, CancellationToken cancellationToken = default)
     {
         await GetOrCreate(key).WaitAsync(cancellationToken).ConfigureAwait(false);
         return new Releaser(_semaphoreSlims, key);
     }
     
+    // get a lock for a specific key if it is available, or return null if it is currently locked 
     public async Task<IDisposable?> LockOrBustAsync(object key, CancellationToken cancellationToken = default)
     {
         var semaphore = GetOrCreate(key);
         if (semaphore.CurrentCount == 0)
             return null;
-        await GetOrCreate(key).WaitAsync(cancellationToken).ConfigureAwait(false);
+        await semaphore.WaitAsync(cancellationToken).ConfigureAwait(false);
         return new Releaser(_semaphoreSlims, key);
     }
     private sealed class Releaser : IDisposable
     {
-        private readonly Dictionary<object, RefCounted<SemaphoreSlim>?> _semaphoreSlims;
+        private readonly ConcurrentDictionary<object, RefCounted<SemaphoreSlim>?> _semaphoreSlims;
 
-        public Releaser(Dictionary<object, RefCounted<SemaphoreSlim>?> semaphoreSlims, object key)
+        public Releaser(ConcurrentDictionary<object, RefCounted<SemaphoreSlim>?> semaphoreSlims, object key)
         {
             _semaphoreSlims = semaphoreSlims;
             Key = key;
@@ -74,7 +78,7 @@ public sealed class AsyncDuplicateLock
                 item = _semaphoreSlims[Key];
                 --item.RefCount;
                 if (item.RefCount == 0)
-                    _semaphoreSlims.Remove(Key);
+                    _semaphoreSlims.TryRemove(Key, out _);
             }
             item.Value.Release();
         }
