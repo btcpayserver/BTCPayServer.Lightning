@@ -71,10 +71,10 @@ The `connectionString` encapsulates the necessary information BTCPay needs to co
 
 * `type=clightning;server=unix://root/.lightning/lightning-rpc`
 * `type=clightning;server=tcp://1.1.1.1:27743/`
-* `type=lnd-rest;server=http://mylnd:8080/;macaroonfilepath=/root/.lnd/admin.macaroon;allowinsecure=true`
+* `type=lnd-rest;server=http://mylnd:8080/;macaroonfilepath=/root/.lnd/invoice.macaroon;allowinsecure=true`
 * `type=lnd-rest;server=https://mylnd:8080/;macaroon=abef263adfe...`
 * `type=lnd-rest;server=https://mylnd:8080/;macaroon=abef263adfe...;certthumbprint=abef263adfe...`
-* `type=lnd-rest;server=https://mylnd:8080/;macaroonfilepath=/root/.lnd/admin.macaroon;certfilepath=/var/lib/lnd/tls.cert`
+* `type=lnd-rest;server=https://mylnd:8080/;macaroonfilepath=/root/.lnd/invoice.macaroon;certfilepath=/var/lib/lnd/tls.cert`
 * `type=charge;server=https://charge:8080/;api-token=myapitoken...`
 * `type=charge;server=https://charge:8080/;cookiefilepath=/path/to/cookie...`
 * `type=eclair;server=http://127.0.0.1:4570;password=eclairpass`

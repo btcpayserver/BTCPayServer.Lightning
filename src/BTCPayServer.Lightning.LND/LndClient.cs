@@ -382,22 +382,21 @@ namespace BTCPayServer.Lightning.LND
 
         async Task<LightningNodeInformation> ILightningClient.GetInfo(CancellationToken cancellation)
         {
-            var resp = await SwaggerClient.GetInfoAsync(cancellation);
-
-            var nodeInfo = new LightningNodeInformation
-            {
-                BlockHeight = (int?)resp.Block_height ?? 0,
-                Alias = resp.Alias,
-                Color = resp.Color,
-                Version = resp.Version,
-                PeersCount = resp.Num_peers,
-                ActiveChannelsCount = resp.Num_active_channels,
-                InactiveChannelsCount = resp.Num_inactive_channels,
-                PendingChannelsCount = resp.Num_pending_channels
-            };
-
             try
             {
+                var resp = await SwaggerClient.GetInfoAsync(cancellation);
+
+                var nodeInfo = new LightningNodeInformation
+                {
+                    BlockHeight = (int?)resp.Block_height ?? 0,
+                    Alias = resp.Alias,
+                    Color = resp.Color,
+                    Version = resp.Version,
+                    PeersCount = resp.Num_peers,
+                    ActiveChannelsCount = resp.Num_active_channels,
+                    InactiveChannelsCount = resp.Num_inactive_channels,
+                    PendingChannelsCount = resp.Num_pending_channels
+                };
                 if (resp.Uris != null)
                 {
                     foreach (var uri in resp.Uris)
@@ -408,9 +407,13 @@ namespace BTCPayServer.Lightning.LND
                 }
                 return nodeInfo;
             }
-            catch (SwaggerException ex) when (!string.IsNullOrEmpty(ex.Response))
+            catch (SwaggerException ex) when (ex.AsLNDError() is {} lndError)
             {
-                throw new Exception("LND threw an error: " + ex.Response);
+                if (lndError.Code == 2 || lndError.Error.StartsWith("permission denied"))
+                {
+                    throw new UnauthorizedAccessException(lndError.Error);
+                }
+                throw new LndException(lndError.Error);
             }
         }
 
@@ -516,10 +519,9 @@ namespace BTCPayServer.Lightning.LND
 
                 return payment;
             }
-            catch (SwaggerException ex)
+            catch (SwaggerException ex) when (ex.AsLNDError() is {} lndError)
             {
-                var errorString = JObject.Parse(ex.Response)["error"]["message"].ToString();
-                throw new LndException(errorString);
+                throw new LndException(lndError.Error);
             }
         }
 
