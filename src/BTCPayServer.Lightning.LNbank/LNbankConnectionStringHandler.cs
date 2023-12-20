@@ -25,17 +25,15 @@ public class LNbankConnectionStringHandler : ILightningConnectionStringHandler
 
         if (!kv.TryGetValue("server", out var server))
         {
-            error = $"The key 'server' is mandatory for LNbank connection strings";
+            error = "The key 'server' is mandatory for LNbank connection strings";
             return null;
         }
 
-        if (!Uri.TryCreate(server, UriKind.Absolute, out var uri)
-            || uri.Scheme != "http" && uri.Scheme != "https")
+        if (!Uri.TryCreate(server, UriKind.Absolute, out var uri) || uri.Scheme != "http" && uri.Scheme != "https")
         {
             error = "The key 'server' should be an URI starting by http:// or https://";
             return null;
         }
-
 
         bool allowInsecure = false;
         if (kv.TryGetValue("allowinsecure", out var allowinsecureStr))
