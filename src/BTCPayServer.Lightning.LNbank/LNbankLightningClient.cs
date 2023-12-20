@@ -21,6 +21,14 @@ namespace BTCPayServer.Lightning.LNbank
             _client = new LNbankClient(baseUri, apiToken, network, httpClient);
         }
 
+        public override string ToString()
+        {
+            var builder = new UriBuilder(_baseUri);
+            var cs = $"type=lnbank;server={builder.Uri.AbsoluteUri};api-token={_apiToken}";
+            if (builder.Scheme == "http") cs += ";allowinsecure=true";
+            return cs;
+        }
+
         public async Task<LightningNodeInformation> GetInfo(CancellationToken cancellation = default)
         {
             var data = await _client.GetInfo(cancellation);
