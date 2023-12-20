@@ -169,7 +169,7 @@ namespace BTCPayServer.Lightning.LNbank
             req.Headers.Add("User-Agent", "BTCPayServer.Lightning.LNbankClient");
 
             var res = await _httpClient.SendAsync(req, cancellation);
-            var str = await res.Content.ReadAsStringAsync();
+            var str = await res.Content.ReadAsStringAsync(cancellation);
 
             if (!res.IsSuccessStatusCode)
             {
