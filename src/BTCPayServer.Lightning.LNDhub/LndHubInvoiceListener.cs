@@ -7,6 +7,7 @@ using System.Runtime.ExceptionServices;
 using System.Threading;
 using System.Threading.Channels;
 using System.Threading.Tasks;
+using AsyncKeyedLock;
 using BTCPayServer.Lightning.LNDhub.Models;
 using NBitcoin;
 
@@ -54,31 +55,36 @@ namespace BTCPayServer.Lightning.LndHub
             Dispose(true);
         }
 
-        static readonly AsyncDuplicateLock _locker = new();
+        static readonly AsyncKeyedLocker<string> _locker = new(o =>
+        {
+            o.PoolSize = 20;
+            o.PoolInitialFill = 1;
+        });
         static readonly ConcurrentDictionary<string, InvoiceData[]> _activeListeners = new();
         
         private async Task ListenLoop()
         {
             try
             {
-                var releaser = await  _locker.LockOrBustAsync(_client.CacheKey, _cts.Token);
-                if (releaser is null)
+                AsyncKeyedLockTimeoutReleaser<string> releaser = null;
+                try
                 {
-                    while (!_cts.IsCancellationRequested &&releaser is null)
+                    releaser = await _locker.LockAsync(_client.CacheKey, 0, _cts.Token);
+                    if (!releaser.EnteredSemaphore)
                     {
-                        if (_activeListeners.TryGetValue(_client.CacheKey, out var invoicesData))
+                        while (!_cts.IsCancellationRequested && !releaser.EnteredSemaphore)
                         {
-                            await HandleInvoicesData(invoicesData);
-                        }
-                        releaser = await  _locker.LockOrBustAsync(_client.CacheKey, _cts.Token);
-                        
-                        if(releaser is null)
-                            await Task.Delay(2500, _cts.Token);
-                    }
-                }
+                            if (_activeListeners.TryGetValue(_client.CacheKey, out var invoicesData))
+                            {
+                                await HandleInvoicesData(invoicesData);
+                            }
+                            releaser = await _locker.LockAsync(_client.CacheKey, 0, _cts.Token);
 
-                using (releaser)
-                {
+                            if (!releaser.EnteredSemaphore)
+                                await Task.Delay(2500, _cts.Token);
+                        }
+                    }
+
                     while (!_cts.IsCancellationRequested)
                     {
                         var invoicesData = await _client.GetInvoices(_cts.Token);
@@ -87,6 +93,10 @@ namespace BTCPayServer.Lightning.LndHub
 
                         await Task.Delay(2500, _cts.Token);
                     }
+                }
+                finally
+                {
+                    releaser.Dispose();
                 }
             }
             catch when (_cts.IsCancellationRequested)
