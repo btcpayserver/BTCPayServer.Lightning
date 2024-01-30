@@ -105,7 +105,7 @@ public class AsycLockTests
                 {
                     using (var releaser = await lockObj.LockAsync(letter, 0))
                     {
-                        if (releaser.EnteredSemaphore)
+                        if (!releaser.EnteredSemaphore)
                         {
                             continue;
                         }
