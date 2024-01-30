@@ -102,16 +102,13 @@ public class AsycLockTests
             async Task WriteToList(char letter)
             {
                 while (true)
-
                 {
-                    var release = await lockObj.LockAsync(letter, 0);
-                    if (release is null)
+                    using (var releaser = await lockObj.LockAsync(letter, 0))
                     {
-                        continue;
-                    }
-
-                    using (release)
-                    {
+                        if (releaser.EnteredSemaphore)
+                        {
+                            continue;
+                        }
                         try
                         {
                             if (resultList.TryGetValue(letter.ToString(), out var count) &&
