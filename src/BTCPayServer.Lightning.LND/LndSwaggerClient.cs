@@ -2849,7 +2849,7 @@ namespace BTCPayServer.Lightning.LND
     {
         private PendingChannelsResponsePendingChannel _channel;
         private string _closing_txid;
-        private string _limbo_balance;
+        private long _limbo_balance;
         private long? _maturity_height;
         private int? _blocks_til_maturity;
         private string _recovered_balance;
@@ -2884,7 +2884,7 @@ namespace BTCPayServer.Lightning.LND
         }
 
         [Newtonsoft.Json.JsonProperty("limbo_balance", Required = Newtonsoft.Json.Required.Default, NullValueHandling = Newtonsoft.Json.NullValueHandling.Ignore)]
-        public string Limbo_balance
+        public long Limbo_balance
         {
             get { return _limbo_balance; }
             set
@@ -3188,7 +3188,7 @@ namespace BTCPayServer.Lightning.LND
     public partial class PendingChannelsResponseWaitingCloseChannel : System.ComponentModel.INotifyPropertyChanged
     {
         private PendingChannelsResponsePendingChannel _channel;
-        private string _limbo_balance;
+        private long _limbo_balance;
 
         [Newtonsoft.Json.JsonProperty("channel", Required = Newtonsoft.Json.Required.Default, NullValueHandling = Newtonsoft.Json.NullValueHandling.Ignore)]
         public PendingChannelsResponsePendingChannel Channel
@@ -3205,7 +3205,7 @@ namespace BTCPayServer.Lightning.LND
         }
 
         [Newtonsoft.Json.JsonProperty("limbo_balance", Required = Newtonsoft.Json.Required.Default, NullValueHandling = Newtonsoft.Json.NullValueHandling.Ignore)]
-        public string Limbo_balance
+        public long Limbo_balance
         {
             get { return _limbo_balance; }
             set

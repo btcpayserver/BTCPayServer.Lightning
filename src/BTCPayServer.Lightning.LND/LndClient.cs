@@ -429,8 +429,8 @@ namespace BTCPayServer.Lightning.LND
             var pendingResponse = pendingChannels.Result;
             
             var closing = new LightMoney(0);
-            closing += pendingResponse.Pending_force_closing_channels.Sum(c => LightMoney.Satoshis(c.Channel.Local_balance));
-            closing += pendingResponse.Waiting_close_channels.Sum(c => LightMoney.Satoshis(c.Channel.Local_balance));
+            closing += pendingResponse.Pending_force_closing_channels.Sum(c => LightMoney.Satoshis(c.Limbo_balance));
+            closing += pendingResponse.Waiting_close_channels.Sum(c => LightMoney.Satoshis(c.Limbo_balance));
 
             var onchain = new OnchainBalance
             { 
