@@ -901,6 +901,10 @@ retry:
             {
                 builder.Append($";certthumbprint={ConvertHelper.ToHexString(SwaggerClient._LndSettings.CertificateThumbprint)}");
             }
+            if (SwaggerClient._LndSettings.CertificateFilePath != null)
+            {
+                builder.Append($";certfilepath={SwaggerClient._LndSettings.CertificateFilePath}");
+            }
             if (SwaggerClient._LndSettings.AllowInsecure)
             {
                 builder.Append($";allowinsecure=true");
