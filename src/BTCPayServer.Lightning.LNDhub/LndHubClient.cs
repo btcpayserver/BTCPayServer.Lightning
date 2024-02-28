@@ -8,6 +8,7 @@ using System.Security.Claims;
 using System.Text;
 using System.Threading;
 using System.Threading.Tasks;
+using AsyncKeyedLock;
 using BTCPayServer.Lightning.LNDhub.JsonConverters;
 using BTCPayServer.Lightning.LNDhub.Models;
 using NBitcoin;
@@ -32,7 +33,11 @@ namespace BTCPayServer.Lightning.LndHub
         private static readonly HttpClient _sharedClient = new ();
         private static readonly ConcurrentDictionary<string, AuthResponse> _cache = new();
         public readonly string CacheKey;
-        private static readonly AsyncDuplicateLock _locker = new();
+        private static readonly AsyncKeyedLocker<string> _locker = new(o =>
+        {
+            o.PoolSize = 20;
+            o.PoolInitialFill = 1;
+        });
 
         public LndHubClient(Uri baseUri, string login, string password, Network network, HttpClient httpClient)
         {
@@ -202,49 +207,53 @@ namespace BTCPayServer.Lightning.LndHub
 
         private async Task ClearAccessToken()
         {
-            using var release = await _locker.LockAsync(CacheKey);
-            _cache.TryRemove(CacheKey, out _);
+            using (await _locker.LockAsync(CacheKey))
+            {
+                _cache.TryRemove(CacheKey, out _);
+            }
         }
 
         private async Task<string> GetAccessToken(CancellationToken cancellation = default)
         {
-            using var release = await _locker.LockAsync(CacheKey, cancellation);
-            AuthResponse response;
-            if (_cache.TryGetValue(CacheKey, out var cached))
+            using (await _locker.LockAsync(CacheKey, cancellation))
             {
-                if (cached.Expiry <= DateTimeOffset.UtcNow)
+                AuthResponse response;
+                if (_cache.TryGetValue(CacheKey, out var cached))
                 {
-                    _cache.TryRemove(CacheKey, out _);
+                    if (cached.Expiry <= DateTimeOffset.UtcNow)
+                    {
+                        _cache.TryRemove(CacheKey, out _);
+                    }
+                    else if (cached.Expiry - DateTimeOffset.UtcNow > TimeSpan.FromMinutes(5))
+                    {
+                        return cached.AccessToken;
+                    }
+
+                    response = await Post<AuthRequest, AuthResponse>("auth?type=refresh_token",
+                        new AuthRequest { RefreshToken = cached.RefreshToken }, cancellation);
                 }
-                else if (cached.Expiry - DateTimeOffset.UtcNow > TimeSpan.FromMinutes(5))
+                else
                 {
-                    return cached.AccessToken;
+                    response = await Post<AuthRequest, AuthResponse>("auth?type=auth",
+                        new AuthRequest { Login = _login, Password = _password }, cancellation);
                 }
 
-                response = await Post<AuthRequest, AuthResponse>("auth?type=refresh_token",
-                    new AuthRequest {RefreshToken = cached.RefreshToken}, cancellation);
-            }
-            else
-            {
-                response = await Post<AuthRequest, AuthResponse>("auth?type=auth",
-                    new AuthRequest {Login = _login, Password = _password}, cancellation);
-            }
-
-            if (response.Expiry is null)
-            {
-                try
+                if (response.Expiry is null)
                 {
-                    response.Expiry = DateTimeOffset.FromUnixTimeSeconds(
-                        long.Parse(ParseClaimsFromJwt(response.AccessToken).First(claim => claim.Type == "exp").Value));
+                    try
+                    {
+                        response.Expiry = DateTimeOffset.FromUnixTimeSeconds(
+                            long.Parse(ParseClaimsFromJwt(response.AccessToken).First(claim => claim.Type == "exp").Value));
+                    }
+                    catch (Exception)
+                    {
+                        //it's ok if we dont parse it, once auth fails we try again
+                    }
                 }
-                catch (Exception)
-                {
-                    //it's ok if we dont parse it, once auth fails we try again
-                }
-            }
 
-            _cache.AddOrReplace(CacheKey, response);
-            return response.AccessToken;
+                _cache.AddOrReplace(CacheKey, response);
+                return response.AccessToken;
+            }
         }
         private static IEnumerable<Claim> ParseClaimsFromJwt(string jwt)
         {
