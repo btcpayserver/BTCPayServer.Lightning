@@ -71,17 +71,19 @@ namespace BTCPayServer.Lightning.Eclair
             }, cts);
         }
 
-        public async Task<string> Open(PubKey nodeId, long fundingSatoshis, int? pushMsat = null,
-            long? fundingFeerateSatByte = null, ChannelFlags? channelFlags = null,
+        public async Task<string> Open(PubKey nodeId, long fundingSatoshis, string channelType = null,int? pushMsat = null,
+            long? fundingFeerateSatByte = null, bool? announceChannel  = null, int? openTimeoutSeconds = null,
             CancellationToken cts = default)
         {
             return await SendCommandAsync<OpenRequest, string>("open", new OpenRequest()
             {
                 NodeId = nodeId.ToString(),
                 FundingSatoshis = fundingSatoshis,
-                ChannelFlags = channelFlags,
+                AnnounceChannel = announceChannel,
+                ChannelType = channelType,
                 PushMsat = pushMsat,
-                FundingFeerateSatByte = fundingFeerateSatByte
+                FundingFeerateSatByte = fundingFeerateSatByte,
+                OpenTimeoutSeconds = openTimeoutSeconds
             }, cts);
 
         }

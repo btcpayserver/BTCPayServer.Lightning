@@ -117,7 +117,7 @@ namespace BTCPayServer.Lightning.CLightning
             return peers;
         }
 
-        public Task FundChannelAsync(OpenChannelRequest openChannelRequest, CancellationToken cancellation)
+        public Task<FundChannelResponse> FundChannelAsync(OpenChannelRequest openChannelRequest, CancellationToken cancellation)
         {
             OpenChannelRequest.AssertIsSane(openChannelRequest);
             List<object> parameters = new List<object>();
@@ -125,7 +125,31 @@ namespace BTCPayServer.Lightning.CLightning
             parameters.Add(openChannelRequest.ChannelAmount.Satoshi);
             if (openChannelRequest.FeeRate != null)
                 parameters.Add($"{openChannelRequest.FeeRate.FeePerK.Satoshi * 4}perkw");
-            return SendCommandAsync<object>("fundchannel", parameters.ToArray(), true, cancellation: cancellation);
+            else
+            {
+                parameters.Add("normal");
+            }
+
+            if (openChannelRequest.Private != null)
+            {
+                parameters.Add(openChannelRequest.Private.ToString().ToLowerInvariant());
+                
+            }
+            return SendCommandAsync<FundChannelResponse>("fundchannel", parameters.ToArray(), true, cancellation: cancellation);
+        }
+
+        public class FundChannelResponse
+        {
+            [JsonProperty("tx")]
+            public string Transaction { get; set; }
+            [JsonProperty("txid")]
+            public string TransactionId { get; set; }
+            [JsonProperty("outnum")]
+            public string FundingOutputIndex { get; set; }
+            [JsonProperty("channel_id")]
+            public string ChannelId { get; set; }
+            [JsonProperty("close_to")]
+            public string CloseToScriptPubKey { get; set; }
         }
 
         public Task ConnectAsync(NodeInfo nodeInfo, CancellationToken cancellation = default)
@@ -525,6 +549,7 @@ namespace BTCPayServer.Lightning.CLightning
                 {
                     channels.Add(new LightningChannel
                     {
+                        Id = channel.ShortChannelId.ToString(),
                         RemoteNode = new PubKey(peer.Id),
                         IsPublic = !channel.Private,
                         LocalBalance = channel.ToUs,
@@ -615,10 +640,11 @@ namespace BTCPayServer.Lightning.CLightning
         async Task<OpenChannelResponse> ILightningClient.OpenChannel(OpenChannelRequest openChannelRequest, CancellationToken cancellation)
         {
 retry:
-            try
-            {
-                await FundChannelAsync(openChannelRequest, cancellation);
-            }
+FundChannelResponse response;
+try
+{
+    response = await FundChannelAsync(openChannelRequest, cancellation);
+}
             catch (LightningRPCException ex) when (ex.Code == CLightningErrorCode.STILL_SYNCING_BITCOIN)
             {
                 await Task.Delay(1000, cancellation);
@@ -651,7 +677,10 @@ retry:
             {
                 return new OpenChannelResponse(OpenChannelResult.AlreadyExists);
             }
-            return new OpenChannelResponse(OpenChannelResult.Ok);
+            return new OpenChannelResponse(OpenChannelResult.Ok)
+            {
+                ChannelId = response.ChannelId
+            };
         }
 
         async Task<BitcoinAddress> ILightningClient.GetDepositAddress(CancellationToken cancellation)

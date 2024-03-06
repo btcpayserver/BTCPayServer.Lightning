@@ -378,13 +378,15 @@ namespace BTCPayServer.Lightning.Eclair
             try
             {
                 var result = await _eclairClient.Open(openChannelRequest.NodeInfo.NodeId,
-                    openChannelRequest.ChannelAmount.Satoshi
-                    , null,
-                    Convert.ToInt64(openChannelRequest.FeeRate.SatoshiPerByte), null, cancellation);
-
+                    openChannelRequest.ChannelAmount.Satoshi, null, null,
+                    (openChannelRequest.FeeRate is null
+                        ? (long?)null
+                        : Convert.ToInt64(openChannelRequest.FeeRate.SatoshiPerByte)), openChannelRequest.Private, null,
+                    cancellation);
+                
                 if (result.Contains("created channel", StringComparison.OrdinalIgnoreCase))
                 {
-                    var channelId = result.Replace("created channel", "").Trim();
+                    string channelId = result.Replace("created channel", "").Trim();
                     var channel = await _eclairClient.Channel(channelId, cancellation);
                     switch (channel.State)
                     {
@@ -394,7 +396,10 @@ namespace BTCPayServer.Lightning.Eclair
                         case "WAIT_FOR_FUNDING_SIGNED":
                         case "WAIT_FOR_FUNDING_LOCKED":
                         case "WAIT_FOR_FUNDING_CONFIRMED":
-                            return new OpenChannelResponse(OpenChannelResult.NeedMoreConf);
+                            return new OpenChannelResponse(OpenChannelResult.NeedMoreConf)
+                            {
+                                ChannelId = channelId
+                            };
                     }
                 }
 

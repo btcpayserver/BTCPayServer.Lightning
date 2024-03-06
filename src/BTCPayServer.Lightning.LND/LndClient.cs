@@ -780,12 +780,13 @@ retry:
                 {
                     Local_funding_amount = openChannelRequest.ChannelAmount.Satoshi.ToString(CultureInfo.InvariantCulture),
                     Node_pubkey_string = openChannelRequest.NodeInfo.NodeId.ToString(),
+                    Private = openChannelRequest.Private
                 };
                 if (openChannelRequest.FeeRate != null)
                 {
                     req.Sat_per_byte = ((int)openChannelRequest.FeeRate.SatoshiPerByte).ToString();
                 }
-                var result = await this.SwaggerClient.OpenChannelSyncAsync(req, cancellation);
+                await SwaggerClient.OpenChannelSyncAsync(req, cancellation);
                 return new OpenChannelResponse(OpenChannelResult.Ok);
             }
             catch (SwaggerException ex) when

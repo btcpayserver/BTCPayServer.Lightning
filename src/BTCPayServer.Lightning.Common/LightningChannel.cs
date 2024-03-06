@@ -4,6 +4,7 @@ namespace BTCPayServer.Lightning
 {
     public class LightningChannel
     {
+        public string Id { get; set; }
         public PubKey RemoteNode { get; set; }
         public bool IsPublic { get; set; }
         public bool IsActive { get; set; }

@@ -19,6 +19,8 @@ namespace BTCPayServer.Lightning
         {
             get; set;
         }
+
+        public bool? Private { get; set; }
         public static void AssertIsSane(OpenChannelRequest openChannelRequest)
         {
             if (openChannelRequest == null)
