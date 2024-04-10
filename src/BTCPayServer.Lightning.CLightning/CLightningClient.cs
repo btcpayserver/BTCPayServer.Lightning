@@ -107,16 +107,6 @@ namespace BTCPayServer.Lightning.CLightning
             return SendCommandAsync<ListFundsResponse>("listfunds", cancellation: cancellation);
         }
 
-        public async Task<PeerInfo[]> ListPeersAsync(CancellationToken cancellation = default)
-        {
-            var peers = await SendCommandAsync<PeerInfo[]>("listpeers", isArray: true, cancellation: cancellation);
-            foreach (var peer in peers)
-            {
-                peer.Channels = peer.Channels ?? Array.Empty<ChannelInfo>();
-            }
-            return peers;
-        }
-
         public Task FundChannelAsync(OpenChannelRequest openChannelRequest, CancellationToken cancellation)
         {
             OpenChannelRequest.AssertIsSane(openChannelRequest);
@@ -248,6 +238,10 @@ namespace BTCPayServer.Lightning.CLightning
                 : await SendCommandAsync<CLightningChannel[]>("listchannels", new[] { ShortChannelId.ToString() }, false, true, cancellation);
 
             return resp;
+        }
+        public async Task<PeerChannel[]> ListPeerChannelsAsync(CancellationToken cancellation = default)
+        {
+            return await SendCommandAsync<PeerChannel[]>("listpeerchannels", null, false, true, cancellation);
         }
 
         async Task<LightningPayment> ILightningClient.GetPayment(string paymentHash, CancellationToken cancellation)
@@ -517,22 +511,19 @@ namespace BTCPayServer.Lightning.CLightning
 
         async Task<LightningChannel[]> ILightningClient.ListChannels(CancellationToken cancellation)
         {
-            var listPeersAsync = this.ListPeersAsync(cancellation);
+            var listChannels = await this.ListPeerChannelsAsync();
             List<LightningChannel> channels = new List<LightningChannel>();
-            foreach (var peer in await listPeersAsync)
+            foreach (var channel in listChannels)
             {
-                foreach (var channel in peer.Channels)
+                channels.Add(new LightningChannel
                 {
-                    channels.Add(new LightningChannel
-                    {
-                        RemoteNode = new PubKey(peer.Id),
-                        IsPublic = !channel.Private,
-                        LocalBalance = channel.ToUs,
-                        ChannelPoint = new OutPoint(channel.FundingTxId, channel.ShortChannelId.TxOutIndex),
-                        Capacity = channel.Total,
-                        IsActive = channel.State == "CHANNELD_NORMAL"
-                    });
-                }
+                    RemoteNode = new PubKey(channel.PeerId),
+                    IsPublic = !channel.Private,
+                    LocalBalance = channel.ToUs,
+                    ChannelPoint = new OutPoint(channel.FundingTxId, channel.ShortChannelId.TxOutIndex),
+                    Capacity = channel.Total,
+                    IsActive = channel.State == "CHANNELD_NORMAL"
+                });
             }
             return channels.ToArray();
         }
