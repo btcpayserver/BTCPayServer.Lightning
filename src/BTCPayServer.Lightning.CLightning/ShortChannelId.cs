@@ -29,8 +29,8 @@ namespace BTCPayServer.Lightning.CLightning
                 return false;
 
             if (!int.TryParse(datas[0], out var blockHeight) ||
-                !int.TryParse(datas[0], out var blockIndex) ||
-                !int.TryParse(datas[0], out var txOutIndex))
+                !int.TryParse(datas[1], out var blockIndex) ||
+                !int.TryParse(datas[2], out var txOutIndex))
                 return false;
             if (blockHeight < 0 || blockIndex < 0 || txOutIndex < 0)
                 return false;
