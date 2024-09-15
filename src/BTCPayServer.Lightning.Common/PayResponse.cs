@@ -56,5 +56,7 @@ namespace BTCPayServer.Lightning
         
         [JsonConverter(typeof(NBitcoin.JsonConverters.UInt256JsonConverter))]
         public uint256 PaymentHash { get; set; }
+
+        public string Message { get; set; }
     }
 }
