@@ -95,7 +95,7 @@ namespace BTCPayServer.Lightning.Tests
 
                     if (!channelDropped)
                     {
-                        var connectedResult = sender.ConnectTo(destInfo.NodeInfoList.First());
+                        var connectedResult = await sender.ConnectTo(destInfo.NodeInfoList.First());
                         Logs.LogInformation($"Connection result: " + connectedResult);
                         Logs.LogInformation($"Opening channel to {destInfo.NodeInfoList[0]}");
                     }
