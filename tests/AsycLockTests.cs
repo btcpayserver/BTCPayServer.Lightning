@@ -1,4 +1,4 @@
-﻿using System;
+using System;
 using System.Collections.Concurrent;
 using System.Collections.Generic;
 using System.Threading.Tasks;
@@ -114,7 +114,7 @@ public class AsycLockTests
                             resultList.AddOrUpdate(letter.ToString(), 1, (key, oldValue) => oldValue + 1);
                             _outputHelper.WriteLine($"write{letter}{count}");
                         }
-                        catch (Exception e)
+                        catch (Exception)
                         {
                             // _outputHelper.WriteLine(e + letter.ToString());
                         }
