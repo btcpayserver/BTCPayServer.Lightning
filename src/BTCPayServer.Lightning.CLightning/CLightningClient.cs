@@ -164,7 +164,12 @@ namespace BTCPayServer.Lightning.CLightning
                                     var error = result.Property("error");
                                     if (error != null)
                                     {
-                                        throw new LightningRPCException(error.Value["message"].Value<string>(), error.Value["code"].Value<int>());
+                                        var errorCode = error.Value["code"].Value<int>();
+                                        var message = error.Value["message"].Value<string>();
+                                        // For some reason, they decided that they should stop sending and error code...
+                                        if (errorCode == 0 && message.EndsWith("is not reachable directly and all routehints were unusable.", StringComparison.OrdinalIgnoreCase))
+                                            errorCode = (int)CLightningErrorCode.ROUTE_NOT_FOUND;
+                                        throw new LightningRPCException(message, errorCode);
                                     }
                                     if (noReturn)
                                         return default;
@@ -329,6 +334,7 @@ namespace BTCPayServer.Lightning.CLightning
             {
                 var pr = bolt11 is null ? null : BOLT11PaymentRequest.Parse(bolt11, Network);
 
+                // Normally, it should be possible to pay above the minimum amount, but CLN doesn't support it, unless the bolt amount is 0.
                 var explicitAmount = pr?.MinimumAmount is null || pr?.MinimumAmount == LightMoney.Zero ?  payParams?.Amount : null;
 
                 long? maxFeeFlat = payParams?.MaxFeeFlat is null ? null : new LightMoney(payParams?.MaxFeeFlat).MilliSatoshi;
