@@ -1,5 +1,6 @@
 using System;
 using System.Collections.Generic;
+using System.IO;
 using System.Linq;
 using System.Net.Http;
 using System.Net.Http.Headers;
@@ -19,11 +20,11 @@ namespace BTCPayServer.Lightning.Eclair
         private readonly string _username;
         private readonly string _password;
         private readonly HttpClient _httpClient;
-        private static readonly HttpClient SharedClient = new ();
+        private static readonly HttpClient SharedClient = new();
 
         public Network Network { get; }
 
-        public EclairClient(Uri address, string password, Network network, HttpClient httpClient = null):this(address,null, password,network, httpClient){}
+        public EclairClient(Uri address, string password, Network network, HttpClient httpClient = null) : this(address, null, password, network, httpClient) { }
         public EclairClient(Uri address, string username, string password, Network network, HttpClient httpClient = null)
         {
             if (address == null)
@@ -348,18 +349,29 @@ namespace BTCPayServer.Lightning.Eclair
             };
             httpRequest.Headers.Accept.Clear();
             httpRequest.Headers.Accept.Add(new MediaTypeWithQualityHeaderValue("application/json"));
-            httpRequest.Headers.Authorization = new AuthenticationHeaderValue("Basic", Convert.ToBase64String(Encoding.Default.GetBytes($"{_username??string.Empty}:{_password}")));
+            httpRequest.Headers.Authorization = new AuthenticationHeaderValue("Basic", Convert.ToBase64String(Encoding.Default.GetBytes($"{_username ?? string.Empty}:{_password}")));
 
-            var rawResult = await _httpClient.SendAsync(httpRequest, cts);
-            var rawJson = await rawResult.Content.ReadAsStringAsync();
-            if (!rawResult.IsSuccessStatusCode)
+            int retry = 0;
+            retry:
+            try
             {
-                throw new EclairApiException
+                using var rawResult = await _httpClient.SendAsync(httpRequest, cts);
+                var rawJson = await rawResult.Content.ReadAsStringAsync();
+                if (!rawResult.IsSuccessStatusCode)
                 {
-                    Error = JsonConvert.DeserializeObject<EclairApiError>(rawJson, SerializerSettings)
-                };
+                    throw new EclairApiException
+                    {
+                        Error = JsonConvert.DeserializeObject<EclairApiError>(rawJson, SerializerSettings)
+                    };
+                }
+                return JsonConvert.DeserializeObject<TResponse>(rawJson, SerializerSettings);
             }
-            return JsonConvert.DeserializeObject<TResponse>(rawJson, SerializerSettings);
+            catch (HttpRequestException e) when (e.InnerException is IOException && retry < 10)
+            {
+                retry++;
+                await Task.Delay(100 * retry, cts);
+                goto retry;
+            }
         }
 
 
