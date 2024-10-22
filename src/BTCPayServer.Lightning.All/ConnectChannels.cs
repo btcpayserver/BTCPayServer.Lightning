@@ -69,7 +69,7 @@ namespace BTCPayServer.Lightning.Tests
                 {
                     break;
                 }
-                if (result.Result == PayResult.CouldNotFindRoute || result.Result == PayResult.Error || result.Result == PayResult.Unknown && result.ErrorDetail.StartsWith("not enough balance"))
+                if (result.Result == PayResult.CouldNotFindRoute || result.Result == PayResult.Error || result.Result == PayResult.Unknown && result.ErrorDetail?.StartsWith("not enough balance") is true)
                 {
                     // Eclair doesn't like, break it into 10 payments
                     if (result.ErrorDetail.StartsWith("in-flight htlcs hold too much value", StringComparison.OrdinalIgnoreCase))

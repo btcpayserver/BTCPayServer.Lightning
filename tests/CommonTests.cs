@@ -797,12 +797,12 @@ retry:
                     case LndHubLightningClient _:
                         await Assert.ThrowsAsync<NotSupportedException>(async () =>
                         {
-                            await client.Customer.ConnectTo(new NodeInfo(new Key().PubKey, "127.0.0.1", 99_999));
+                            await client.Customer.ConnectTo(new NodeInfo(new Key().PubKey, "127.0.0.1", 64_000));
                         });
                         break;
 
                     default:
-                        var result = await client.Customer.ConnectTo(new NodeInfo(new Key().PubKey, "127.0.0.1", 99_999));
+                        var result = await client.Customer.ConnectTo(new NodeInfo(new Key().PubKey, "127.0.0.1", 64_000));
                         Assert.Equal(ConnectionResult.CouldNotConnect, result);
 
                         var ni = (await client.Merchant.GetInfo()).NodeInfoList.FirstOrDefault();
