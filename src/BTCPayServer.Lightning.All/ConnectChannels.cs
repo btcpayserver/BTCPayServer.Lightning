@@ -55,6 +55,7 @@ namespace BTCPayServer.Lightning.Tests
             var channelFunding = Money.Satoshis(16777215);
             await WaitLNSynched(cashCow, sender);
             await WaitLNSynched(cashCow, dest);
+
             var destInfo = await dest.GetInfo();
 
             var amount = LightMoney.FromUnit(10m, LightMoneyUnit.Satoshi);
@@ -74,14 +75,7 @@ namespace BTCPayServer.Lightning.Tests
                     // Eclair doesn't like, break it into 10 payments
                     if (result.ErrorDetail.StartsWith("in-flight htlcs hold too much value", StringComparison.OrdinalIgnoreCase))
                     {
-                        amount /= 10;
-                        for (int i = 0; i < 10; i++)
-                        {
-                            destInvoice = await dest.CreateInvoice(amount, "EnsureConnectedToDestination", TimeSpan.FromSeconds(5000));
-                            result = await Pay(sender, destInvoice.BOLT11);
-                            if (result.Result != PayResult.Ok)
-                                throw new Exception(result.ErrorDetail);
-                        }
+                        await SendSplitted(amount, sender, dest);
                         break;
                     }
                     // check channels that are in process of opening, to prevent double channel open
@@ -99,7 +93,9 @@ namespace BTCPayServer.Lightning.Tests
                             await cashCow.GenerateAsync(1);
                             await WaitLNSynched(cashCow, sender);
                             await WaitLNSynched(cashCow, dest);
-                            continue;
+
+                            await SendSplitted(amount, sender, dest);
+                            break;
                         }
                         else
                         {
@@ -174,6 +170,18 @@ namespace BTCPayServer.Lightning.Tests
 
                     await Task.Delay(1000);
                 }
+            }
+        }
+
+        private static async Task SendSplitted(LightMoney amount, ILightningClient sender, ILightningClient dest)
+        {
+            amount /= 10;
+            for (int i = 0; i < 10; i++)
+            {
+                var destInvoice = await dest.CreateInvoice(amount, "EnsureConnectedToDestination", TimeSpan.FromSeconds(5000));
+                var result = await Pay(sender, destInvoice.BOLT11);
+                if (result.Result != PayResult.Ok)
+                    throw new Exception(result.ErrorDetail);
             }
         }
 
