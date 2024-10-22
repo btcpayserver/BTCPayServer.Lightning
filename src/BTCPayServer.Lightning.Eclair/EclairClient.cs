@@ -341,6 +341,8 @@ namespace BTCPayServer.Lightning.Eclair
                 content = new FormUrlEncodedContent(x.Select(pair => pair));
             }
 
+            int retry = 0;
+retry:
             var httpRequest = new HttpRequestMessage
             {
                 Method = HttpMethod.Post,
@@ -350,9 +352,6 @@ namespace BTCPayServer.Lightning.Eclair
             httpRequest.Headers.Accept.Clear();
             httpRequest.Headers.Accept.Add(new MediaTypeWithQualityHeaderValue("application/json"));
             httpRequest.Headers.Authorization = new AuthenticationHeaderValue("Basic", Convert.ToBase64String(Encoding.Default.GetBytes($"{_username ?? string.Empty}:{_password}")));
-
-            int retry = 0;
-            retry:
             try
             {
                 using var rawResult = await _httpClient.SendAsync(httpRequest, cts);
