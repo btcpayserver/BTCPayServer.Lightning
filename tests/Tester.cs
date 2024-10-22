@@ -80,22 +80,22 @@ namespace BTCPayServer.Lightning.Tests
             return new LndHubLightningClient(uri, data.Login, data.Password, Network.RegTest);
         }
 
-		public static IEnumerable<(string Name, ILightningClient Client)> GetLightningClients()
-		{
+        public static IEnumerable<(string Name, ILightningClient Client)> GetLightningClients()
+        {
             // Lightning charge isn't compatible with some breaking changes of Core lightning v23.5
-			// yield return ("Charge (Client)", CreateChargeClient());
-			yield return ("C-Lightning (Client)", CreateCLightningClient());
-			yield return ("LND (Client)", CreateLndClient());
-			yield return ("Eclair (Client)", CreateEclairClient());
+            // yield return ("Charge (Client)", CreateChargeClient());
+            yield return ("C-Lightning (Client)", CreateCLightningClient());
+            yield return ("LND (Client)", CreateLndClient());
+            yield return ("Eclair (Client)", CreateEclairClient());
             yield return ("LNDhub (Client)", CreateLndHubClient().Result);
         }
 
-		public static IEnumerable<(string Name, ILightningClient Customer, ILightningClient Merchant)> GetTestedPairs()
-		{
-			yield return ("C-Lightning", CreateCLightningClient(), CreateCLightningClientDest());
+        public static IEnumerable<(string Name, ILightningClient Customer, ILightningClient Merchant)> GetTestedPairs()
+        {
+            yield return ("C-Lightning", CreateCLightningClient(), CreateCLightningClientDest());
             yield return ("LND", CreateLndClient(), CreateLndClientDest());
             yield return ("Eclair", CreateEclairClient(), CreateEclairClientDest());
             yield return ("LNDhub", CreateLndHubClient().Result, CreateLndHubClientDest().Result);
-		}
-	}
+        }
+    }
 }

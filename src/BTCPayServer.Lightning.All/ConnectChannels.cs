@@ -8,6 +8,7 @@ using Microsoft.Extensions.Logging;
 using NBitcoin;
 using NBitcoin.Logging;
 using NBitcoin.RPC;
+using Newtonsoft.Json.Linq;
 
 namespace BTCPayServer.Lightning.Tests
 {
@@ -50,11 +51,13 @@ namespace BTCPayServer.Lightning.Tests
 
         private static async Task CreateChannel(RPCClient cashCow, ILightningClient sender, ILightningClient dest)
         {
-            // use arbitrary amount to check if channel exists and also push some funds over to the other side
-            var amount = new LightMoney(123456789);
+            // Use arbitrary amount to check if channel exists and also push some funds over to the other side
+            var channelFunding = Money.Satoshis(16777215);
             await WaitLNSynched(cashCow, sender);
             await WaitLNSynched(cashCow, dest);
             var destInfo = await dest.GetInfo();
+
+            var amount = LightMoney.FromUnit(10m, LightMoneyUnit.Satoshi);
             var destInvoice = await dest.CreateInvoice(amount, "EnsureConnectedToDestination", TimeSpan.FromSeconds(5000));
             var payErrors = 0;
 
@@ -68,6 +71,19 @@ namespace BTCPayServer.Lightning.Tests
                 }
                 if (result.Result == PayResult.CouldNotFindRoute || result.Result == PayResult.Error || result.Result == PayResult.Unknown && result.ErrorDetail.StartsWith("not enough balance"))
                 {
+                    // Eclair doesn't like, break it into 10 payments
+                    if (result.ErrorDetail.StartsWith("in-flight htlcs hold too much value", StringComparison.OrdinalIgnoreCase))
+                    {
+                        amount /= 10;
+                        for (int i = 0; i < 10; i++)
+                        {
+                            destInvoice = await dest.CreateInvoice(amount, "EnsureConnectedToDestination", TimeSpan.FromSeconds(5000));
+                            result = await Pay(sender, destInvoice.BOLT11);
+                            if (result.Result != PayResult.Ok)
+                                throw new Exception(result.ErrorDetail);
+                        }
+                        break;
+                    }
                     // check channels that are in process of opening, to prevent double channel open
                     await Task.Delay(100);
                     var pendingChannels = await sender.ListChannels();
@@ -102,7 +118,7 @@ namespace BTCPayServer.Lightning.Tests
                     var openChannel = await sender.OpenChannel(new OpenChannelRequest()
                     {
                         NodeInfo = destInfo.NodeInfoList[0],
-                        ChannelAmount = Money.Satoshis(16777215),
+                        ChannelAmount = channelFunding,
                         FeeRate = new FeeRate(1UL, 1)
                     });
                     Logs.LogInformation($"Channel opening result: {openChannel.Result}");
@@ -143,6 +159,12 @@ namespace BTCPayServer.Lightning.Tests
                         await WaitLNSynched(cashCow, sender);
                         await WaitLNSynched(cashCow, dest);
                         await Task.Delay(500);
+                    }
+                    if (openChannel.Result is OpenChannelResult.Ok or OpenChannelResult.NeedMoreConf)
+                    {
+                        // Push 50% of the channel funding to the other side
+                        amount = LightMoney.FromUnit(channelFunding.ToDecimal(MoneyUnit.Satoshi) * 0.5m, LightMoneyUnit.Satoshi);
+                        destInvoice = await dest.CreateInvoice(amount, "EnsureConnectedToDestination", TimeSpan.FromSeconds(5000));
                     }
                 }
                 else
