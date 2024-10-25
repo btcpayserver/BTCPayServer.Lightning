@@ -1,6 +1,7 @@
 using System;
 using System.Collections.Generic;
 using System.Linq;
+using System.Net.Http.Headers;
 using System.Text;
 using System.Threading;
 using System.Threading.Tasks;
@@ -55,7 +56,7 @@ namespace BTCPayServer.Lightning.Tests
             var channelCapacity = Money.Satoshis(16777215);
             var channelFunding = LightMoney.FromUnit(channelCapacity.ToDecimal(MoneyUnit.Satoshi) * 0.1m, LightMoneyUnit.Satoshi);
 
-			await WaitLNSynched(cashCow, sender);
+            await WaitLNSynched(cashCow, sender);
             await WaitLNSynched(cashCow, dest);
 
             var destInfo = await dest.GetInfo();
@@ -153,7 +154,15 @@ namespace BTCPayServer.Lightning.Tests
                     {
                         // Push 10% of the channel funding to the other side
                         var fundInvoice = await dest.CreateInvoice(channelFunding, "Funding", TimeSpan.FromSeconds(5000));
+                        int retry = 0;
+retry:
                         var r = await Pay(sender, fundInvoice.BOLT11);
+                        if (r.Result == PayResult.CouldNotFindRoute && retry < 10)
+                        {
+                            retry++;
+                            await Task.Delay(100 * retry);
+                            goto retry;
+                        }
                         if (r.Result != PayResult.Ok)
                         {
                             var str = $"Failed to push funds to the other side: {r.Result} {r.ErrorDetail}";
@@ -179,7 +188,7 @@ namespace BTCPayServer.Lightning.Tests
 retry:
                 try
                 {
-                    return await sender.Pay(payreq, new PayInvoiceParams() { SendTimeout = TimeSpan.FromSeconds(10.0)  }, cts.Token);
+                    return await sender.Pay(payreq, new PayInvoiceParams() { SendTimeout = TimeSpan.FromSeconds(10.0) }, cts.Token);
                 }
                 catch (CLightning.LightningRPCException ex) when (ex.Message.Contains("WIRE_INCORRECT_OR_UNKNOWN_PAYMENT_DETAILS") &&
                                                                   !cts.IsCancellationRequested)

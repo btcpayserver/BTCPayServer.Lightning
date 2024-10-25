@@ -18,6 +18,7 @@ using NBitcoin.RPC;
 using Newtonsoft.Json.Linq;
 using Xunit;
 using Xunit.Abstractions;
+using System.Net.Http.Headers;
 
 namespace BTCPayServer.Lightning.Tests
 {
@@ -1243,7 +1244,15 @@ retry:
             await EnsureConnectedToDestinations(("LNDhub", receiver, dest));
             // Fund the LNDhub account with some sats
             var fundingInvoice = await receiver.CreateInvoice(amount, "FundLndHubWallet", TimeSpan.FromMinutes(1));
+            int retry = 0;
+            retry:
             var resp = await dest.Pay(fundingInvoice.BOLT11);
+            if (resp.Result == PayResult.CouldNotFindRoute && retry < 10)
+            {
+                retry++;
+                await Task.Delay(100 * retry);
+                goto retry;
+            }
             Assert.Equal(PayResult.Ok, resp.Result);
         }
     }
