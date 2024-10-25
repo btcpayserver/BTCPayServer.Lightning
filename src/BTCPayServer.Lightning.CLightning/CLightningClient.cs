@@ -318,11 +318,13 @@ namespace BTCPayServer.Lightning.CLightning
         private async Task<PayResponse> PayAsync(string bolt11, PayInvoiceParams payParams, CancellationToken cancellation = default)
         {
             var isKeysend = bolt11 == null;
-            if (isKeysend && payParams.Destination is null)
-                throw new ArgumentNullException(nameof(payParams.Destination));
-            if (isKeysend && payParams.Amount is null)
-                throw new ArgumentNullException(nameof(payParams.Amount));
-            
+            if (isKeysend)
+            {
+                if (payParams?.Destination is null)
+                    throw new ArgumentNullException(nameof(payParams.Destination));
+                if (payParams?.Amount is null)
+                    throw new ArgumentNullException(nameof(payParams.Amount));
+            }
             bolt11 = bolt11?.Replace("lightning:", "").Replace("LIGHTNING:", "");
                 
             // Pay the invoice - cancel after timeout, potentially caused by hold invoices

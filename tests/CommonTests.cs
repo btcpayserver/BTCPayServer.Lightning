@@ -816,9 +816,9 @@ retry:
         public async Task CanListChannels()
         {
             // for channel values to be in reasonable bounds
-            // The initial funding by `EnsureConnectedToDestinations` is 50/50 (0.16777215/2)
+            // The initial funding by `EnsureConnectedToDestinations` is 90% to the sender, 10% to destination
             var capacity = 0.16777215m;
-            var funding = capacity * 0.5m;
+            var funding = capacity * 0.9m;
             var lowerBound = funding * 0.9m;
             var upperBound = funding * 1.10m;
 

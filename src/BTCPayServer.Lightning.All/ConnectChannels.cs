@@ -52,8 +52,10 @@ namespace BTCPayServer.Lightning.Tests
         private static async Task CreateChannel(RPCClient cashCow, ILightningClient sender, ILightningClient dest)
         {
             // Use arbitrary amount to check if channel exists and also push some funds over to the other side
-            var channelFunding = Money.Satoshis(16777215);
-            await WaitLNSynched(cashCow, sender);
+            var channelCapacity = Money.Satoshis(16777215);
+            var channelFunding = LightMoney.FromUnit(channelCapacity.ToDecimal(MoneyUnit.Satoshi) * 0.1m, LightMoneyUnit.Satoshi);
+
+			await WaitLNSynched(cashCow, sender);
             await WaitLNSynched(cashCow, dest);
 
             var destInfo = await dest.GetInfo();
@@ -72,12 +74,6 @@ namespace BTCPayServer.Lightning.Tests
                 }
                 if (result.Result == PayResult.CouldNotFindRoute || result.Result == PayResult.Error || result.Result == PayResult.Unknown && result.ErrorDetail?.StartsWith("not enough balance") is true)
                 {
-                    // Eclair doesn't like, break it into 10 payments
-                    if (result.ErrorDetail.StartsWith("in-flight htlcs hold too much value", StringComparison.OrdinalIgnoreCase))
-                    {
-                        await SendSplitted(amount, sender, dest);
-                        break;
-                    }
                     // check channels that are in process of opening, to prevent double channel open
                     await Task.Delay(100);
                     var pendingChannels = await sender.ListChannels();
@@ -89,13 +85,10 @@ namespace BTCPayServer.Lightning.Tests
                         {
                             Logs.LogInformation($"Channel to {destInfo.NodeInfoList[0]} is already open(ing)");
                             Logs.LogInformation($"Attempting to reconnect Result: {await sender.ConnectTo(destInfo.NodeInfoList.First())}");
-
                             await cashCow.GenerateAsync(1);
                             await WaitLNSynched(cashCow, sender);
                             await WaitLNSynched(cashCow, dest);
-
-                            await SendSplitted(amount, sender, dest);
-                            break;
+                            continue;
                         }
                         else
                         {
@@ -114,7 +107,7 @@ namespace BTCPayServer.Lightning.Tests
                     var openChannel = await sender.OpenChannel(new OpenChannelRequest()
                     {
                         NodeInfo = destInfo.NodeInfoList[0],
-                        ChannelAmount = channelFunding,
+                        ChannelAmount = channelCapacity,
                         FeeRate = new FeeRate(1UL, 1)
                     });
                     Logs.LogInformation($"Channel opening result: {openChannel.Result}");
@@ -158,9 +151,15 @@ namespace BTCPayServer.Lightning.Tests
                     }
                     if (openChannel.Result is OpenChannelResult.Ok or OpenChannelResult.NeedMoreConf)
                     {
-                        // Push 50% of the channel funding to the other side
-                        amount = LightMoney.FromUnit(channelFunding.ToDecimal(MoneyUnit.Satoshi) * 0.5m, LightMoneyUnit.Satoshi);
-                        destInvoice = await dest.CreateInvoice(amount, "EnsureConnectedToDestination", TimeSpan.FromSeconds(5000));
+                        // Push 10% of the channel funding to the other side
+                        var fundInvoice = await dest.CreateInvoice(channelFunding, "Funding", TimeSpan.FromSeconds(5000));
+                        var r = await Pay(sender, fundInvoice.BOLT11);
+                        if (r.Result != PayResult.Ok)
+                        {
+                            var str = $"Failed to push funds to the other side: {r.Result} {r.ErrorDetail}";
+                            Logs.LogInformation(str);
+                            throw new Exception(str);
+                        }
                     }
                 }
                 else
@@ -170,18 +169,6 @@ namespace BTCPayServer.Lightning.Tests
 
                     await Task.Delay(1000);
                 }
-            }
-        }
-
-        private static async Task SendSplitted(LightMoney amount, ILightningClient sender, ILightningClient dest)
-        {
-            amount /= 10;
-            for (int i = 0; i < 10; i++)
-            {
-                var destInvoice = await dest.CreateInvoice(amount, "EnsureConnectedToDestination", TimeSpan.FromSeconds(5000));
-                var result = await Pay(sender, destInvoice.BOLT11);
-                if (result.Result != PayResult.Ok)
-                    throw new Exception(result.ErrorDetail);
             }
         }
 

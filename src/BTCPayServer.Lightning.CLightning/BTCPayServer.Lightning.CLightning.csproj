@@ -2,7 +2,7 @@
   <Import Project="../Build/Common.csproj"></Import>
   <PropertyGroup>
     <TargetFrameworks>net6.0;netstandard2.0</TargetFrameworks>
-	  <Version>1.6.2</Version>
+	  <Version>1.6.3</Version>
 	  <LangVersion>10</LangVersion>
 	  <PackageId>BTCPayServer.Lightning.CLightning</PackageId>
 	  <Description>Client library for c-lightning to build Lightning Network Apps in C#.</Description>

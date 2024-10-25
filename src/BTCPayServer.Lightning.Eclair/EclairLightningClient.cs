@@ -286,7 +286,9 @@ namespace BTCPayServer.Lightning.Eclair
                                 });
                         case "failed":
                             var failure = sentInfo.Status.Failures.First();
-                            var result = failure.FailureMessage.Contains("route")
+                            var result =
+                                failure.FailureMessage.Contains("route") ||
+                                failure.FailureMessage.StartsWith("in-flight htlcs hold too much value", StringComparison.OrdinalIgnoreCase)
                                 ? PayResult.CouldNotFindRoute
                                 : PayResult.Error;
                             return new PayResponse(result, failure.FailureMessage);
