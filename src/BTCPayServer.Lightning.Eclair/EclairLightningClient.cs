@@ -105,7 +105,8 @@ namespace BTCPayServer.Lightning.Eclair
         public async Task<LightningPayment> GetPayment(string paymentHash, CancellationToken cancellation = default)
         {
             var result = await _eclairClient.GetSentInfo(paymentHash, null, cancellation);
-
+            if (result.Count == 0)
+                return null;
             var sentInfo = result.First();
             var fees = sentInfo.Status.FeesPaid;
             var payment = new LightningPayment

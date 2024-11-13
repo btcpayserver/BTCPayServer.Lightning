@@ -558,6 +558,7 @@ retry:
                 var hash = GetInvoicePaymentHash(invoice).ToString();
                 var payment = await GetInvoicePayment(invoice, test.Customer);
                 await test.Customer.GetPayment(hash);
+                Assert.Null(await test.Customer.GetPayment(new uint256(0).ToString()));
                 Assert.Equal(hash, payment.PaymentHash);
                 Assert.Equal(amount, payment.Amount);
                 Assert.Equal(amount, payment.AmountSent);

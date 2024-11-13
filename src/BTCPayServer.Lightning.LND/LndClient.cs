@@ -79,7 +79,7 @@ namespace BTCPayServer.Lightning.LND
                             else if (line.StartsWith("{\"error\":", StringComparison.OrdinalIgnoreCase))
                             {
                                 var errorString = JObject.Parse(line)["error"].ToString();
-                                var error = _Parent.Deserialize<LndError>(errorString);
+                                var error = _Parent.Deserialize<LNDError>(errorString);
                                 throw new LndException(error);
                             }
                             else
@@ -218,7 +218,7 @@ namespace BTCPayServer.Lightning.LND
                             else if (line.StartsWith("{\"error\":", StringComparison.OrdinalIgnoreCase))
                             {
                                 var errorString = JObject.Parse(line)["error"].ToString();
-                                var error = _Parent.Deserialize<LndError>(errorString);
+                                var error = _Parent.Deserialize<LNDError>(errorString);
                                 throw new LndException(error);
                             }
                             else
@@ -519,9 +519,13 @@ namespace BTCPayServer.Lightning.LND
 
                 return payment;
             }
-            catch (SwaggerException ex) when (ex.AsLNDError() is {} lndError)
+            catch (LndException ex) when (ex.Error is { Code: 5 } lndError)
             {
-                throw new LndException(lndError.Error);
+                return null;
+            }
+            catch (LndException ex) when (ex.Error is { Message: "payment isn't initiated" } lndError)
+            {
+                return null;
             }
         }
 

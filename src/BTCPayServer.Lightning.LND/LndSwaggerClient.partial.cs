@@ -23,7 +23,7 @@ namespace BTCPayServer.Lightning.LND
         {
 
         }
-        public LndException(LndError error) : base(error.Message)
+        public LndException(LNDError error) : base(error.Message)
         {
             if (error == null)
                 throw new ArgumentNullException(nameof(error));
@@ -31,26 +31,14 @@ namespace BTCPayServer.Lightning.LND
         }
 
 
-        private readonly LndError _Error;
-        public LndError Error
+        private readonly LNDError _Error;
+        public LNDError Error
         {
             get
             {
                 return _Error;
             }
         }
-    }
-    // {"grpc_code":2,"http_code":500,"message":"rpc error: code = Unknown desc = expected 1 macaroon, got 0","http_status":"Internal Server Error"}
-    public class LndError
-    {
-        [JsonProperty("grpc_code")]
-        public int GRPCCode { get; set; }
-        [JsonProperty("http_code")]
-        public int HttpCode { get; set; }
-        [JsonProperty("message")]
-        public string Message { get; set; }
-        [JsonProperty("http_status")]
-        public string HttpStatus { get; set; }
     }
     public partial class LndSwaggerClient
     {
