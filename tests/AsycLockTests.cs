@@ -2,6 +2,7 @@ using System;
 using System.Collections.Concurrent;
 using System.Collections.Generic;
 using System.Threading.Tasks;
+using AsyncKeyedLock;
 using BTCPayServer.Lightning.LndHub;
 using Xunit;
 using Xunit.Abstractions;
@@ -19,7 +20,11 @@ public class AsycLockTests
 
         public class Wallet
         {
-            private static AsyncDuplicateLock _lock = new();
+            private static AsyncKeyedLocker<string> _lock = new(o =>
+            {
+                o.PoolSize = 20;
+                o.PoolInitialFill = 1;
+            });
 
             public string Id { get; set; }
             public decimal Balance { get; private set; }
@@ -85,7 +90,11 @@ public class AsycLockTests
         [Fact]
         public async Task LockAsync_MultipleParallelForeach_ShouldNotDuplicateEntries()
         {
-            var lockObj = new AsyncDuplicateLock();
+            var lockObj = new AsyncKeyedLocker<char>(o =>
+            {
+                o.PoolSize = 20;
+                o.PoolInitialFill = 1;
+            });
             var alphabet = "ABCDEFGHIJKLMNOPQRSTUVWXYZ";
             var resultList = new ConcurrentDictionary<string, int>();
             int iterationsPerLetter = 100; // Number of iterations per letter
@@ -93,16 +102,13 @@ public class AsycLockTests
             async Task WriteToList(char letter)
             {
                 while (true)
-
                 {
-                    var release = await lockObj.LockOrBustAsync(letter);
-                    if (release is null)
+                    using (var releaser = await lockObj.LockAsync(letter, 0))
                     {
-                        continue;
-                    }
-
-                    using (release)
-                    {
+                        if (!releaser.EnteredSemaphore)
+                        {
+                            continue;
+                        }
                         try
                         {
                             if (resultList.TryGetValue(letter.ToString(), out var count) &&
