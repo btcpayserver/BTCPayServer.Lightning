@@ -2,7 +2,7 @@
   <Import Project="../Build/Common.csproj"></Import>
   <PropertyGroup>
     <TargetFrameworks>net6.0;netstandard2.0</TargetFrameworks>
-	  <Version>1.5.1</Version>
+	  <Version>1.5.2</Version>
 	  <LangVersion>10</LangVersion>
 	  <PackageId>BTCPayServer.Lightning.Charge</PackageId>
 	  <Description>Client library for lightning charge to build Lightning Network Apps in C#.</Description>
@@ -11,10 +11,6 @@
     <PackageLicenseExpression>MIT</PackageLicenseExpression>
 	  <PackageTags>lightning;bitcoin;clightning;charge;lapps</PackageTags>
   </PropertyGroup>
-
-  <ItemGroup>
-    <PackageReference Include="System.Net.WebSockets.Client" Version="4.3.2" />
-  </ItemGroup>
 
   <ItemGroup>
     <ProjectReference Include="..\BTCPayServer.Lightning.CLightning\BTCPayServer.Lightning.CLightning.csproj" />

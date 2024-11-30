@@ -2,7 +2,7 @@
   <Import Project="../Build/Common.csproj"></Import>
 	<PropertyGroup>
 		<TargetFrameworks>net6.0;netstandard2.0</TargetFrameworks>
-		<Version>1.5.5</Version>
+		<Version>1.5.6</Version>
 		<LangVersion>10</LangVersion>
 		<PackageId>BTCPayServer.Lightning.LND</PackageId>
 		<Description>Client library for LND to build Lightning Network Apps in C#.</Description>

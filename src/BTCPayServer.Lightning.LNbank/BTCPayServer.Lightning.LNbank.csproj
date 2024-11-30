@@ -2,7 +2,7 @@
     <Import Project="../Build/Common.csproj"></Import>
     <PropertyGroup>
         <TargetFrameworks>net6.0;netstandard2.0</TargetFrameworks>
-        <Version>1.5.2</Version>
+        <Version>1.5.3</Version>
         <PackageId>BTCPayServer.Lightning.LNBank</PackageId>
         <Description>Client library for LNBank to build Lightning Network Apps in C#.</Description>
         <PackageProjectUrl>https://github.com/btcpayserver/BTCPayServer.Lightning</PackageProjectUrl>
@@ -17,7 +17,7 @@
     </ItemGroup>
 
     <ItemGroup>
-      <PackageReference Include="Microsoft.AspNetCore.SignalR.Client" Version="8.0.0" />
+      <PackageReference Include="Microsoft.AspNetCore.SignalR.Client" Version="8.0.11" />
     </ItemGroup>
 
 </Project>

@@ -2,7 +2,7 @@
     <Import Project="../Build/Common.csproj"></Import>
     <PropertyGroup>
         <TargetFrameworks>net6.0;netstandard2.0</TargetFrameworks>
-        <Version>1.5.2</Version>
+        <Version>1.5.3</Version>
         <PackageId>BTCPayServer.Lightning.LNDhub</PackageId>
         <Description>Client library for BlueWallet LNDhub to build Lightning Network Apps in C#.</Description>
         <PackageProjectUrl>https://github.com/btcpayserver/BTCPayServer.Lightning</PackageProjectUrl>
@@ -18,7 +18,7 @@
     </ItemGroup>
 
     <ItemGroup>
-      <PackageReference Include="System.Threading.Channels" Version="8.0.0" />
+      <PackageReference Condition="'$(TargetFramework)' == 'netstandard2.0'" Include="System.Threading.Channels" Version="8.0.0" />
     </ItemGroup>
   <ItemGroup>
     <AssemblyAttribute Include="System.Runtime.CompilerServices.InternalsVisibleTo">
