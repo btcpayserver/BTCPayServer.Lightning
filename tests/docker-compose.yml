@@ -4,7 +4,7 @@ services:
 
   bitcoind:
     restart: unless-stopped
-    image: btcpayserver/bitcoin:24.0
+    image: btcpayserver/bitcoin:27.1
     environment:
       BITCOIN_NETWORK: regtest
       BITCOIN_WALLETDIR: "/data/wallets"
@@ -114,7 +114,7 @@ services:
 
   lnd:
     restart: unless-stopped
-    image: btcpayserver/lnd:v0.18.4-beta
+    image: btcpayserver/lnd:v0.18.5-beta
     environment:
       LND_CHAIN: "btc"
       LND_ENVIRONMENT: "regtest"
@@ -149,7 +149,7 @@ services:
 
   lnd_dest:
     restart: unless-stopped
-    image: btcpayserver/lnd:v0.18.4-beta
+    image: btcpayserver/lnd:v0.18.5-beta
     environment:
       LND_CHAIN: "btc"
       LND_ENVIRONMENT: "regtest"
