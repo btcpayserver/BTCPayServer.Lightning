@@ -4,6 +4,7 @@ using System.Threading.Tasks;
 using BTCPayServer.Lightning.Charge;
 using BTCPayServer.Lightning.CLightning;
 using BTCPayServer.Lightning.Eclair;
+using BTCPayServer.Lightning.Phoenixd;
 using BTCPayServer.Lightning.LND;
 using BTCPayServer.Lightning.LndHub;
 using NBitcoin;
@@ -64,6 +65,18 @@ namespace BTCPayServer.Lightning.Tests
             return new EclairLightningClient(new Uri(host), "bukkake", Network);
         }
 
+        private static PhoenixdLightningClient CreatePhoenixdClient()
+        {
+            var host = CommonTests.Docker ? "http://phoenixd:9740" : "http://127.0.0.1:9740";
+            return new PhoenixdLightningClient(new Uri(host), "3mNJiKf7GEd0sYC", Network);
+        }
+
+        private static PhoenixdLightningClient CreatePhoenixdClientDest()
+        {
+            var host = CommonTests.Docker ? "http://phoenixd_dest:9740" : "http://127.0.0.1:9740";
+            return new PhoenixdLightningClient(new Uri(host), "3mNJiKf7GEd0sYC", Network);
+        }
+
         private static async Task<LndHubLightningClient> CreateLndHubClient()
         {
             var uri = new Uri(CommonTests.Docker ? "http://lndhub:3000" : "http://127.0.0.1:42923");
@@ -85,6 +98,7 @@ namespace BTCPayServer.Lightning.Tests
             yield return ("C-Lightning (Client)", CreateCLightningClient());
             yield return ("LND (Client)", CreateLndClient());
             yield return ("Eclair (Client)", CreateEclairClient());
+            yield return ("Phoenixd (Client)", CreatePhoenixdClient());
             yield return ("LNDhub (Client)", CreateLndHubClient().Result);
         }
 
@@ -93,6 +107,7 @@ namespace BTCPayServer.Lightning.Tests
             yield return ("C-Lightning", CreateCLightningClient(), CreateCLightningClientDest());
             yield return ("LND", CreateLndClient(), CreateLndClientDest());
             yield return ("Eclair", CreateEclairClient(), CreateEclairClientDest());
+            yield return ("Phoenixd", CreatePhoenixdClient(), CreatePhoenixdClientDest());
             yield return ("LNDhub", CreateLndHubClient().Result, CreateLndHubClientDest().Result);
         }
     }

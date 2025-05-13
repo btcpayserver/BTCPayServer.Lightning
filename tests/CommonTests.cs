@@ -11,6 +11,7 @@ using System.Threading.Tasks;
 using BTCPayServer.Lightning.Charge;
 using BTCPayServer.Lightning.CLightning;
 using BTCPayServer.Lightning.Eclair;
+using BTCPayServer.Lightning.Phoenixd;
 using BTCPayServer.Lightning.LND;
 using BTCPayServer.Lightning.LndHub;
 using NBitcoin.Crypto;
@@ -174,14 +175,16 @@ namespace BTCPayServer.Lightning.Tests
                     "type=charge;server=http://api-token:foiewnccewuify@charge:9112;allowinsecure=true",
                     "type=lnd-rest;server=http://lnd_dest:8080;allowinsecure=true",
                     "type=clightning;server=tcp://lightningd:9835",
-                    "type=eclair;server=http://eclair:8080;password=bukkake"
+                    "type=eclair;server=http://eclair:8080;password=bukkake",
+                    "type=phoenixd;server=http://phoenixd:9740;password=3mNJiKf7GEd0sYC"
                 }
                 : new List<string>
                 {
                     "type=charge;server=http://api-token:foiewnccewuify@127.0.0.1:37462;allowinsecure=true",
                     "type=lnd-rest;server=http://127.0.0.1:42802;allowinsecure=true",
                     "type=clightning;server=tcp://127.0.0.1:48532",
-                    "type=eclair;server=http://127.0.0.1:4570;password=bukkake"
+                    "type=eclair;server=http://127.0.0.1:4570;password=bukkake",
+                    "type=phoenixd;server=http://127.0.0.1:9740;password=3mNJiKf7GEd0sYC"
                 };
 
             // LNDhub needs an account first
@@ -283,6 +286,7 @@ namespace BTCPayServer.Lightning.Tests
                     case LndClient _:
                     case CLightningClient _:
                     case EclairLightningClient _:
+                    case PhoenixdLightningClient _:
                         balance = await client.GetBalance();
                         // onchain
                         Assert.True(balance.OnchainBalance.Confirmed > 0L);
@@ -345,6 +349,7 @@ namespace BTCPayServer.Lightning.Tests
                 {
                     case LndClient _:
                     case EclairLightningClient _:
+                    case PhoenixdLightningClient _:
                         var response = await client.Client.Pay(invoice.BOLT11);
                         Assert.Equal(PayResult.CouldNotFindRoute, response.Result);
                         break;
@@ -411,6 +416,7 @@ namespace BTCPayServer.Lightning.Tests
                     case LndClient _:
                     case CLightningClient _:
                     case EclairLightningClient _:
+                    case PhoenixdLightningClient _:
                         var response = await src.Pay(param);
                         Assert.Equal(PayResult.Ok, response.Result);
                         Assert.Null(response.ErrorDetail);
