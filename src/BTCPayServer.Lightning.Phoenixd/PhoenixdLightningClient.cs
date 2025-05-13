@@ -255,15 +255,9 @@ namespace BTCPayServer.Lightning.Phoenixd
                     return new PayResponse(PayResult.Error, info.Reason);
                 }
             }
-            catch (PhoenixdClient.PhoenixdApiException exception)
+            catch (Exception)
             {
-                return new PayResponse(PayResult.Error, exception.Message);
-            }
-            catch (Exception exception)
-            {
-                return cts.Token.IsCancellationRequested
-                    ? new PayResponse(PayResult.Unknown)
-                    : new PayResponse(PayResult.Error, exception.Message);
+                return new PayResponse(PayResult.Unknown);
             }
             return new PayResponse(PayResult.Unknown);
         }
