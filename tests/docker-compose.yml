@@ -271,11 +271,9 @@ services:
     image: acinq/phoenixd:0.6.0
     networks:
       - default
-    command: ["--seed-path=/run/secrets/phoenixd_seed", "--http-password=3mNJiKf7GEd0sYC", "--chain=testnet"]
+    command: ["--http-password=3mNJiKf7GEd0sYC", "--chain=testnet"]
     volumes:
       - "phoenixd_dir:/phoenix/.phoenix"
-    secrets:
-      - phoenixd_seed
     expose:
       - "9740"
 
@@ -285,11 +283,9 @@ services:
     image: acinq/phoenixd:0.6.0
     networks:
       - default
-    command: ["--seed-path=/run/secrets/phoenixd_dest_seed", "--http-password=3mNJiKf7GEd0sYC", "--chain=testnet"]
+    command: ["--http-password=3mNJiKf7GEd0sYC", "--chain=testnet"]
     volumes:
       - "phoenixd_dest_dir:/phoenix/.phoenix"
-    secrets:
-      - phoenixd_dest_seed
     expose:
       - "9740"
 
@@ -413,9 +409,3 @@ volumes:
   lndhub_redisdir:
   lndhub_dest_dir:
   lndhub_dest_redisdir:
-
-secrets:
-  phoenixd_seed:
-    file: ~/.phoenix/seed.dat
-  phoenixd_dest_seed:
-    file: ~/.phoenix/seed.dat
