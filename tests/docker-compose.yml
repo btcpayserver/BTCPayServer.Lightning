@@ -265,34 +265,6 @@ services:
     links:
       - bitcoind
 
-  phoenixd:
-    restart: unless-stopped
-    stop_signal: SIGKILL
-    image: acinq/phoenixd:0.6.0
-    networks:
-      - default
-    command: ["--seed-path=/run/secrets/phoenixd_seed", "--http-password=3mNJiKf7GEd0sYC", "--chain=testnet"]
-    volumes:
-      - "phoenixd_dir:/phoenix/.phoenix"
-    secrets:
-      - phoenixd_seed
-    expose:
-      - "9740"
-
-  phoenixd_dest:
-    restart: unless-stopped
-    stop_signal: SIGKILL
-    image: acinq/phoenixd:0.6.0
-    networks:
-      - default
-    command: ["--seed-path=/run/secrets/phoenixd_dest_seed", "--http-password=3mNJiKf7GEd0sYC", "--chain=testnet"]
-    volumes:
-      - "phoenixd_dest_dir:/phoenix/.phoenix"
-    secrets:
-      - phoenixd_dest_seed
-    expose:
-      - "9740"
-
   lndhub_redis:
     restart: unless-stopped
     image: "redis:6.2.2-buster@sha256:e10f55f92478715698a2cef97c2bbdc48df2a05081edd884938903aa60df6396"
@@ -350,8 +322,6 @@ services:
       - charge
       - eclair
       - eclair_dest
-      - phoenixd
-      - phoenixd_dest
       - lightningd
       - lightningd_dest
       - lnd
@@ -372,8 +342,6 @@ services:
       - charge
       - eclair
       - eclair_dest
-      - phoenixd
-      - phoenixd_dest
       - lightningd
       - lightningd_dest
       - lnd
@@ -387,8 +355,6 @@ services:
       - charge
       - eclair
       - eclair_dest
-      - phoenixd
-      - phoenixd_dest
       - lightningd
       - lightningd_dest
       - lnd
@@ -407,15 +373,7 @@ volumes:
   lightningd_dest_dir:
   eclair_dir:
   eclair_dest_dir:
-  phoenixd_dir:
-  phoenixd_dest_dir:
   lndhub_dir:
   lndhub_redisdir:
   lndhub_dest_dir:
   lndhub_dest_redisdir:
-
-secrets:
-  phoenixd_seed:
-    file: ~/.phoenix/seed.dat
-  phoenixd_dest_seed:
-    file: ~/.phoenix/seed.dat
