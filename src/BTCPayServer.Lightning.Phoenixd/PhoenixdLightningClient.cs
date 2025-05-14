@@ -235,29 +235,39 @@ namespace BTCPayServer.Lightning.Phoenixd
             var timeout = payParams?.SendTimeout ?? PayInvoiceParams.DefaultSendTimeout;
             cts.CancelAfter(timeout);
 
-            try
+            var info = await _PhoenixdClient.PayInvoice(bolt11, payParams?.Amount?.MilliSatoshi / 1000, cts.Token);
+            if (info.PaymentPreimage is not null)
             {
-                var info = await _PhoenixdClient.PayInvoice(bolt11, payParams?.Amount?.MilliSatoshi / 1000, cts.Token);
-                if (info.PaymentPreimage is not null)
-                {
-                    return new PayResponse(PayResult.Ok,
-                        new PayDetails
-                        {
-                            TotalAmount = new LightMoney(info.RecipientAmountSat, LightMoneyUnit.Satoshi),
-                            FeeAmount = new LightMoney(info.RoutingFeeSat, LightMoneyUnit.Satoshi),
-                            PaymentHash = new uint256(info.PaymentHash),
-                            Preimage = new uint256(info.PaymentPreimage),
-                            Status = LightningPaymentStatus.Complete
-                        });
-                }
-                else if (info.Reason is not null)
-                {
-                    return new PayResponse(PayResult.Error, info.Reason);
-                }
+                return new PayResponse(PayResult.Ok,
+                    new PayDetails
+                    {
+                        TotalAmount = new LightMoney(info.RecipientAmountSat, LightMoneyUnit.Satoshi),
+                        FeeAmount = new LightMoney(info.RoutingFeeSat, LightMoneyUnit.Satoshi),
+                        PaymentHash = new uint256(info.PaymentHash),
+                        Preimage = new uint256(info.PaymentPreimage),
+                        Status = LightningPaymentStatus.Complete
+                    });
             }
-            catch (Exception)
+            else if (info.Reason is not null)
             {
-                return new PayResponse(PayResult.Unknown);
+                switch (info.Reason)
+                {
+                    case "this invoice has already been paid":
+                        return new PayResponse(PayResult.Ok);
+                    case "another payment is in progress for that invoice":
+                    case "payment attempts exhausted without success":
+                    case "wallet restarted while a payment was ongoing":
+                        return new PayResponse(PayResult.Unknown, info.Reason);
+                    case "channel is not connected yet, please retry when connected":
+                    case "channel creation is in progress, please retry when ready":
+                    case "channel closing is in progress, please retry when a new channel has been created":
+                    case "payment could not be sent through existing channels, check individual failures for more details":
+                    case "not enough funds in wallet to afford payment":
+                    case "the recipient was offline or did not have enough liquidity to receive the payment":
+                        return new PayResponse(PayResult.CouldNotFindRoute, info.Reason);
+                    default:
+                        return new PayResponse(PayResult.Error, info.Reason);
+                }
             }
             return new PayResponse(PayResult.Unknown);
         }
