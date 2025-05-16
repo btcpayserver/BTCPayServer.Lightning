@@ -254,10 +254,6 @@ namespace BTCPayServer.Lightning.Phoenixd
                 {
                     case "this invoice has already been paid":
                         return new PayResponse(PayResult.Ok);
-                    case "another payment is in progress for that invoice":
-                    case "payment attempts exhausted without success":
-                    case "wallet restarted while a payment was ongoing":
-                        return new PayResponse(PayResult.Unknown, info.Reason);
                     case "channel is not connected yet, please retry when connected":
                     case "channel creation is in progress, please retry when ready":
                     case "channel closing is in progress, please retry when a new channel has been created":
@@ -266,7 +262,7 @@ namespace BTCPayServer.Lightning.Phoenixd
                     case "the recipient was offline or did not have enough liquidity to receive the payment":
                         return new PayResponse(PayResult.CouldNotFindRoute, info.Reason);
                     default:
-                        return new PayResponse(PayResult.Error, info.Reason);
+                        return new PayResponse(PayResult.Unknown, info.Reason);
                 }
             }
             return new PayResponse(PayResult.Unknown);
