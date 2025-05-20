@@ -1,0 +1,19 @@
+<Project Sdk="Microsoft.NET.Sdk">
+  <Import Project="../Build/Common.csproj"></Import>
+  <PropertyGroup>
+    <TargetFrameworks>net6.0;netstandard2.0</TargetFrameworks>
+    <Version>1.5.7</Version>
+    <LangVersion>10</LangVersion>
+    <PackageId>BTCPayServer.Lightning.Phoenixd</PackageId>
+    <Description>Client library for Phoenixd to build Lightning Network Apps in C#.</Description>
+    <PackageProjectUrl>https://github.com/btcpayserver/BTCPayServer.Lightning</PackageProjectUrl>
+    <RepositoryUrl>https://github.com/btcpayserver/BTCPayServer.Lightning</RepositoryUrl>
+    <PackageLicenseExpression>MIT</PackageLicenseExpression>
+    <PackageTags>lightning;bitcoin;eclair;lapps</PackageTags>
+  </PropertyGroup>
+
+    <ItemGroup>
+      <ProjectReference Include="..\BTCPayServer.Lightning.Common\BTCPayServer.Lightning.Common.csproj" />
+    </ItemGroup>
+
+</Project>

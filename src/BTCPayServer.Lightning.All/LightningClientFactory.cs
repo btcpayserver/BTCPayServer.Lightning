@@ -4,6 +4,7 @@ using System.Linq;
 using BTCPayServer.Lightning.Charge;
 using BTCPayServer.Lightning.CLightning;
 using BTCPayServer.Lightning.Eclair;
+using BTCPayServer.Lightning.Phoenixd;
 using BTCPayServer.Lightning.LNbank;
 using BTCPayServer.Lightning.LND;
 using BTCPayServer.Lightning.LNDhub;
@@ -17,8 +18,9 @@ public class LightningClientFactory : ILightningClientFactory
         new ILightningConnectionStringHandler[]
         {
             new ChargeLightningConnectionStringHandler(), new CLightningConnectionStringHandler(),
-            new EclairConnectionStringHandler(), new LndConnectionStringHandler(),
-            new LndHubConnectionStringHandler(), new LNbankConnectionStringHandler()
+            new EclairConnectionStringHandler(), new PhoenixdConnectionStringHandler(),
+            new LndConnectionStringHandler(), new LndHubConnectionStringHandler(),
+            new LNbankConnectionStringHandler()
         };
 
     private readonly Network _network;
