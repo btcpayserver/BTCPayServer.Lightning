@@ -27,8 +27,7 @@ namespace BTCPayServer.Lightning.Phoenixd
 
             var normalized = new string(input
                 .ToLowerInvariant()
-                .Where(c => c >= 'a' && c <= 'z')
-                .ToArray());
+                .Substring(0, 1));
 
             return normalized;
         }
