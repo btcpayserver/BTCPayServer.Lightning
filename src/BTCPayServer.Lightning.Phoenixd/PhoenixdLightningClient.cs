@@ -25,12 +25,8 @@ namespace BTCPayServer.Lightning.Phoenixd
             if (string.IsNullOrWhiteSpace(input))
                 return string.Empty;
 
-            var normalized = new string(input
-                .ToLowerInvariant()
-                .Where(c => c >= 'a' && c <= 'z')
-                .ToArray());
-
-            return normalized;
+            // Converts chain name to a single letter to distinguish main chains (for example Main/mainnet from testnet, but not testnet3 from testnet4)
+            return input.Substring(0, 1).ToLowerInvariant();
         }
 
         private async Task<LightningInvoice> ToLightningInvoice(string PaymentHash, CancellationToken cancellation)
