@@ -28,10 +28,10 @@ namespace BTCPayServer.Lightning
         public LiquidityStatus Liquidity_Status { get; set; }
 
         [JsonConverter(typeof(LightMoneyJsonConverter))]
-        public LightMoney Active_Inbound_Satoshis { get; set; }
+        public LightMoney Active_Inbound_Satoshis { get; set; } = LightMoney.Zero;
 
         [JsonConverter(typeof(LightMoneyJsonConverter))]
-        public LightMoney Pending_Inbound_Satoshis { get; set; }
+        public LightMoney Pending_Inbound_Satoshis { get; set; } = LightMoney.Zero;
     }
 
     /// <summary>
@@ -48,9 +48,9 @@ namespace BTCPayServer.Lightning
         /// </summary>
         public static async Task<LiquidityReport?> CheckAsync(
             ILightningClient client,
-            ILogger?         logger      = null,
-            LightMoney?      threshold   = null,
-            CancellationToken token      = default)
+            ILogger? logger = null,
+            LightMoney? threshold = null,
+            CancellationToken token = default)
         {
             var clientTypeName = client.GetType().Name;
             logger?.LogInformation("[Liquidity] CheckAsync started for client type: {ClientType}", clientTypeName);
@@ -59,7 +59,7 @@ namespace BTCPayServer.Lightning
             if (!clientTypeName.Equals("CLightningClient", StringComparison.Ordinal))
             {
                 logger?.LogInformation("[Liquidity] Client is not a CLightningClient. Aborting check.");
-                return null;
+                throw new NotSupportedException("Liquidity check is only supported for CLN");
             }
 
             var min = threshold ?? DefaultThreshold;
@@ -69,20 +69,24 @@ namespace BTCPayServer.Lightning
             {
                 logger?.LogInformation("[Liquidity] Attempting to list channels...");
                 var channels = await client.ListChannels(token);
+
+                if (channels is null)
+                {
+                    logger?.LogWarning("[Liquidity] ListChannels returned null. This can happen if a channel is opening. Aborting check.");
+                    return null;
+                }
+
                 logger?.LogInformation("[Liquidity] Found {ChannelCount} channels.", channels.Length);
-                
-                // For verbose debugging, serialize the whole channel list.
-                logger?.LogInformation("[Liquidity] Channels data: {ChannelsJson}", JsonConvert.SerializeObject(channels));
 
                 // inbound capacity = total – local
-                LightMoney activeInbound  = channels.Where(c => c.IsActive)
+                LightMoney activeInbound = channels.Where(c => c.IsActive)
                                                     .Aggregate(LightMoney.Zero,
                                                                (s, ch) => s + (ch.Capacity - ch.LocalBalance));
 
                 LightMoney pendingInbound = channels.Where(c => !c.IsActive)
                                                     .Aggregate(LightMoney.Zero,
                                                                (s, ch) => s + (ch.Capacity - ch.LocalBalance));
-                
+
                 logger?.LogInformation("[Liquidity] Calculated Active Inbound: {ActiveInbound} sats", activeInbound.MilliSatoshi / 1000);
                 logger?.LogInformation("[Liquidity] Calculated Pending Inbound: {PendingInbound} sats", pendingInbound.MilliSatoshi / 1000);
 
@@ -91,22 +95,21 @@ namespace BTCPayServer.Lightning
                     status = LiquidityStatus.Good;
                 else if (pendingInbound >= min)
                     status = LiquidityStatus.Pending;
-                
+
                 logger?.LogInformation("[Liquidity] Determined liquidity status: {Status}", status);
 
                 var report = new LiquidityReport
                 {
-                    Liquidity_Status          = status,
-                    Active_Inbound_Satoshis   = activeInbound,
-                    Pending_Inbound_Satoshis  = pendingInbound
+                    Liquidity_Status = status,
+                    Active_Inbound_Satoshis = LightMoney.Satoshis(activeInbound.MilliSatoshi / 1000),
+                    Pending_Inbound_Satoshis = LightMoney.Satoshis(pendingInbound.MilliSatoshi / 1000)
                 };
-                
                 logger?.LogInformation("[Liquidity] CheckAsync finished successfully. Returning report.");
                 return report;
             }
             catch (Exception ex)
             {
-                logger?.LogWarning("[Liquidity] CheckAsync failed with exception: {Exception}", ex);
+                logger?.LogWarning("[Liquidity] CheckAsync failed with exception: {ErrorMessage}", ex.Message);
                 return null;
             }
         }
