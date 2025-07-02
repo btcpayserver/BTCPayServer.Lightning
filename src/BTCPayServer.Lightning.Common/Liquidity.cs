@@ -1,3 +1,4 @@
+#nullable enable
 using System;
 using System.Linq;
 using System.Threading;
@@ -51,15 +52,27 @@ namespace BTCPayServer.Lightning
             LightMoney?      threshold   = null,
             CancellationToken token      = default)
         {
+            var clientTypeName = client.GetType().Name;
+            logger?.LogInformation("[Liquidity] CheckAsync started for client type: {ClientType}", clientTypeName);
+
             // Runtime check – keeps Common free of a direct CLightning reference.
-            if (!client.GetType().Name.Equals("CLightningClient", StringComparison.Ordinal))
+            if (!clientTypeName.Equals("CLightningClient", StringComparison.Ordinal))
+            {
+                logger?.LogInformation("[Liquidity] Client is not a CLightningClient. Aborting check.");
                 return null;
+            }
 
             var min = threshold ?? DefaultThreshold;
+            logger?.LogInformation("[Liquidity] Using inbound liquidity threshold of {Threshold} sats", min.MilliSatoshi / 1000);
 
             try
             {
+                logger?.LogInformation("[Liquidity] Attempting to list channels...");
                 var channels = await client.ListChannels(token);
+                logger?.LogInformation("[Liquidity] Found {ChannelCount} channels.", channels.Length);
+                
+                // For verbose debugging, serialize the whole channel list.
+                logger?.LogInformation("[Liquidity] Channels data: {ChannelsJson}", JsonConvert.SerializeObject(channels));
 
                 // inbound capacity = total – local
                 LightMoney activeInbound  = channels.Where(c => c.IsActive)
@@ -69,24 +82,31 @@ namespace BTCPayServer.Lightning
                 LightMoney pendingInbound = channels.Where(c => !c.IsActive)
                                                     .Aggregate(LightMoney.Zero,
                                                                (s, ch) => s + (ch.Capacity - ch.LocalBalance));
+                
+                logger?.LogInformation("[Liquidity] Calculated Active Inbound: {ActiveInbound} sats", activeInbound.MilliSatoshi / 1000);
+                logger?.LogInformation("[Liquidity] Calculated Pending Inbound: {PendingInbound} sats", pendingInbound.MilliSatoshi / 1000);
 
                 var status = LiquidityStatus.Bad;
                 if (activeInbound >= min)
                     status = LiquidityStatus.Good;
                 else if (pendingInbound >= min)
                     status = LiquidityStatus.Pending;
+                
+                logger?.LogInformation("[Liquidity] Determined liquidity status: {Status}", status);
 
-                return new LiquidityReport
+                var report = new LiquidityReport
                 {
                     Liquidity_Status          = status,
                     Active_Inbound_Satoshis   = activeInbound,
                     Pending_Inbound_Satoshis  = pendingInbound
                 };
+                
+                logger?.LogInformation("[Liquidity] CheckAsync finished successfully. Returning report.");
+                return report;
             }
             catch (Exception ex)
             {
-                // Works with the ILogger overloads available in netstandard2.0.
-                logger?.LogWarning("[Liquidity] check failed: {Exception}", ex);
+                logger?.LogWarning("[Liquidity] CheckAsync failed with exception: {Exception}", ex);
                 return null;
             }
         }
