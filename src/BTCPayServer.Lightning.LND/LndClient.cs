@@ -28,10 +28,13 @@ namespace BTCPayServer.Lightning.LND
             Stream _Body;
             StreamReader _Reader;
             Task _ListenLoop;
+            private readonly Action<string> _log;
+            private const int MaxConsecutiveNullReads = 5;
 
-            public LndInvoiceClientSession(LndSwaggerClient parent)
+            public LndInvoiceClientSession(LndSwaggerClient parent, Action<string> log)
             {
                 _Parent = parent;
+                _log = log;
             }
 
             public Task StartListening()
@@ -65,11 +68,13 @@ namespace BTCPayServer.Lightning.LND
                     _Response = await _Client.SendAsync(request, HttpCompletionOption.ResponseHeadersRead, _Cts.Token);
                     _Body = await _Response.Content.ReadAsStreamAsync();
                     _Reader = new StreamReader(_Body);
+                    var consecutiveNullReads = 0;
                     while (!_Cts.IsCancellationRequested)
                     {
                         string line = await WithCancellation(_Reader.ReadLineAsync(), _Cts.Token);
                         if (line != null)
                         {
+                            consecutiveNullReads = 0;
                             if (line.StartsWith("{\"result\":", StringComparison.OrdinalIgnoreCase))
                             {
                                 var invoiceString = JObject.Parse(line)["result"].ToString();
@@ -86,6 +91,13 @@ namespace BTCPayServer.Lightning.LND
                             {
                                 throw new LndException("Unknown result from LND: " + line);
                             }
+                        }
+                        else
+                        {
+                            consecutiveNullReads++;
+                            _log($"LND invoice stream returned null (read #{consecutiveNullReads} of {MaxConsecutiveNullReads})");
+                            if (consecutiveNullReads >= MaxConsecutiveNullReads)
+                                break;
                         }
                     }
                 }
@@ -166,11 +178,14 @@ namespace BTCPayServer.Lightning.LND
             StreamReader _Reader;
             Task _ListenLoop;
             private readonly string _PaymentHash;
+            private readonly Action<string> _log;
+            private const int MaxConsecutiveNullReads = 5;
 
-            public LndPaymentClientSession(LndSwaggerClient parent, string paymentHash)
+            public LndPaymentClientSession(LndSwaggerClient parent, string paymentHash, Action<string> log)
             {
                 _Parent = parent;
                 _PaymentHash = paymentHash;
+                _log = log;
             }
 
             public Task StartListening()
@@ -204,11 +219,13 @@ namespace BTCPayServer.Lightning.LND
                     _Response = await _Client.SendAsync(request, HttpCompletionOption.ResponseHeadersRead, _Cts.Token);
                     _Body = await _Response.Content.ReadAsStreamAsync();
                     _Reader = new StreamReader(_Body);
+                    var consecutiveNullReads = 0;
                     while (!_Cts.IsCancellationRequested)
                     {
                         var line = await WithCancellation(_Reader.ReadLineAsync(), _Cts.Token);
                         if (line != null)
                         {
+                            consecutiveNullReads = 0;
                             if (line.StartsWith("{\"result\":", StringComparison.OrdinalIgnoreCase))
                             {
                                 var paymentString = JObject.Parse(line)["result"].ToString();
@@ -225,6 +242,13 @@ namespace BTCPayServer.Lightning.LND
                             {
                                 throw new LndException("Unknown result from LND: " + line);
                             }
+                        }
+                        else
+                        {
+                            consecutiveNullReads++;
+                            _log($"LND payment stream returned null (read #{consecutiveNullReads} of {MaxConsecutiveNullReads})");
+                            if (consecutiveNullReads >= MaxConsecutiveNullReads)
+                                break;
                         }
                     }
                 }
@@ -307,6 +331,8 @@ namespace BTCPayServer.Lightning.LND
         {
 
         }
+
+        public Action<string> Log { get; set; }
 
         public Network Network
         {
@@ -513,7 +539,7 @@ namespace BTCPayServer.Lightning.LND
         {
             try
             {
-                using var session = new LndPaymentClientSession(SwaggerClient, paymentHash);
+                using var session = new LndPaymentClientSession(SwaggerClient, paymentHash, Log);
                 await session.StartListening();
                 var payment = await session.WaitPayment(cancellation);
 
@@ -550,7 +576,7 @@ namespace BTCPayServer.Lightning.LND
 
         async Task<ILightningInvoiceListener> ILightningClient.Listen(CancellationToken cancellation)
         {
-            var session = new LndInvoiceClientSession(SwaggerClient);
+            var session = new LndInvoiceClientSession(SwaggerClient, Log);
             await session.StartListening();
             return session;
         }
