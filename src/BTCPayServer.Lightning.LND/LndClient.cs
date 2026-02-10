@@ -34,7 +34,7 @@ namespace BTCPayServer.Lightning.LND
             public LndInvoiceClientSession(LndSwaggerClient parent, Action<string> log)
             {
                 _Parent = parent;
-                _log = log;
+                _log = log ?? ((_) => { });
             }
 
             public Task StartListening()
@@ -185,7 +185,7 @@ namespace BTCPayServer.Lightning.LND
             {
                 _Parent = parent;
                 _PaymentHash = paymentHash;
-                _log = log;
+                _log = log ?? ((_) => { });
             }
 
             public Task StartListening()
