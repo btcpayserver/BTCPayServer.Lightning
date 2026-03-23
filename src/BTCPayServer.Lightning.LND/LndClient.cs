@@ -350,12 +350,14 @@ namespace BTCPayServer.Lightning.LND
         }
         public async Task<LightningInvoice> CreateInvoice(CreateInvoiceParams req, CancellationToken cancellation = default)
         {
-            var strAmount = ConvertInv.ToString(req.Amount.ToUnit(LightMoneyUnit.MilliSatoshi));
             var strExpiry = ConvertInv.ToString(Math.Round(req.Expiry.TotalSeconds, 0));
 
             var lndRequest = new LnrpcInvoice
             {
-                ValueMSat = strAmount,
+                // null → field omitted from JSON (NullValueHandling.Ignore) → LND produces amountless bolt11
+                ValueMSat = req.Amount == LightMoney.Zero
+                    ? null
+                    : ConvertInv.ToString(req.Amount.ToUnit(LightMoneyUnit.MilliSatoshi)),
                 Memo = req.Description,
                 Description_hash = req.DescriptionHash?.ToBytes(false),
                 Expiry = strExpiry,
