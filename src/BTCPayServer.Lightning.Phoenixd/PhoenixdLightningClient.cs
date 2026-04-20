@@ -56,7 +56,7 @@ namespace BTCPayServer.Lightning.Phoenixd
                 {
                     lnInvoice.Status = LightningInvoiceStatus.Expired;
                 }
-                lnInvoice.AmountReceived = new LightMoney(info.ReceivedSat, LightMoneyUnit.Satoshi);
+                lnInvoice.AmountReceived = LightMoney.Satoshis(info.ReceivedSat) + new LightMoney(info.Fees, LightMoneyUnit.MilliSatoshi);
                 lnInvoice.Status = info.IsPaid ? LightningInvoiceStatus.Paid : LightningInvoiceStatus.Unpaid;
                 lnInvoice.PaidAt = info.CompletedAt;
                 lnInvoice.Preimage = info.PreImage;
