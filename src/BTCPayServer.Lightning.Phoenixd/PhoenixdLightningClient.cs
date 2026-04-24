@@ -56,6 +56,10 @@ namespace BTCPayServer.Lightning.Phoenixd
                 {
                     lnInvoice.Status = LightningInvoiceStatus.Expired;
                 }
+                // In lightning fees are typically paid by the sender,
+                // but phoenixd charges a fee to the recipient when
+                // e.g. opening a channel. Include fee in AmountReceive
+                // so it's not marked as incomplete.
                 lnInvoice.AmountReceived = LightMoney.Satoshis(info.ReceivedSat) + new LightMoney(info.Fees, LightMoneyUnit.MilliSatoshi);
                 lnInvoice.Status = info.IsPaid ? LightningInvoiceStatus.Paid : LightningInvoiceStatus.Unpaid;
                 lnInvoice.PaidAt = info.CompletedAt;
