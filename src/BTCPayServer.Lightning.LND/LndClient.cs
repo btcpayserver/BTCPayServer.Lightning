@@ -776,9 +776,13 @@ retry:
         private JObject BuildRouterSendRequest(string bolt11, PayInvoiceParams payParams, TimeSpan timeout)
         {
             var req = new JObject();
+            // routerrpc.SendPaymentV2 rejects amt/amt_msat when the invoice already encodes a
+            // non-zero amount, so we may only set amt_msat for amountless invoices (or keysend).
+            var amountAlreadyOnInvoice = false;
             if (!string.IsNullOrEmpty(bolt11))
             {
                 req["payment_request"] = bolt11;
+                amountAlreadyOnInvoice = BOLT11PaymentRequest.Parse(bolt11, Network).MinimumAmount > LightMoney.Zero;
             }
             else
             {
@@ -810,7 +814,7 @@ retry:
             if (feeLimitSat is not null)
                 req["fee_limit_sat"] = feeLimitSat.Value.ToString(CultureInfo.InvariantCulture);
 
-            if (payParams?.Amount?.MilliSatoshi > 0)
+            if (payParams?.Amount?.MilliSatoshi > 0 && !amountAlreadyOnInvoice)
                 req["amt_msat"] = payParams.Amount.MilliSatoshi.ToString(CultureInfo.InvariantCulture);
 
             // We only need the terminal result, so suppress intermediate in-flight updates.
