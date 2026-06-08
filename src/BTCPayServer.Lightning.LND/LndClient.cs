@@ -177,15 +177,44 @@ namespace BTCPayServer.Lightning.LND
             Stream _Body;
             StreamReader _Reader;
             Task _ListenLoop;
-            private readonly string _PaymentHash;
+            private readonly Func<HttpRequestMessage> _requestBuilder;
             private readonly Action<string> _log;
             private const int MaxConsecutiveNullReads = 5;
 
+            // Set from the latest streamed payment result (routerrpc failure_reason enum name),
+            // used by the sender to distinguish a missing route from other failures.
+            public string LastFailureReason { get; private set; }
+
+            // Tracks an existing payment: GET /v2/router/track/{payment_hash} (TrackPaymentV2).
             public LndPaymentClientSession(LndSwaggerClient parent, string paymentHash, Action<string> log)
             {
                 _Parent = parent;
-                _PaymentHash = paymentHash;
                 _log = log ?? ((_) => { });
+                _requestBuilder = () =>
+                {
+                    var hash = paymentHash.HexStringToBase64UrlString();
+                    var request = new HttpRequestMessage(HttpMethod.Get, WithTrailingSlash(_Parent.BaseUrl) + $"v2/router/track/{hash}");
+                    _Parent._Authentication.AddAuthentication(request);
+                    return request;
+                };
+            }
+
+            // Sends a payment: POST /v2/router/send (SendPaymentV2). This replaces the
+            // lnrpc.SendPaymentSync (POST /v1/channels/transactions) endpoint that was
+            // removed in LND 0.21.0.
+            public LndPaymentClientSession(LndSwaggerClient parent, JObject sendRequest, Action<string> log)
+            {
+                _Parent = parent;
+                _log = log ?? ((_) => { });
+                _requestBuilder = () =>
+                {
+                    var request = new HttpRequestMessage(HttpMethod.Post, WithTrailingSlash(_Parent.BaseUrl) + "v2/router/send")
+                    {
+                        Content = new StringContent(sendRequest.ToString(Newtonsoft.Json.Formatting.None), Encoding.UTF8, "application/json")
+                    };
+                    _Parent._Authentication.AddAuthentication(request);
+                    return request;
+                };
             }
 
             public Task StartListening()
@@ -193,9 +222,7 @@ namespace BTCPayServer.Lightning.LND
                 try
                 {
                     _Client = _Parent.CreateHttpClient();
-                    var paymentHash = _PaymentHash.HexStringToBase64UrlString();
-                    var request = new HttpRequestMessage(HttpMethod.Get, WithTrailingSlash(_Parent.BaseUrl) + $"v2/router/track/{paymentHash}");
-                    _Parent._Authentication.AddAuthentication(request);
+                    var request = _requestBuilder();
                     _ListenLoop = ListenLoop(request);
                 }
                 catch
@@ -228,8 +255,9 @@ namespace BTCPayServer.Lightning.LND
                             consecutiveNullReads = 0;
                             if (line.StartsWith("{\"result\":", StringComparison.OrdinalIgnoreCase))
                             {
-                                var paymentString = JObject.Parse(line)["result"].ToString();
-                                LnrpcPayment parsed = _Parent.Deserialize<LnrpcPayment>(paymentString);
+                                var resultToken = JObject.Parse(line)["result"];
+                                LastFailureReason = resultToken["failure_reason"]?.ToString();
+                                LnrpcPayment parsed = _Parent.Deserialize<LnrpcPayment>(resultToken.ToString());
                                 await _Payments.Writer.WriteAsync(ConvertLndPayment(parsed), _Cts.Token);
                             }
                             else if (line.StartsWith("{\"error\":", StringComparison.OrdinalIgnoreCase))
@@ -638,6 +666,7 @@ namespace BTCPayServer.Lightning.LND
 
             payment.Status = resp.Status switch
             {
+                "INITIATED" => LightningPaymentStatus.Pending,
                 "IN_FLIGHT" => LightningPaymentStatus.Pending,
                 "SUCCEEDED" => LightningPaymentStatus.Complete,
                 "FAILED" => LightningPaymentStatus.Failed,
@@ -654,119 +683,80 @@ namespace BTCPayServer.Lightning.LND
             using var cts = CancellationTokenSource.CreateLinkedTokenSource(cancellation);
             var timeout = payParams?.SendTimeout ?? PayInvoiceParams.DefaultSendTimeout;
             cts.CancelAfter(timeout);
-            
-retry:
+
             var retryCount = 0;
-            
+retry:
             try
             {
-                var req = !string.IsNullOrEmpty(bolt11)
-                    // regular payment request
-                    ? new LnrpcSendRequest
-                    {
-                        Payment_request = bolt11
-                    }
-                    // keysend payment
-                    : new LnrpcSendRequest
-                    {
-                        Dest = Encoders.Base64.EncodeData(payParams.Destination.ToBytes()),
-                        Payment_hash = Encoders.Base64.EncodeData(payParams.PaymentHash.ToBytes()),
-                        Dest_custom_records = payParams.CustomRecords
-                    };
-                
-                if (payParams?.MaxFeePercent > 0)
+                var sendRequest = BuildRouterSendRequest(bolt11, payParams, timeout);
+                using var session = new LndPaymentClientSession(SwaggerClient, sendRequest, Log);
+                await session.StartListening();
+                var payment = await session.WaitPayment(cts.Token);
+
+                switch (payment?.Status)
                 {
-                    req.Fee_limit ??= new LnrpcFeeLimit();
-                    if (payParams.MaxFeePercent.Value < 1.0) // doesn't support sub 1% fee, so we calculate ourself
-                    {
-                        var satValue = BOLT11PaymentRequest.Parse(bolt11, Network).MinimumAmount.ToDecimal(LightMoneyUnit.Satoshi);
-                        req.Fee_limit.Fixed = (long)((satValue * (decimal)payParams.MaxFeePercent.Value) / 100m);
-                    }
-                    else
-                        req.Fee_limit.Percent = ((int)Math.Round(payParams.MaxFeePercent.Value));
-                }
-                if (payParams?.MaxFeeFlat?.Satoshi > 0)
-                {
-                    req.Fee_limit ??= new LnrpcFeeLimit();
-                    req.Fee_limit.Fixed = payParams.MaxFeeFlat.Satoshi;
-                }
-                if (payParams?.Amount?.MilliSatoshi > 0)
-                {
-                    req.AmtMsat = payParams.Amount.MilliSatoshi.ToString();
-                }
-                
-                var response = await SwaggerClient.SendPaymentSyncAsync(req, cts.Token);
-                if (string.IsNullOrEmpty(response.Payment_error) && response.Payment_preimage != null)
-                {
-                    if (response.Payment_route != null)
-                    {
+                    case LightningPaymentStatus.Complete:
                         return new PayResponse(PayResult.Ok, new PayDetails
                         {
-                            TotalAmount = new LightMoney(response.Payment_route.Total_amt_msat),
-                            FeeAmount = new LightMoney(response.Payment_route.Total_fees_msat),
-                            PaymentHash = new uint256(response.Payment_hash, false),
-                            Preimage = new uint256(response.Payment_preimage, false),
+                            TotalAmount = payment.AmountSent,
+                            FeeAmount = payment.Fee,
+                            PaymentHash = string.IsNullOrEmpty(payment.PaymentHash) ? null : new uint256(payment.PaymentHash),
+                            Preimage = string.IsNullOrEmpty(payment.Preimage) ? null : new uint256(payment.Preimage),
                             Status = LightningPaymentStatus.Complete
                         });
-                    }
-
-                    return new PayResponse(PayResult.Ok);
-                }
-
-                switch (response.Payment_error)
-                {
-                    case "invoice is already paid":
-                        return new PayResponse(PayResult.Ok);
-                    case "insufficient local balance":
-                    case "unable to find a path to destination":
-                    // code in 0.10.0+
-                    case "insufficient_balance":
-                    case "no_route":
-                        return new PayResponse(PayResult.CouldNotFindRoute, response.Payment_error);
-                    case "payment is in transition":
-                        return new PayResponse(PayResult.Unknown, response.Payment_error);
+                    case LightningPaymentStatus.Failed:
+                        return session.LastFailureReason switch
+                        {
+                            "FAILURE_REASON_NO_ROUTE" => new PayResponse(PayResult.CouldNotFindRoute, session.LastFailureReason),
+                            "FAILURE_REASON_INSUFFICIENT_BALANCE" => new PayResponse(PayResult.CouldNotFindRoute, session.LastFailureReason),
+                            null or "" or "FAILURE_REASON_NONE" => new PayResponse(PayResult.Error, "The payment failed"),
+                            _ => new PayResponse(PayResult.Error, session.LastFailureReason)
+                        };
                     default:
-                        return new PayResponse(PayResult.Error, response.Payment_error);
+                        return new PayResponse(PayResult.Unknown);
                 }
             }
-            catch (SwaggerException ex) when (ex.AsLNDError() is {} lndError)
+            catch (LndException ex)
             {
-                if (lndError.Error.StartsWith("chain backend is still syncing"))
+                var message = ex.Message ?? string.Empty;
+                if (message.IndexOf("already paid", StringComparison.OrdinalIgnoreCase) >= 0)
+                    return new PayResponse(PayResult.Ok);
+                if (message.IndexOf("still syncing", StringComparison.OrdinalIgnoreCase) >= 0)
                 {
                     if (retryCount++ > 3)
-                        return new PayResponse(PayResult.Error, lndError.Error);
+                        return new PayResponse(PayResult.Error, message);
 
                     await Task.Delay(1000, cancellation);
                     goto retry;
                 }
-                if (lndError.Error.StartsWith("self-payments not allowed"))
-                {
-                    return new PayResponse(PayResult.CouldNotFindRoute, lndError.Error);
-                }
-                if (lndError.Error.StartsWith("payment is in transition"))
-                {
-                    return new PayResponse(PayResult.Error, lndError.Error);
-                }
+                if (message.IndexOf("self-payment", StringComparison.OrdinalIgnoreCase) >= 0)
+                    return new PayResponse(PayResult.CouldNotFindRoute, message);
+                if (message.IndexOf("in transition", StringComparison.OrdinalIgnoreCase) >= 0 ||
+                    message.IndexOf("in flight", StringComparison.OrdinalIgnoreCase) >= 0)
+                    return new PayResponse(PayResult.Unknown, message);
 
-                throw new LndException(lndError.Error);
+                throw;
             }
             catch (Exception ex) when (cts.Token.IsCancellationRequested)
             {
+                // The send stream was cancelled (our send timeout, e.g. a hold invoice that
+                // never settles). The payment may still be in-flight, so resolve its real state.
                 if (bolt11 != null)
                 {
                     var pr = BOLT11PaymentRequest.Parse(bolt11, Network);
                     var paymentHash = pr.PaymentHash?.ToString();
                     var response = await GetPayment(paymentHash, cancellation);
-                    
-                    switch (response.Status)
+
+                    switch (response?.Status)
                     {
+                        case null:
                         case LightningPaymentStatus.Unknown:
                         case LightningPaymentStatus.Pending:
                             return new PayResponse(PayResult.Unknown, ex.Message);
 
                         case LightningPaymentStatus.Failed:
                             return new PayResponse(PayResult.Error, ex.Message);
-                        
+
                         case LightningPaymentStatus.Complete:
                             return new PayResponse(PayResult.Ok, new PayDetails
                             {
@@ -776,12 +766,56 @@ retry:
                                 Preimage = new uint256(response.Preimage),
                                 Status = LightningPaymentStatus.Complete
                             });
-                        default:
-                            throw new ArgumentOutOfRangeException();
                     }
                 }
             }
             return new PayResponse(PayResult.Unknown);
+        }
+
+        // Builds the routerrpc.SendPaymentRequest body (JSON) for POST /v2/router/send.
+        private JObject BuildRouterSendRequest(string bolt11, PayInvoiceParams payParams, TimeSpan timeout)
+        {
+            var req = new JObject();
+            if (!string.IsNullOrEmpty(bolt11))
+            {
+                req["payment_request"] = bolt11;
+            }
+            else
+            {
+                // keysend payment
+                req["dest"] = Encoders.Base64.EncodeData(payParams.Destination.ToBytes());
+                req["payment_hash"] = Encoders.Base64.EncodeData(payParams.PaymentHash.ToBytes());
+                if (payParams.CustomRecords is { Count: > 0 })
+                {
+                    var records = new JObject();
+                    foreach (var rec in payParams.CustomRecords)
+                        records[rec.Key.ToString(CultureInfo.InvariantCulture)] = rec.Value;
+                    req["dest_custom_records"] = records;
+                }
+            }
+
+            // routerrpc.SendPaymentV2 requires a payment attempt timeout; align it with the
+            // client side send timeout so lnd and BTCPay give up at roughly the same time.
+            req["timeout_seconds"] = Math.Max(1, (int)Math.Round(timeout.TotalSeconds));
+
+            // routerrpc only supports an absolute fee limit (no percentage), so convert.
+            long? feeLimitSat = null;
+            if (payParams?.MaxFeePercent > 0)
+            {
+                var amount = payParams.Amount ?? BOLT11PaymentRequest.Parse(bolt11, Network).MinimumAmount;
+                feeLimitSat = (long)(amount.ToDecimal(LightMoneyUnit.Satoshi) * (decimal)payParams.MaxFeePercent.Value / 100m);
+            }
+            if (payParams?.MaxFeeFlat?.Satoshi > 0)
+                feeLimitSat = payParams.MaxFeeFlat.Satoshi;
+            if (feeLimitSat is not null)
+                req["fee_limit_sat"] = feeLimitSat.Value.ToString(CultureInfo.InvariantCulture);
+
+            if (payParams?.Amount?.MilliSatoshi > 0)
+                req["amt_msat"] = payParams.Amount.MilliSatoshi.ToString(CultureInfo.InvariantCulture);
+
+            // We only need the terminal result, so suppress intermediate in-flight updates.
+            req["no_inflight_updates"] = true;
+            return req;
         }
 
         async Task<PayResponse> ILightningClient.Pay(string bolt11, PayInvoiceParams payParams, CancellationToken cancellation)
