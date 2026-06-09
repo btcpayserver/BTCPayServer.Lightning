@@ -1,4 +1,4 @@
-FROM mcr.microsoft.com/dotnet/sdk:6.0.400-1-alpine3.16 AS builder
+FROM mcr.microsoft.com/dotnet/sdk:10.0-alpine AS builder
 
 ENV IN_DOCKER_CONTAINER true
 ENV DOTNET_SYSTEM_GLOBALIZATION_INVARIANT false
