@@ -779,10 +779,12 @@ retry:
             // routerrpc.SendPaymentV2 rejects amt/amt_msat when the invoice already encodes a
             // non-zero amount, so we may only set amt_msat for amountless invoices (or keysend).
             var amountAlreadyOnInvoice = false;
+            LightMoney invoiceAmount = null;
             if (!string.IsNullOrEmpty(bolt11))
             {
                 req["payment_request"] = bolt11;
-                amountAlreadyOnInvoice = BOLT11PaymentRequest.Parse(bolt11, Network).MinimumAmount > LightMoney.Zero;
+                invoiceAmount = BOLT11PaymentRequest.Parse(bolt11, Network).MinimumAmount;
+                amountAlreadyOnInvoice = invoiceAmount > LightMoney.Zero;
             }
             else
             {
@@ -806,11 +808,22 @@ retry:
             long? feeLimitSat = null;
             if (payParams?.MaxFeePercent > 0)
             {
-                var amount = payParams.Amount ?? BOLT11PaymentRequest.Parse(bolt11, Network).MinimumAmount;
+                var amount = payParams.Amount ?? invoiceAmount;
                 feeLimitSat = (long)(amount.ToDecimal(LightMoneyUnit.Satoshi) * (decimal)payParams.MaxFeePercent.Value / 100m);
             }
             if (payParams?.MaxFeeFlat?.Satoshi > 0)
                 feeLimitSat = payParams.MaxFeeFlat.Satoshi;
+            if (feeLimitSat is null)
+            {
+                // Preserve SendPaymentSync's default fee policy: 100% for payments up to
+                // 1,000 sats, 5% for larger payments.
+                var amount = payParams?.Amount ?? invoiceAmount;
+                if (amount is not null)
+                {
+                    var sats = amount.ToDecimal(LightMoneyUnit.Satoshi);
+                    feeLimitSat = (long)(sats <= 1000m ? sats : sats * 0.05m);
+                }
+            }
             if (feeLimitSat is not null)
                 req["fee_limit_sat"] = feeLimitSat.Value.ToString(CultureInfo.InvariantCulture);
 
