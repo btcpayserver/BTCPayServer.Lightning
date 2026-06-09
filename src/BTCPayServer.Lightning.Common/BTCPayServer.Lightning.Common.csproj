@@ -10,7 +10,7 @@
 		<RepositoryUrl>https://github.com/btcpayserver/BTCPayServer.Lightning</RepositoryUrl>
     <PackageLicenseExpression>MIT</PackageLicenseExpression>
 		<PackageTags>lightning;bitcoin;clightning;lnd;charge;lapps</PackageTags>
-		<TargetFrameworks>net6.0;netstandard2.0</TargetFrameworks>
+		<TargetFrameworks>net10.0;netstandard2.0</TargetFrameworks>
 	</PropertyGroup>
     <Import Project="../BTCPayServer.Lightning.Common/Common.csproj" />
 	<ItemGroup>

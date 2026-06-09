@@ -1,7 +1,7 @@
 <Project Sdk="Microsoft.NET.Sdk">
     <Import Project="../Build/Common.csproj"></Import>
     <PropertyGroup>
-        <TargetFrameworks>net6.0;netstandard2.0</TargetFrameworks>
+        <TargetFrameworks>net10.0;netstandard2.0</TargetFrameworks>
         <Version>1.5.4</Version>
         <PackageId>BTCPayServer.Lightning.LNDhub</PackageId>
         <Description>Client library for BlueWallet LNDhub to build Lightning Network Apps in C#.</Description>
