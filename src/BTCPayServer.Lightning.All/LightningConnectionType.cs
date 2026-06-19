@@ -14,6 +14,4 @@ public static class LightningConnectionType
     public const string LndGRPC = "lnd-grpc";
     [Display(Name = "Eclair")]
     public const string Eclair = "eclair";
-    [Display(Name = "LNbank")]
-    public const string LNbank = "lnbank";
 }

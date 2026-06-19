@@ -1025,7 +1025,6 @@ retry:
             Assert.False(factory.TryCreate("type=charge;server=http://api-token:blah@test/a;cookiefilepath=path", out conn, out _));
             Assert.True(factory.TryCreate("type=charge;server=http://api-token:foiewnccewuify@127.0.0.1:54938/;allowinsecure=true", out conn, out _));
             Assert.Equal("type=charge;server=http://127.0.0.1:54938/;api-token=foiewnccewuify;allowinsecure=true", conn.ToString());
-            Assert.True(factory.TryCreate("type=lnbank;server=https://mybtcpay.com/;api-token=myapitoken", out conn, out _));
         }
 
         private static async Task<RPCClient> GetRPCClient()

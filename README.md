@@ -22,7 +22,6 @@ Here is a description of all packages:
 * `BTCPayServer.Lightning.CLightning` exposes easy to use clightning clients [![NuGet](https://img.shields.io/nuget/v/BTCPayServer.Lightning.CLightning.svg)](https://www.nuget.org/packages/BTCPayServer.Lightning.CLightning)
 * `BTCPayServer.Lightning.Charge` exposes easy to use Charge clients [![NuGet](https://img.shields.io/nuget/v/BTCPayServer.Lightning.Charge.svg)](https://www.nuget.org/packages/BTCPayServer.Lightning.Charge)
 * `BTCPayServer.Lightning.Eclair` exposes easy to use Eclair clients [![NuGet](https://img.shields.io/nuget/v/BTCPayServer.Lightning.Eclair.svg)](https://www.nuget.org/packages/BTCPayServer.Lightning.Eclair)
-* `BTCPayServer.Lightning.LNbank` exposes easy to use LNbank clients [![NuGet](https://img.shields.io/nuget/v/BTCPayServer.Lightning.LNbank.svg)](https://www.nuget.org/packages/BTCPayServer.Lightning.LNbank)
 
 If you develop an app, we advise you to reference `BTCPayServer.Lightning.All` [![NuGet](https://img.shields.io/nuget/v/BTCPayServer.Lightning.All.svg)](https://www.nuget.org/packages/BTCPayServer.Lightning.All).
 
@@ -63,7 +62,6 @@ The `connectionString` encapsulates the necessary information BTCPay needs to co
 * `lightning charge` via HTTPS
 * `LND` via the REST proxy
 * `Eclair` via their new REST API
-* `LNbank` via REST API
 
 #### Examples
 
@@ -77,8 +75,6 @@ The `connectionString` encapsulates the necessary information BTCPay needs to co
 * `type=charge;server=https://charge:8080/;cookiefilepath=/path/to/cookie...`
 * `type=eclair;server=http://127.0.0.1:4570;password=eclairpass`
 * `type=eclair;server=http://127.0.0.1:4570;password=eclairpass;bitcoin-host=bitcoin.host;bitcoin-auth=btcpass`
-* `type=lnbank;server=http://lnbank:5000;api-token=myapitoken;allowinsecure=true`
-* `type=lnbank;server=https://mybtcpay.com/lnbank;api-token=myapitoken`
 
 ##### Eclair notes
 
