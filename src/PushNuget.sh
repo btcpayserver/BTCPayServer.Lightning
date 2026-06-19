@@ -16,10 +16,6 @@ cd "BTCPayServer.Lightning.Eclair"
 ./PushNuget.sh
 cd ..
 
-cd "BTCPayServer.Lightning.LNbank"
-./PushNuget.sh
-cd ..
-
 cd "BTCPayServer.Lightning.Phoenixd"
 ./PushNuget.sh
 cd ..
