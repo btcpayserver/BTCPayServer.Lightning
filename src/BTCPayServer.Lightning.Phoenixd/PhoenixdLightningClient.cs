@@ -150,7 +150,7 @@ namespace BTCPayServer.Lightning.Phoenixd
             var invoice = new LightningInvoice
             {
                 BOLT11 = result.Serialized,
-                Amount = amount,
+                Amount = LightMoney.Satoshis(result.AmountSat),
                 Id = result.PaymentHash,
                 Status = LightningInvoiceStatus.Unpaid,
                 ExpiresAt = parsed.ExpiryDate,
