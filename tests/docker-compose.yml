@@ -91,27 +91,6 @@ services:
     links:
       - bitcoind
 
-  charge:
-    restart: unless-stopped
-    image: shesek/lightning-charge:0.4.23-1-standalone
-    environment:
-      NETWORK: regtest
-      API_TOKEN: foiewnccewuify
-      BITCOIND_RPCCONNECT: bitcoind
-      LN_PATH: /etc/lightning
-      LN_NET_PATH: /etc/lightning
-    volumes:
-      - "bitcoind_dir:/etc/bitcoin"
-      - "lightning_charge_dir:/data"
-      - "lightningd_dir:/etc/lightning"
-    expose:
-      - "9112" # Charge
-      - "9735" # Lightning
-    ports:
-      - "37462:9112" # Charge
-    links:
-      - lightningd
-
   lnd:
     restart: unless-stopped
     image: btcpayserver/lnd:v0.19.3-beta-1
@@ -269,7 +248,6 @@ services:
     image: coscale/docker-sleep
     depends_on:
       - bitcoind
-      - charge
       - eclair
       - eclair_dest
       - lightningd
@@ -287,7 +265,6 @@ services:
       - /var/run/docker.sock:/var/run/docker.sock
     links:
       - bitcoind
-      - charge
       - eclair
       - eclair_dest
       - lightningd
@@ -296,7 +273,6 @@ services:
       - lnd_dest
     depends_on:
       - bitcoind
-      - charge
       - eclair
       - eclair_dest
       - lightningd
@@ -309,7 +285,6 @@ volumes:
   lnd_dest_dir:
   bitcoind_dir:
   lightningd_dir:
-  lightning_charge_dir:
   lightningd_dest_dir:
   eclair_dir:
   eclair_dest_dir:

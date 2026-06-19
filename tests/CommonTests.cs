@@ -8,7 +8,6 @@ using System.Security.Cryptography.X509Certificates;
 using System.Text;
 using System.Threading;
 using System.Threading.Tasks;
-using BTCPayServer.Lightning.Charge;
 using BTCPayServer.Lightning.CLightning;
 using BTCPayServer.Lightning.Eclair;
 using BTCPayServer.Lightning.Phoenixd;
@@ -138,7 +137,6 @@ namespace BTCPayServer.Lightning.Tests
             {
                 switch (client.Client)
                 {
-                    case ChargeClient _:
                     case CLightningClient _:
                     case LndClient _:
                         Logs.Tester.LogInformation($"{client.Name}: {nameof(CanCancelInvoices)}");
@@ -163,7 +161,6 @@ namespace BTCPayServer.Lightning.Tests
             var connectionStrings = Docker
                 ? new List<string>
                 {
-                    "type=charge;server=http://api-token:foiewnccewuify@charge:9112;allowinsecure=true",
                     "type=lnd-rest;server=http://lnd_dest:8080;allowinsecure=true",
                     "type=clightning;server=tcp://lightningd:9835",
                     "type=eclair;server=http://eclair:8080;password=bukkake",
@@ -171,7 +168,6 @@ namespace BTCPayServer.Lightning.Tests
                 }
                 : new List<string>
                 {
-                    "type=charge;server=http://api-token:foiewnccewuify@127.0.0.1:37462;allowinsecure=true",
                     "type=lnd-rest;server=http://127.0.0.1:42802;allowinsecure=true",
                     "type=clightning;server=tcp://127.0.0.1:48532",
                     "type=eclair;server=http://127.0.0.1:4570;password=bukkake",
@@ -214,7 +210,6 @@ namespace BTCPayServer.Lightning.Tests
                 switch (client.Client)
                 {
                     case LndClient _:
-                    case ChargeClient _:
                     case CLightningClient _:
                         Assert.NotNull(info.PeersCount);
                         Assert.NotNull(info.ActiveChannelsCount);
@@ -965,15 +960,11 @@ retry:
             ParseCreateAndCheckConsistency(factory, "/test/a", "type=clightning;server=unix://test/a");
             ParseCreateAndCheckConsistency(factory, "unix://test/a", "type=clightning;server=unix://test/a");
             ParseCreateAndCheckConsistency(factory, "tcp://test/a", "type=clightning;server=tcp://test/a");
-            ParseCreateAndCheckConsistency(factory, "http://aaa:bbb@test/a", "type=charge;server=http://aaa:bbb@test/a;allowinsecure=true");
-            ParseCreateAndCheckConsistency(factory, "http://api-token:bbb@test/a", "type=charge;server=http://test/a;api-token=bbb;allowinsecure=true");
-
             Assert.False(factory.TryCreate("lol://aaa:bbb@test/a", out var conn, out _));
+            Assert.False(factory.TryCreate("http://aaa:bbb@test/a", out conn, out _));
+            Assert.False(factory.TryCreate("http://api-token:bbb@test/a", out conn, out _));
             Assert.False(factory.TryCreate("https://test/a", out conn, out _));
             Assert.False(factory.TryCreate("unix://dwewoi:dwdwqd@test/a", out conn, out _));
-            Assert.False(factory.TryCreate("type=charge;server=http://aaa:bbb@test/a;unk=lol", out conn, out _));
-            Assert.False(factory.TryCreate("type=charge;server=tcp://aaa:bbb@test/a", out conn, out _));
-            Assert.False(factory.TryCreate("type=charge", out conn, out _));
             Assert.False(factory.TryCreate("type=clightning", out conn, out _));
             Assert.True(factory.TryCreate("type=clightning;server=tcp://aaa:bbb@test/a", out conn, out _));
             Assert.True(factory.TryCreate("type=clightning;server=/aaa:bbb@test/a", out conn, out _));
@@ -1014,17 +1005,6 @@ retry:
             Assert.False(factory.TryCreate($"type=lnd-rest;server=http://127.0.0.1:53280/;macaroon={macaroon};allowinsecure=false", out conn2, out _));
             Assert.True(factory.TryCreate($"type=lnd-rest;server=http://127.0.0.1:53280/;macaroon={macaroon};allowinsecure=true", out conn2, out _));
             Assert.True(factory.TryCreate($"type=lnd-rest;server=http://127.0.0.1:53280/;macaroon={macaroon};allowinsecure=true", out conn2, out _));
-            Assert.True(factory.TryCreate("type=charge;server=http://test/a;cookiefilepath=path;allowinsecure=true", out conn, out _));
-            Assert.Equal("path", Assert.IsType<ChargeAuthentication.CookieFileAuthentication>(Assert.IsType<ChargeClient>(conn).ChargeAuthentication).FilePath);
-            Assert.Equal("type=charge;server=http://test/a;cookiefilepath=path;allowinsecure=true", conn.ToString());
-
-            // Should not have cookiefilepath and api-token at once
-            Assert.False(factory.TryCreate("type=charge;server=http://test/a;cookiefilepath=path;api-token=abc", out conn, out _));
-
-            // Should not have cookiefilepath and api-token at once
-            Assert.False(factory.TryCreate("type=charge;server=http://api-token:blah@test/a;cookiefilepath=path", out conn, out _));
-            Assert.True(factory.TryCreate("type=charge;server=http://api-token:foiewnccewuify@127.0.0.1:54938/;allowinsecure=true", out conn, out _));
-            Assert.Equal("type=charge;server=http://127.0.0.1:54938/;api-token=foiewnccewuify;allowinsecure=true", conn.ToString());
         }
 
         private static async Task<RPCClient> GetRPCClient()

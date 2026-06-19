@@ -20,7 +20,6 @@ Here is a description of all packages:
 * `BTCPayServer.Lightning.Common` exposes common classes and `ILightningClient` [![NuGet](https://img.shields.io/nuget/v/BTCPayServer.Lightning.Common.svg)](https://www.nuget.org/packages/BTCPayServer.Lightning.Common)
 * `BTCPayServer.Lightning.LND` exposes easy to use LND clients [![NuGet](https://img.shields.io/nuget/v/BTCPayServer.Lightning.LND.svg)](https://www.nuget.org/packages/BTCPayServer.Lightning.LND)
 * `BTCPayServer.Lightning.CLightning` exposes easy to use clightning clients [![NuGet](https://img.shields.io/nuget/v/BTCPayServer.Lightning.CLightning.svg)](https://www.nuget.org/packages/BTCPayServer.Lightning.CLightning)
-* `BTCPayServer.Lightning.Charge` exposes easy to use Charge clients [![NuGet](https://img.shields.io/nuget/v/BTCPayServer.Lightning.Charge.svg)](https://www.nuget.org/packages/BTCPayServer.Lightning.Charge)
 * `BTCPayServer.Lightning.Eclair` exposes easy to use Eclair clients [![NuGet](https://img.shields.io/nuget/v/BTCPayServer.Lightning.Eclair.svg)](https://www.nuget.org/packages/BTCPayServer.Lightning.Eclair)
 
 If you develop an app, we advise you to reference `BTCPayServer.Lightning.All` [![NuGet](https://img.shields.io/nuget/v/BTCPayServer.Lightning.All.svg)](https://www.nuget.org/packages/BTCPayServer.Lightning.All).
@@ -40,7 +39,7 @@ dotnet add package BTCPayServer.Lightning.All
 
 You have two ways to use this library:
 
-* Either you want your code to works with all lightning implementation (right now LND, Charge, CLightning)
+* Either you want your code to works with all lightning implementation (right now LND, CLightning, Eclair, Phoenixd)
 * Or you want your code to work on a particular lightning implementation
 
 ### Using the generic interface
@@ -59,7 +58,6 @@ LightningInvoice invoice = await client.CreateInvoice(10000, "CanCreateInvoice",
 The `connectionString` encapsulates the necessary information BTCPay needs to connect to your Lightning node, we currently support:
 
 * `clightning` via TCP or unix domain socket connection
-* `lightning charge` via HTTPS
 * `LND` via the REST proxy
 * `Eclair` via their new REST API
 
@@ -71,8 +69,6 @@ The `connectionString` encapsulates the necessary information BTCPay needs to co
 * `type=lnd-rest;server=https://mylnd:8080/;macaroon=abef263adfe...`
 * `type=lnd-rest;server=https://mylnd:8080/;macaroon=abef263adfe...;certthumbprint=abef263adfe...`
 * `type=lnd-rest;server=https://mylnd:8080/;macaroonfilepath=/root/.lnd/invoice.macaroon;certfilepath=/var/lib/lnd/tls.cert`
-* `type=charge;server=https://charge:8080/;api-token=myapitoken...`
-* `type=charge;server=https://charge:8080/;cookiefilepath=/path/to/cookie...`
 * `type=eclair;server=http://127.0.0.1:4570;password=eclairpass`
 * `type=eclair;server=http://127.0.0.1:4570;password=eclairpass;bitcoin-host=bitcoin.host;bitcoin-auth=btcpass`
 
@@ -101,7 +97,7 @@ E.g. host is the same machine or is accessed over an encrypted tunnel, assuming 
 
 ### Using implementation specific class
 
-If you want to leverage specific lightning network implementation, either instanciate directly `ChargeClient`, `LndClient` or `CLightningClient`, or cast the `ILightningClient` object returned by `LightningClientFactory`.
+If you want to leverage specific lightning network implementation, either instanciate directly `LndClient`, `CLightningClient`, or `EclairLightningClient`, or cast the `ILightningClient` object returned by `LightningClientFactory`.
 
 ## How to test
 

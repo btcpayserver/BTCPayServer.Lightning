@@ -93,7 +93,7 @@ namespace BTCPayServer.Lightning
                 return false;
             }
 
-            var supportedDomains = new string[] { "unix", "tcp", "http", "https" };
+            var supportedDomains = new string[] { "unix", "tcp" };
             if (!supportedDomains.Contains(uri.Scheme))
             {
                 return false;
@@ -112,20 +112,7 @@ namespace BTCPayServer.Lightning
             if (uri.Scheme == "tcp")
                 result.Add("type", "clightning");
 
-            if (uri.Scheme == "http" || uri.Scheme == "https")
-            {
-                var parts = uri.UserInfo.Split(':');
-                if (string.IsNullOrEmpty(uri.UserInfo) || parts.Length != 2)
-                {
-                    return false;
-                }
-                result.Add("type", "charge");
-                result.Add("username", parts[0]);
-                result.Add("password", parts[1]);
-                if (uri.Scheme == "http")
-                    result.Add("allowinsecure", "true");
-            }
-            else if (!string.IsNullOrEmpty(uri.UserInfo))
+            if (!string.IsNullOrEmpty(uri.UserInfo))
             {
                 return false;
             }

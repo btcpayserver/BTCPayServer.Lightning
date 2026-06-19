@@ -1,7 +1,6 @@
 ﻿using System;
 using System.Collections.Generic;
 using System.Linq;
-using BTCPayServer.Lightning.Charge;
 using BTCPayServer.Lightning.CLightning;
 using BTCPayServer.Lightning.Eclair;
 using BTCPayServer.Lightning.Phoenixd;
@@ -15,7 +14,7 @@ public class LightningClientFactory : ILightningClientFactory
     public static readonly IReadOnlyList<ILightningConnectionStringHandler> DefaultHandlers =
         new ILightningConnectionStringHandler[]
         {
-            new ChargeLightningConnectionStringHandler(), new CLightningConnectionStringHandler(),
+            new CLightningConnectionStringHandler(),
             new EclairConnectionStringHandler(), new PhoenixdConnectionStringHandler(),
             new LndConnectionStringHandler()
         };

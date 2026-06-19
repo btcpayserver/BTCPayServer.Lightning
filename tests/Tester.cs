@@ -1,7 +1,6 @@
 using System;
 using System.Collections.Generic;
 using System.Threading.Tasks;
-using BTCPayServer.Lightning.Charge;
 using BTCPayServer.Lightning.CLightning;
 using BTCPayServer.Lightning.Eclair;
 using BTCPayServer.Lightning.LND;
@@ -18,13 +17,6 @@ namespace BTCPayServer.Lightning.Tests
         {
             var host = CommonTests.Docker ? "bitcoind:43782" : "127.0.0.1:37393";
             return new RPCClient("ceiwHEbqWI83:DwubwWsoo3", host, Network);
-        }
-
-        private static ChargeClient CreateChargeClient()
-        {
-            var host = CommonTests.Docker ? "charge:9112" : "127.0.0.1:37462";
-            var uri = new Uri($"http://api-token:foiewnccewuify@{host}");
-            return new ChargeClient(uri, Network, allowInsecure: true);
         }
 
         internal static LndClient CreateLndClient()
