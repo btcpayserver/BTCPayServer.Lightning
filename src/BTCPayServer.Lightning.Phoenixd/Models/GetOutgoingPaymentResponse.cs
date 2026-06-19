@@ -8,6 +8,9 @@ namespace BTCPayServer.Lightning.Phoenixd.Models
 {
     public class GetOutgoingPaymentResponse
     {
+        [JsonProperty("paymentId")]
+        public string paymentId { get; set; }
+
         [JsonProperty("paymentHash")]
         public string paymentHash { get; set; }
 
@@ -28,10 +31,10 @@ namespace BTCPayServer.Lightning.Phoenixd.Models
 
         [JsonProperty("completedAt")]
         [JsonConverter(typeof(PhoenixdDateTimeJsonConverter))]
-        public DateTimeOffset completedAt { get; set; }
+        public DateTimeOffset? completedAt { get; set; }
 
         [JsonProperty("createdAt")]
         [JsonConverter(typeof(PhoenixdDateTimeJsonConverter))]
-        public DateTimeOffset createdAt { get; set; }
+        public DateTimeOffset? createdAt { get; set; }
     }
 }
