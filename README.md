@@ -23,7 +23,6 @@ Here is a description of all packages:
 * `BTCPayServer.Lightning.Charge` exposes easy to use Charge clients [![NuGet](https://img.shields.io/nuget/v/BTCPayServer.Lightning.Charge.svg)](https://www.nuget.org/packages/BTCPayServer.Lightning.Charge)
 * `BTCPayServer.Lightning.Eclair` exposes easy to use Eclair clients [![NuGet](https://img.shields.io/nuget/v/BTCPayServer.Lightning.Eclair.svg)](https://www.nuget.org/packages/BTCPayServer.Lightning.Eclair)
 * `BTCPayServer.Lightning.LNbank` exposes easy to use LNbank clients [![NuGet](https://img.shields.io/nuget/v/BTCPayServer.Lightning.LNbank.svg)](https://www.nuget.org/packages/BTCPayServer.Lightning.LNbank)
-* `BTCPayServer.Lightning.LNDhub` exposes easy to use LNDhub clients [![NuGet](https://img.shields.io/nuget/v/BTCPayServer.Lightning.LNDhub.svg)](https://www.nuget.org/packages/BTCPayServer.Lightning.LNDhub)
 
 If you develop an app, we advise you to reference `BTCPayServer.Lightning.All` [![NuGet](https://img.shields.io/nuget/v/BTCPayServer.Lightning.All.svg)](https://www.nuget.org/packages/BTCPayServer.Lightning.All).
 
@@ -65,7 +64,6 @@ The `connectionString` encapsulates the necessary information BTCPay needs to co
 * `LND` via the REST proxy
 * `Eclair` via their new REST API
 * `LNbank` via REST API
-* `LNDhub` via their REST API
 
 #### Examples
 
@@ -81,7 +79,6 @@ The `connectionString` encapsulates the necessary information BTCPay needs to co
 * `type=eclair;server=http://127.0.0.1:4570;password=eclairpass;bitcoin-host=bitcoin.host;bitcoin-auth=btcpass`
 * `type=lnbank;server=http://lnbank:5000;api-token=myapitoken;allowinsecure=true`
 * `type=lnbank;server=https://mybtcpay.com/lnbank;api-token=myapitoken`
-* `type=lndhub;server=https://login:password@lndhub.io`
 
 ##### Eclair notes
 
@@ -105,11 +102,6 @@ openssl x509 -noout -fingerprint -sha256 -in /root/.lnd/tls.cert | sed -e 's/.*=
 
 `allowinsecure=true` just blindly accepts any server connection and is therefore not secure unless used in tightly controlled environments.
 E.g. host is the same machine or is accessed over an encrypted tunnel, assuming no untrusted entities can bind the specified port.
-
-##### LNDhub notes
-
-You can also use the `lndhub://` URL, which can be retrieved e.g. from the BlueWallet Export/Backup screen.
-The library turns it into the expected `type=lndhub` connection string format.
 
 ### Using implementation specific class
 

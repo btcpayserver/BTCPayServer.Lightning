@@ -16,6 +16,4 @@ public static class LightningConnectionType
     public const string Eclair = "eclair";
     [Display(Name = "LNbank")]
     public const string LNbank = "lnbank";
-    [Display(Name = "LNDhub")]
-    public const string LNDhub = "lndhub";
 }
