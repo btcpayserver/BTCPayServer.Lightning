@@ -26,6 +26,12 @@ namespace BTCPayServer.Lightning.Phoenixd.Models
         [JsonProperty("isPaid")]
         public bool IsPaid { get; set; }
 
+        [JsonProperty("isExpired")]
+        public bool IsExpired { get; set; }
+
+        [JsonProperty("requestedSat")]
+        public long? RequestedSat { get; set; }
+
         [JsonProperty("receivedSat")]
         public long ReceivedSat { get; set; }
 
@@ -34,10 +40,14 @@ namespace BTCPayServer.Lightning.Phoenixd.Models
 
         [JsonProperty("completedAt")]
         [JsonConverter(typeof(PhoenixdDateTimeJsonConverter))]
-        public DateTimeOffset CompletedAt { get; set; }
+        public DateTimeOffset? CompletedAt { get; set; }
+
+        [JsonProperty("expiresAt")]
+        [JsonConverter(typeof(PhoenixdDateTimeJsonConverter))]
+        public DateTimeOffset? ExpiresAt { get; set; }
 
         [JsonProperty("createdAt")]
         [JsonConverter(typeof(PhoenixdDateTimeJsonConverter))]
-        public DateTimeOffset CreatedAt { get; set; }
+        public DateTimeOffset? CreatedAt { get; set; }
     }
 }

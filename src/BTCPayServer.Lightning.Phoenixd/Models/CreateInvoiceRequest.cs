@@ -7,6 +7,9 @@ namespace BTCPayServer.Lightning.Phoenixd.Models
         [JsonProperty("description")]
         public string Description { get; set; }
 
+        [JsonProperty("descriptionHash")]
+        public string DescriptionHash { get; set; }
+
         [JsonProperty("amountSat")]
         public long? AmountSat { get; set; }
 

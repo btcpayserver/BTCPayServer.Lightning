@@ -50,12 +50,13 @@ namespace BTCPayServer.Lightning.Phoenixd
 
         public async Task<CreateInvoiceResponse> CreateInvoice(string description, long? amountSat = null,
             int? expirySeconds = null, BitcoinAddress fallbackAddress = null,
-            CancellationToken cts = default)
+            string descriptionHash = null, CancellationToken cts = default)
         {
             return await SendCommandAsync<CreateInvoiceRequest, CreateInvoiceResponse>("createinvoice",
                 new CreateInvoiceRequest
                 {
                     Description = description,
+                    DescriptionHash = descriptionHash,
                     ExpirySeconds = expirySeconds,
                     AmountSat = amountSat == 0 ? null : amountSat
                 }, cts);
@@ -77,10 +78,43 @@ namespace BTCPayServer.Lightning.Phoenixd
             return await SendCommandAsync<NoRequestModel, GetIncomingPaymentResponse>($"payments/incoming/{paymentHash}", NoRequestModel.Instance, cts, true);
         }
 
+        public async Task<GetIncomingPaymentResponse[]> ListIncomingPayments(bool all = false, long? offset = null,
+            int? limit = null, CancellationToken cts = default)
+        {
+            var query = new Dictionary<string, string>();
+            if (all)
+                query.Add("all", "true");
+            if (offset is not null)
+                query.Add("offset", offset.Value.ToString());
+            if (limit is not null)
+                query.Add("limit", limit.Value.ToString());
+            return await SendCommandAsync<NoRequestModel, GetIncomingPaymentResponse[]>("payments/incoming" + BuildQuery(query), NoRequestModel.Instance, cts, true);
+        }
+
         public async Task<GetOutgoingPaymentResponse> GetOutgoingPayment(string paymentHash, string invoice = null,
             CancellationToken cts = default)
         {
             return await SendCommandAsync<NoRequestModel, GetOutgoingPaymentResponse>($"payments/outgoingbyhash/{paymentHash}", NoRequestModel.Instance, cts, true);
+        }
+
+        public async Task<GetOutgoingPaymentResponse[]> ListOutgoingPayments(bool all = false, long? offset = null,
+            int? limit = null, CancellationToken cts = default)
+        {
+            var query = new Dictionary<string, string>();
+            if (all)
+                query.Add("all", "true");
+            if (offset is not null)
+                query.Add("offset", offset.Value.ToString());
+            if (limit is not null)
+                query.Add("limit", limit.Value.ToString());
+            return await SendCommandAsync<NoRequestModel, GetOutgoingPaymentResponse[]>("payments/outgoing" + BuildQuery(query), NoRequestModel.Instance, cts, true);
+        }
+
+        private static string BuildQuery(Dictionary<string, string> query)
+        {
+            if (query.Count == 0)
+                return string.Empty;
+            return "?" + string.Join("&", query.Select(pair => $"{Uri.EscapeDataString(pair.Key)}={Uri.EscapeDataString(pair.Value)}"));
         }
 
         public async Task<string> SendPayment(string address, long amountSat, long feerateSat,

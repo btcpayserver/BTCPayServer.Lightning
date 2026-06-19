@@ -40,33 +40,50 @@ namespace BTCPayServer.Lightning.Phoenixd
             {
             }
 
-            if (info != null && info.PaymentHash != "")
+            return ToLightningInvoice(info);
+        }
+
+        private LightningInvoice ToLightningInvoice(GetIncomingPaymentResponse info)
+        {
+            if (info == null || string.IsNullOrEmpty(info.PaymentHash) || string.IsNullOrEmpty(info.Invoice))
+                return null;
+
+            var parsed = BOLT11PaymentRequest.Parse(info.Invoice, _network);
+            return new LightningInvoice
             {
-                var parsed = BOLT11PaymentRequest.Parse(info.Invoice, _network);
-                var invoiceId = info.PaymentHash;
-                var lnInvoice = new LightningInvoice
-                {
-                    Id = invoiceId,
-                    PaymentHash = info.PaymentHash,
-                    Amount = parsed.MinimumAmount,
-                    ExpiresAt = parsed.ExpiryDate,
-                    BOLT11 = info.Invoice
-                };
-                if (DateTimeOffset.UtcNow >= parsed.ExpiryDate)
-                {
-                    lnInvoice.Status = LightningInvoiceStatus.Expired;
-                }
-                // In lightning fees are typically paid by the sender,
-                // but phoenixd charges a fee to the recipient when
-                // e.g. opening a channel. Include fee in AmountReceive
-                // so it's not marked as incomplete.
-                lnInvoice.AmountReceived = LightMoney.Satoshis(info.ReceivedSat) + new LightMoney(info.Fees, LightMoneyUnit.MilliSatoshi);
-                lnInvoice.Status = info.IsPaid ? LightningInvoiceStatus.Paid : LightningInvoiceStatus.Unpaid;
-                lnInvoice.PaidAt = info.CompletedAt;
-                lnInvoice.Preimage = info.PreImage;
-                return lnInvoice;
-            }
-            return null;
+                Id = info.PaymentHash,
+                PaymentHash = info.PaymentHash,
+                Amount = parsed.MinimumAmount,
+                ExpiresAt = info.ExpiresAt ?? parsed.ExpiryDate,
+                BOLT11 = info.Invoice,
+                // Phoenixd may charge recipient liquidity fees; include them so the invoice is not considered underpaid.
+                AmountReceived = LightMoney.Satoshis(info.ReceivedSat) + new LightMoney(info.Fees, LightMoneyUnit.MilliSatoshi),
+                Status = info.IsPaid ? LightningInvoiceStatus.Paid :
+                    (info.IsExpired || DateTimeOffset.UtcNow >= parsed.ExpiryDate ? LightningInvoiceStatus.Expired : LightningInvoiceStatus.Unpaid),
+                PaidAt = info.CompletedAt,
+                Preimage = info.PreImage
+            };
+        }
+
+        private LightningPayment ToLightningPayment(GetOutgoingPaymentResponse info)
+        {
+            if (info == null || string.IsNullOrEmpty(info.paymentHash))
+                return null;
+
+            var fee = new LightMoney(info.fees, LightMoneyUnit.MilliSatoshi);
+            var sent = LightMoney.Satoshis(info.sent);
+            return new LightningPayment
+            {
+                Id = info.paymentId,
+                Preimage = info.preImage,
+                PaymentHash = info.paymentHash,
+                CreatedAt = info.createdAt,
+                Amount = sent,
+                AmountSent = sent + fee,
+                Fee = fee,
+                BOLT11 = info.invoice,
+                Status = info.isPaid ? LightningPaymentStatus.Complete : LightningPaymentStatus.Unknown
+            };
         }
 
         public PhoenixdLightningClient(Uri address, string password, Network network, HttpClient httpClient = null) :
@@ -103,9 +120,14 @@ namespace BTCPayServer.Lightning.Phoenixd
         public async Task<LightningInvoice> GetInvoice(uint256 paymentHash, CancellationToken cancellation = default) =>
             await GetInvoice(paymentHash.ToString(), cancellation);
 
-        public Task<LightningInvoice[]> ListInvoices(ListInvoicesParams request, CancellationToken cancellation = default)
+        public async Task<LightningInvoice[]> ListInvoices(ListInvoicesParams request, CancellationToken cancellation = default)
         {
-            throw new NotSupportedException();
+            request ??= new ListInvoicesParams();
+            var incoming = await _PhoenixdClient.ListIncomingPayments(true, request.OffsetIndex, 100, cancellation);
+            var invoices = incoming.Select(ToLightningInvoice).Where(i => i != null);
+            if (request.PendingOnly is true)
+                invoices = invoices.Where(i => i.Status == LightningInvoiceStatus.Unpaid);
+            return invoices.ToArray();
         }
 
         public async Task<LightningInvoice[]> ListInvoices(CancellationToken cancellation = default) =>
@@ -113,41 +135,38 @@ namespace BTCPayServer.Lightning.Phoenixd
 
         public async Task<LightningPayment> GetPayment(string paymentHash, CancellationToken cancellation = default)
         {
-            GetOutgoingPaymentResponse info = await _PhoenixdClient.GetOutgoingPayment(paymentHash, null, cancellation);
-            var payment = new LightningPayment
+            try
             {
-                Preimage = info.preImage,
-                PaymentHash = info.paymentHash,
-                CreatedAt = info.createdAt,
-                Amount = new LightMoney(info.sent, LightMoneyUnit.Satoshi),
-                AmountSent = new LightMoney(info.sent + info.fees, LightMoneyUnit.Satoshi),
-                Fee = new LightMoney(info.fees, LightMoneyUnit.Satoshi),
-                Status = info.isPaid ? LightningPaymentStatus.Complete : LightningPaymentStatus.Unknown
-            };
-
-            return payment;
+                return ToLightningPayment(await _PhoenixdClient.GetOutgoingPayment(paymentHash, null, cancellation));
+            }
+            catch (PhoenixdClient.PhoenixdApiException)
+            {
+                return null;
+            }
         }
 
-        public Task<LightningPayment[]> ListPayments(CancellationToken cancellation = default)
+        public async Task<LightningPayment[]> ListPayments(CancellationToken cancellation = default) =>
+            await ListPayments(null, cancellation);
+
+        public async Task<LightningPayment[]> ListPayments(ListPaymentsParams request, CancellationToken cancellation = default)
         {
-            throw new NotSupportedException();
+            request ??= new ListPaymentsParams();
+            var outgoing = await _PhoenixdClient.ListOutgoingPayments(request.IncludePending is true, request.OffsetIndex, 100, cancellation);
+            return outgoing.Select(ToLightningPayment).Where(p => p != null).ToArray();
         }
 
-        public Task<LightningPayment[]> ListPayments(ListPaymentsParams request, CancellationToken cancellation = default)
-        {
-            throw new NotSupportedException();
-        }
-
-        async Task<LightningInvoice> ILightningClient.CreateInvoice(LightMoney amount, string description, TimeSpan expiry,
+        Task<LightningInvoice> ILightningClient.CreateInvoice(LightMoney amount, string description, TimeSpan expiry,
             CancellationToken cancellation)
-        {
-            var result = await _PhoenixdClient.CreateInvoice(
-                description,
-                amount.MilliSatoshi / 1000,
-                Convert.ToInt32(expiry.TotalSeconds), null, cancellation);
+            => (this as ILightningClient).CreateInvoice(new CreateInvoiceParams(amount, description, expiry),
+                cancellation);
 
+        async Task<LightningInvoice> ILightningClient.CreateInvoice(CreateInvoiceParams req, CancellationToken cancellation)
+        {
+            var result = await _PhoenixdClient.CreateInvoice(req.DescriptionHash is null ? req.Description : null,
+                req.Amount.MilliSatoshi / 1000, Convert.ToInt32(req.Expiry.TotalSeconds), null,
+                req.DescriptionHash?.ToString(), cancellation);
             var parsed = BOLT11PaymentRequest.Parse(result.Serialized, _network);
-            var invoice = new LightningInvoice
+            return new LightningInvoice
             {
                 BOLT11 = result.Serialized,
                 Amount = LightMoney.Satoshis(result.AmountSat),
@@ -156,12 +175,6 @@ namespace BTCPayServer.Lightning.Phoenixd
                 ExpiresAt = parsed.ExpiryDate,
                 PaymentHash = result.PaymentHash
             };
-            return invoice;
-        }
-
-        Task<LightningInvoice> ILightningClient.CreateInvoice(CreateInvoiceParams req, CancellationToken cancellation)
-        {
-            return (this as ILightningClient).CreateInvoice(req.Amount, req.DescriptionHash is not null ? req.DescriptionHash.ToString() : req.Description, req.Expiry, cancellation);
         }
 
         public static async Task<ClientWebSocket> ClientWebSocket(string url, string authorizationValue, CancellationToken cancellation = default)
@@ -191,13 +204,18 @@ namespace BTCPayServer.Lightning.Phoenixd
             var network = _network.ToString();
             var info = await _PhoenixdClient.GetInfo(cancellation);
 
-            if (NormalizeChain(network) != NormalizeChain(info.Chain))
+            if (!string.IsNullOrEmpty(info.Chain) && NormalizeChain(network) != NormalizeChain(info.Chain))
                 throw new PhoenixdApiException { Error = new PhoenixdApiError { Error = $"Chain mismatch: BTCPay Server is using \"{network}\" while Phoenixd is configured for \"{info.Chain}\""} };
 
             var nodeInfo = new LightningNodeInformation
             {
                 BlockHeight = info.BlockHeight,
-                Version = info.Version
+                Version = info.Version,
+                Alias = "Phoenixd",
+                Color = "3399ff",
+                ActiveChannelsCount = info.Channels?.Count(c => c.State == "Normal"),
+                InactiveChannelsCount = info.Channels?.Count(c => c.State != "Normal"),
+                PendingChannelsCount = info.Channels?.Count(c => c.State != "Normal")
             };
             return nodeInfo;
         }
