@@ -231,8 +231,8 @@ namespace BTCPayServer.Lightning.CLightning
         public async Task<BitcoinAddress> NewAddressAsync(CancellationToken cancellation = default)
         {
             var obj = await SendCommandAsync<JObject>("newaddr", cancellation: cancellation);
-            var addr = obj.ContainsKey("address") ? "address" : "bech32";
-            return BitcoinAddress.Create(obj.Property(addr).Value.Value<string>(), Network);
+            var addr = obj.Properties().First().Value.Value<string>();
+            return BitcoinAddress.Create(addr, Network);
         }
 
         public async Task<CLightningChannel[]> ListChannelsAsync(ShortChannelId ShortChannelId = null, CancellationToken cancellation = default)
@@ -340,23 +340,30 @@ namespace BTCPayServer.Lightning.CLightning
                 var explicitAmount = pr?.MinimumAmount is null || pr?.MinimumAmount == LightMoney.Zero ?  payParams?.Amount : null;
 
                 long? maxFeeFlat = payParams?.MaxFeeFlat is null ? null : new LightMoney(payParams?.MaxFeeFlat).MilliSatoshi;
-                var feePercent = maxFeeFlat is null ? payParams?.MaxFeePercent : null;
 
-                var command = isKeysend ? "keysend" : "pay";
+                if (maxFeeFlat is null)
+                {
+                    if (payParams?.MaxFeePercent is { } feePercent && explicitAmount is not null)
+                    {
+                        maxFeeFlat = (long)(explicitAmount.ToDecimal(LightMoneyUnit.Satoshi) * (decimal)feePercent / 100m);
+                    }
+                }
+
+                var command = isKeysend ? "xkeysend" : "xpay";
                 var opts = isKeysend
-                    // keysend: destination msatoshi [label] [maxfeepercent] [retry_for] [maxdelay] [exemptfee] [extratlvs]
-                    ? new object[] { payParams.Destination.ToHex(), explicitAmount.MilliSatoshi, null, feePercent }
-                    // pay: bolt11 [msatoshi] [label] [riskfactor] [maxfeepercent] [retry_for] [maxdelay] [exemptfee] [localinvreqid] [exclude] [maxfee] [description]
-                    : new object[] { bolt11, explicitAmount?.MilliSatoshi, null, null, feePercent, null, null, null, null, null, maxFeeFlat };
+                    // xkeysend: destination amount_msat [label] [maxfee] [layers] [retry_for] [maxdelay] [extratlvs]
+                    ? new object[] { payParams.Destination.ToHex(), explicitAmount!.MilliSatoshi, null, maxFeeFlat }
+                    // xpay: invstring [amount_msat] [maxfee] [layers] [retry_for] [retry_for] [partial_msat] [maxdelay] [payer_note] [label] [localinvreqid]
+                    : new object[] { bolt11, explicitAmount?.MilliSatoshi, maxFeeFlat };
                 var response = await SendCommandAsync<CLightningPayResponse>(command, opts, false, cancellation: cts.Token);
 
                 return new PayResponse(PayResult.Ok, new PayDetails
                 {
                     TotalAmount = response.AmountSent,
                     FeeAmount = response.AmountSent - response.Amount,
-                    PaymentHash = response.PaymentHash,
+                    PaymentHash = response.GetPaymentHash(),
                     Preimage = response.PaymentPreImage,
-                    Status = ToPaymentStatus(response.Status)
+                    Status = LightningPaymentStatus.Complete
                 });
             }
             catch (LightningRPCException ex) when (
@@ -447,48 +454,16 @@ namespace BTCPayServer.Lightning.CLightning
             args.Add(null); // [preimage]
             args.Add(req.PrivateRouteHints);
 
-            bool usePlugin;
             if (req.DescriptionHashOnly)
             {
                 args.Add(null); // [cltv]
                 args.Add(true);
-                usePlugin = false;
-            }
-            else
-            {
-                usePlugin = req.DescriptionHash is not null;
             }
 
-            // Pre 22.11, we needed to use a plugin to support bolt11 with description hash.
-            // This is not the case anymore, but we may fallback to using the plugin for old nodes.
-            CLightningInvoice invoice = null;
-            if (!usePlugin)
-            {
-                try
-                {
-                    invoice = await SendCommandAsync<CLightningInvoice>(
-                        "invoice",
-                        args.ToArray(),
-                        cancellation: cancellation);
-                }
-                // Old nodes doesn't support descriptionHashOnly
-                catch (LightningRPCException ex) when (req.DescriptionHashOnly && ex.Code == CLightningErrorCode.WRONG_PARAMETERS)
-                {
-                    // Remove two last parameters
-                    args.RemoveAt(args.Count - 1);
-                    args.RemoveAt(args.Count - 1);
-                    usePlugin = true;
-                }
-            }
-
-            if (usePlugin)
-            {
-                args[2] = req.DescriptionHash.ToString();
-                invoice = await SendCommandAsync<CLightningInvoice>(
-                        "invoicewithdescriptionhash",
-                        args.ToArray(),
-                        cancellation: cancellation);
-            }
+            CLightningInvoice invoice = await SendCommandAsync<CLightningInvoice>(
+                "invoice",
+                args.ToArray(),
+                cancellation: cancellation);
 
             if (invoice is null)
                 throw new InvalidOperationException("Bug in BTCPayServer.Lightning library, contact developers, code 52917");

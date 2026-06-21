@@ -634,6 +634,7 @@ retry:
                 Logs.Tester.LogInformation($"{test.Name}: Created invoice {merchantInvoice1.Id}");
                 var merchantInvoice2 = await dest.CreateInvoice(amount2, "Hello world", TimeSpan.FromSeconds(3600));
                 Logs.Tester.LogInformation($"{test.Name}: Created invoice {merchantInvoice2.Id}");
+                var noAmountInvoice = await dest.CreateInvoice(LightMoney.Zero, "Hello world", TimeSpan.FromSeconds(3600));
                 var waitToken = default(CancellationToken);
                 var listener = await dest.Listen(waitToken);
                 var waitTask = listener.WaitInvoice(waitToken);
@@ -666,6 +667,16 @@ retry:
                 listener.Dispose();
                 Logs.Tester.LogInformation($"{test.Name}: Listener disposed, should throw exception");
                 await Assert.ThrowsAsync<OperationCanceledException>(async () => await waitTask3);
+
+                Logs.Tester.LogInformation($"{test.Name}: Testing with no amount invoice");
+                listener = await dest.Listen(waitToken);
+                var waitTask4 = listener.WaitInvoice(waitToken);
+                payResponse = await src.Pay(noAmountInvoice.BOLT11, new PayInvoiceParams() { Amount = amount2 }, waitToken);
+                Assert.Equal(PayResult.Ok, payResponse.Result);
+                AssertEqual(amount2, payResponse.Details.TotalAmount);
+                Logs.Tester.LogInformation($"{test.Name}: Paid invoice {merchantInvoice1.Id}");
+                invoice = await waitTask4;
+                Assert.Equal(amount2, invoice.AmountReceived);
             }
         }
 

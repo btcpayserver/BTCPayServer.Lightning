@@ -1,5 +1,6 @@
 using System.Collections.Generic;
 using NBitcoin;
+using NBitcoin.Crypto;
 using Newtonsoft.Json;
 using Newtonsoft.Json.Linq;
 
@@ -12,9 +13,6 @@ namespace BTCPayServer.Lightning.CLightning
         public string Status { get; set; }
         public int Parts { get; set; }
 
-        [JsonConverter(typeof(NBitcoin.JsonConverters.UInt256JsonConverter))]
-        [JsonProperty("payment_hash")]
-        public uint256 PaymentHash { get; set; }        
         [JsonConverter(typeof(NBitcoin.JsonConverters.UInt256JsonConverter))]
         [JsonProperty("payment_preimage")]
         public uint256 PaymentPreImage { get; set; }
@@ -40,5 +38,7 @@ namespace BTCPayServer.Lightning.CLightning
 
         [Newtonsoft.Json.JsonExtensionData]
         public IDictionary<string, JToken> AdditionalProperties { get; set; }
+
+        public uint256 GetPaymentHash() => new uint256(Hashes.SHA256(PaymentPreImage.ToBytes(false)), false);
     }
 }
