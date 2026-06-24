@@ -8,6 +8,10 @@ cd "BTCPayServer.Lightning.CLightning"
 ./PushNuget.sh
 cd ..
 
+cd "BTCPayServer.Lightning.LNDhub"
+./PushNuget.sh
+cd ..
+
 cd "BTCPayServer.Lightning.LND"
 ./PushNuget.sh
 cd ..

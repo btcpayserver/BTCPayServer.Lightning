@@ -6,6 +6,10 @@ cd BTCPayServer.Lightning.CLightning
 .\PushNuget.ps1
 cd ..
 
+cd BTCPayServer.Lightning.LNDhub
+.\PushNuget.ps1
+cd ..
+
 cd BTCPayServer.Lightning.LND
 .\PushNuget.ps1
 cd ..

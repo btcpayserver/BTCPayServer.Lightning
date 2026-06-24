@@ -5,6 +5,7 @@ using BTCPayServer.Lightning.CLightning;
 using BTCPayServer.Lightning.Eclair;
 using BTCPayServer.Lightning.Phoenixd;
 using BTCPayServer.Lightning.LND;
+using BTCPayServer.Lightning.LNDhub;
 using NBitcoin;
 
 namespace BTCPayServer.Lightning;
@@ -16,7 +17,8 @@ public class LightningClientFactory : ILightningClientFactory
         {
             new CLightningConnectionStringHandler(),
             new EclairConnectionStringHandler(), new PhoenixdConnectionStringHandler(),
-            new LndConnectionStringHandler()
+            new LndConnectionStringHandler(),
+            new LndHubConnectionStringHandler()
         };
 
     private readonly Network _network;

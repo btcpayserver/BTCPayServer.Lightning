@@ -12,6 +12,7 @@ using BTCPayServer.Lightning.CLightning;
 using BTCPayServer.Lightning.Eclair;
 using BTCPayServer.Lightning.Phoenixd;
 using BTCPayServer.Lightning.LND;
+using BTCPayServer.Lightning.LndHub;
 using NBitcoin.Crypto;
 using NBitcoin.RPC;
 using Newtonsoft.Json.Linq;
@@ -48,8 +49,12 @@ namespace BTCPayServer.Lightning.Tests
             {
                 Logs.Tester.LogInformation($"{client.Name}: {nameof(CanCreateInvoice)}");
                 var expiry = TimeSpan.FromMinutes(5);
-                var beyondExpiry = DateTimeOffset.UtcNow + TimeSpan.FromMinutes(6);
-                var expectedAmount = LightMoney.MilliSatoshis(amount);
+                var beyondExpiry = client.Client is LndHubLightningClient
+                    ? DateTimeOffset.UtcNow + TimeSpan.FromDays(1) // LNDhub has a fixed expiry of 1 day
+                    : DateTimeOffset.UtcNow + TimeSpan.FromMinutes(6);
+                var expectedAmount = client.Client is LndHubLightningClient
+                    ? LightMoney.Satoshis(amount / 1000) // LNDhub accounts with sats instead of msat
+                    : LightMoney.MilliSatoshis(amount);
                 var createdInvoice = await client.Client.CreateInvoice(amount, "CanCreateInvoice", expiry);
                 var retrievedInvoice = await client.Client.GetInvoice(createdInvoice.Id);
 
@@ -107,6 +112,10 @@ namespace BTCPayServer.Lightning.Tests
                         var retrievedInvoiceBOLT = BOLT11PaymentRequest.Parse(retrievedInvoice.BOLT11, Network.RegTest);
                         Assert.Equal(createdInvoiceBOLT.PaymentHash, retrievedInvoiceBOLT.PaymentHash);
                         Assert.Equal(expectedHash, createdInvoiceBOLT.DescriptionHash);
+                        break;
+                    case LndHubLightningClient _:
+                        // Once this gets merged, we can support it too: https://github.com/BlueWallet/LndHub/pull/319
+                        // Skip and don't throw the exception, because the compatible lndhub.Go by Alby supports it
                         break;
                     default:
                         await Assert.ThrowsAsync<NotSupportedException>(async () =>
@@ -173,6 +182,14 @@ namespace BTCPayServer.Lightning.Tests
                     "type=eclair;server=http://127.0.0.1:4570;password=bukkake",
                     "type=phoenixd;server=http://127.0.0.1:9740;password=3mNJiKf7GEd0sYC"
                 };
+
+            // LNDhub needs an account first
+            var lndhubServer = Docker ? "http://lndhub:3000" : "http://127.0.0.1:42923";
+            var lndhubClient = new LndHubLightningClient(new Uri(lndhubServer), "login", "password", network);
+            var data = await lndhubClient.CreateAccount();
+            lndhubServer = lndhubServer.Replace("://", $"://{data.Login}:{data.Password}@");
+            connectionStrings.Add($"type=lndhub;server={lndhubServer};allowinsecure=true");
+
             var clientTypes = Tester.GetLightningClients().Select(l => l.Client.GetType()).ToArray();
             foreach (var connectionString in connectionStrings)
             {
@@ -189,6 +206,30 @@ namespace BTCPayServer.Lightning.Tests
                 var retrievedInvoice = await client.GetInvoice(createdInvoice.Id);
                 AssertUnpaid(createdInvoice);
                 AssertUnpaid(retrievedInvoice);
+            }
+        }
+
+        [Fact]
+        public void CanParseCustomConnectionString()
+        {
+            var network = Tester.Network;
+            ILightningClientFactory factory = new LightningClientFactory(network);
+
+            var connectionStrings = new List<string>
+            {
+                "lndhub://login:password@http://server.onion"
+            };
+
+            var clientTypes = Tester.GetLightningClients().Select(l => l.Client.GetType()).ToArray();
+            foreach (var connectionString in connectionStrings)
+            {
+                // check connection string can be parsed and turned into a string again
+                factory.TryCreate(connectionString, out var parsed, out _);
+                Assert.NotNull(parsed.ToString());
+
+                // apply connection string and check client
+                var client = factory.Create(connectionString);
+                Assert.Contains(client.GetType(), clientTypes);
             }
         }
 
@@ -211,6 +252,7 @@ namespace BTCPayServer.Lightning.Tests
                 {
                     case LndClient _:
                     case CLightningClient _:
+                    case LndHubLightningClient _:
                         Assert.NotNull(info.PeersCount);
                         Assert.NotNull(info.ActiveChannelsCount);
                         Assert.NotNull(info.InactiveChannelsCount);
@@ -259,6 +301,18 @@ namespace BTCPayServer.Lightning.Tests
                             Assert.True(balance.OnchainBalance.Confirmed > Money.Coins(0.010m));
                         }
                         break;
+                    case LndHubLightningClient _:
+                        balance = await client.GetBalance();
+                        // onchain
+                        Assert.Null(balance.OnchainBalance);
+                        // offchain
+                        Assert.NotNull(balance.OffchainBalance);
+                        Assert.Null(balance.OffchainBalance.Opening);
+                        Assert.InRange(balance.OffchainBalance.Local, lowerBound, upperBound);
+                        Assert.Null(balance.OffchainBalance.Remote);
+                        Assert.Null(balance.OffchainBalance.Closing);
+                        break;
+
                     default:
                         await Assert.ThrowsAsync<NotSupportedException>(async () =>
                         {
@@ -293,6 +347,11 @@ namespace BTCPayServer.Lightning.Tests
                         Assert.Equal(PayResult.CouldNotFindRoute, response.Result);
                         break;
                     case CLightningClient _:
+                    case LndHubLightningClient _:
+                        // The senders LNDhub wallet needs some initial funds.
+                        if (client.Client is LndHubLightningClient)
+                            await FundLndHubWallet(client.Client, amount + 10);
+                        // LNDhub handles self-payment internally
                         var res = await client.Client.Pay(invoice.BOLT11);
                         Assert.Equal(PayResult.Ok, res.Result);
                         Assert.Equal(amount, res.Details.TotalAmount);
@@ -445,6 +504,12 @@ retry:
                 Assert.Equal(invoice.Id, invoiceFetchedByPaymentHash.Id);
                 Assert.Equal(invoice.PaymentHash, invoiceFetchedByPaymentHash.PaymentHash);
 
+                if (test.Customer is LndHubLightningClient)
+                {
+                    // The senders LNDhub wallet needs some initial funds.
+                    await FundLndHubWallet(test.Customer, LightMoney.Satoshis(2100));
+                }
+
                 using var listener = await test.Merchant.Listen();
                 var waiting = listener.WaitInvoice(default);
                 var paidReply = await test.Customer.Pay(invoice.BOLT11);
@@ -465,8 +530,12 @@ retry:
                 Assert.NotNull(paidInvoice.PaidAt);
                 Assert.Equal(paidInvoice.PaymentHash, paidReply.Details.PaymentHash.ToString());
 
-                Assert.NotNull(paidInvoice.Preimage);
-                Assert.Equal(paidInvoice.Preimage, paidReply.Details.Preimage.ToString());
+                if (test.Customer is not LndHubLightningClient)
+                {
+                    // LNDhub doesn't have the preimage in the invoice response
+                    Assert.NotNull(paidInvoice.Preimage);
+                    Assert.Equal(paidInvoice.Preimage, paidReply.Details.Preimage.ToString());
+                }
 
                 // check payment hash corresponds to preimage
                 var hashedPreimage = new uint256(Hashes.SHA256(paidReply.Details.Preimage.ToBytes(false)), false);
@@ -556,11 +625,21 @@ retry:
                 Assert.Equal(0, paymentMaxFeeLimit.Fee);
 
                 // with zero/explicit amount
-                var invoiceZeroAmount = await test.Merchant.CreateInvoice(LightMoney.Zero, "CanPayInvoiceWithZeroAmount", expiry);
-                paidReply = await test.Customer.Pay(invoiceZeroAmount.BOLT11, new PayInvoiceParams { Amount = amount });
-                Assert.Equal(PayResult.Ok, paidReply.Result);
-                Assert.Equal(amount, paidReply.Details.TotalAmount);
-                Assert.Equal(0, paidReply.Details.FeeAmount);
+                if (test.Customer is LndHubLightningClient)
+                {
+                    await Assert.ThrowsAsync<LndHubClient.LndHubApiException>(async () =>
+                    {
+                        await test.Merchant.CreateInvoice(LightMoney.Zero, "CanPayInvoiceWithZeroAmount", expiry);
+                    });
+                }
+                else
+                {
+                    var invoiceZeroAmount = await test.Merchant.CreateInvoice(LightMoney.Zero, "CanPayInvoiceWithZeroAmount", expiry);
+                    paidReply = await test.Customer.Pay(invoiceZeroAmount.BOLT11, new PayInvoiceParams { Amount = amount });
+                    Assert.Equal(PayResult.Ok, paidReply.Result);
+                    Assert.Equal(amount, paidReply.Details.TotalAmount);
+                    Assert.Equal(0, paidReply.Details.FeeAmount);
+                }
 
                 // check payments lists with offset
                 if (test.Customer is not EclairLightningClient)
@@ -590,10 +669,22 @@ retry:
                 var info = await dest.GetInfo();
                 var node = info.NodeInfoList.First();
 
-                // Reconnecting to same node should be no op
-                Assert.Equal(ConnectionResult.Ok, await src.ConnectTo(node));
-                Assert.Equal(ConnectionResult.CouldNotConnect, await src.ConnectTo(new NodeInfo(new Key().PubKey, "127.0.0.2", node.Port)));
-                Assert.Equal(ConnectionResult.CouldNotConnect, await src.ConnectTo(new NodeInfo(new Key().PubKey, node.Host, node.Port)));
+                switch (src)
+                {
+                    case LndHubLightningClient _:
+                        await Assert.ThrowsAsync<NotSupportedException>(async () =>
+                        {
+                            await src.ConnectTo(node);
+                        });
+                        break;
+
+                    default:
+                        // Reconnecting to same node should be no op
+                        Assert.Equal(ConnectionResult.Ok, await src.ConnectTo(node));
+                        Assert.Equal(ConnectionResult.CouldNotConnect, await src.ConnectTo(new NodeInfo(new Key().PubKey, "127.0.0.2", node.Port)));
+                        Assert.Equal(ConnectionResult.CouldNotConnect, await src.ConnectTo(new NodeInfo(new Key().PubKey, node.Host, node.Port)));
+                        break;
+                }
 
 
             }
@@ -638,6 +729,15 @@ retry:
                 var waitToken = default(CancellationToken);
                 var listener = await dest.Listen(waitToken);
                 var waitTask = listener.WaitInvoice(waitToken);
+
+                if (src is LndHubLightningClient)
+                {
+                    // Change amounts to whole sats for comparison - LNDhub only returns sats
+                    amount1 = LightMoney.Satoshis(6);
+                    amount2 = LightMoney.Satoshis(8);
+                    // The senders LNDhub wallet needs some initial funds.
+                    await FundLndHubWallet(src, LightMoney.Satoshis(2100));
+                }
 
                 var payResponse = await src.Pay(merchantInvoice1.BOLT11, waitToken);
                 Assert.Equal(PayResult.Ok, payResponse.Result);
@@ -703,11 +803,23 @@ retry:
                 await EnsureConnectedToDestinations(client);
                 Logs.Tester.LogInformation(client.Customer.GetType().Name);
 
-                var result = await client.Customer.ConnectTo(new NodeInfo(new Key().PubKey, "127.0.0.1", 64_000));
-                Assert.Equal(ConnectionResult.CouldNotConnect, result);
+                switch (client.Customer)
+                {
+                    case LndHubLightningClient _:
+                        await Assert.ThrowsAsync<NotSupportedException>(async () =>
+                        {
+                            await client.Customer.ConnectTo(new NodeInfo(new Key().PubKey, "127.0.0.1", 64_000));
+                        });
+                        break;
 
-                var ni = (await client.Merchant.GetInfo()).NodeInfoList.FirstOrDefault();
-                Assert.Equal(ConnectionResult.Ok, await client.Customer.ConnectTo(ni));
+                    default:
+                        var result = await client.Customer.ConnectTo(new NodeInfo(new Key().PubKey, "127.0.0.1", 64_000));
+                        Assert.Equal(ConnectionResult.CouldNotConnect, result);
+
+                        var ni = (await client.Merchant.GetInfo()).NodeInfoList.FirstOrDefault();
+                        Assert.Equal(ConnectionResult.Ok, await client.Customer.ConnectTo(ni));
+                        break;
+                }
             }
         }
 
@@ -723,28 +835,40 @@ retry:
 
             foreach (var test in Tester.GetTestedPairs())
             {
-                await EnsureConnectedToDestinations(test);
-
-                var senderChannels = await test.Customer.ListChannels();
-                var senderInfo = await test.Customer.GetInfo();
-                Assert.NotEmpty(senderChannels);
-                Assert.Single(senderChannels.Where(s => s.IsActive));
-
-                var destChannels = await test.Merchant.ListChannels();
-                var destInfo = await test.Merchant.GetInfo();
-                Assert.NotEmpty(destChannels);
-                Assert.Single(destChannels.GroupBy(s => s.RemoteNode));
-                foreach (var c in senderChannels)
+                switch (test.Customer)
                 {
-                    Assert.NotNull(c.RemoteNode);
-                    Assert.True(c.IsPublic);
-                    Assert.True(c.IsActive);
-                    Assert.NotNull(c.ChannelPoint);
-                    Assert.Equal(capacity, c.Capacity.ToDecimal(LightMoneyUnit.BTC));
-                    Assert.InRange(c.LocalBalance.ToDecimal(LightMoneyUnit.BTC), lowerBound, upperBound);
+                    case LndHubLightningClient _:
+                        await Assert.ThrowsAsync<NotSupportedException>(async () =>
+                        {
+                            await test.Customer.ListChannels();
+                        });
+                        break;
+
+                    default:
+                        await EnsureConnectedToDestinations(test);
+
+                        var senderChannels = await test.Customer.ListChannels();
+                        var senderInfo = await test.Customer.GetInfo();
+                        Assert.NotEmpty(senderChannels);
+                        Assert.Single(senderChannels.Where(s => s.IsActive));
+
+                        var destChannels = await test.Merchant.ListChannels();
+                        var destInfo = await test.Merchant.GetInfo();
+                        Assert.NotEmpty(destChannels);
+                        Assert.Single(destChannels.GroupBy(s => s.RemoteNode));
+                        foreach (var c in senderChannels)
+                        {
+                            Assert.NotNull(c.RemoteNode);
+                            Assert.True(c.IsPublic);
+                            Assert.True(c.IsActive);
+                            Assert.NotNull(c.ChannelPoint);
+                            Assert.Equal(capacity, c.Capacity.ToDecimal(LightMoneyUnit.BTC));
+                            Assert.InRange(c.LocalBalance.ToDecimal(LightMoneyUnit.BTC), lowerBound, upperBound);
+                        }
+                        Assert.Contains(senderChannels, c => c.RemoteNode.Equals(destInfo.NodeInfoList.FirstOrDefault()?.NodeId));
+                        Assert.Contains(destChannels, c => c.RemoteNode.Equals(senderInfo.NodeInfoList.FirstOrDefault()?.NodeId));
+                        break;
                 }
-                Assert.Contains(senderChannels, c => c.RemoteNode.Equals(destInfo.NodeInfoList.FirstOrDefault()?.NodeId));
-                Assert.Contains(destChannels, c => c.RemoteNode.Equals(senderInfo.NodeInfoList.FirstOrDefault()?.NodeId));
             }
         }
 
@@ -1016,6 +1140,24 @@ retry:
             Assert.False(factory.TryCreate($"type=lnd-rest;server=http://127.0.0.1:53280/;macaroon={macaroon};allowinsecure=false", out conn2, out _));
             Assert.True(factory.TryCreate($"type=lnd-rest;server=http://127.0.0.1:53280/;macaroon={macaroon};allowinsecure=true", out conn2, out _));
             Assert.True(factory.TryCreate($"type=lnd-rest;server=http://127.0.0.1:53280/;macaroon={macaroon};allowinsecure=true", out conn2, out _));
+
+            Assert.True(factory.TryCreate("type=lndhub;server=https://mylndhub:password@lndhub.io/", out conn, out _));
+            Assert.Equal("https://lndhub.io/", new UriBuilder(Assert.IsType<LndHubLightningClient>(conn)._baseUri) { UserName = "", Password = "" }.Uri.ToString());
+            Assert.Equal("mylndhub", Assert.IsType<LndHubLightningClient>(conn)._login);
+            Assert.Equal("password", Assert.IsType<LndHubLightningClient>(conn)._password);
+
+            // Allow insecure checks
+            Assert.False(factory.TryCreate("type=lndhub;server=http://mylndhub:password@lndhub.io/", out conn, out _));
+            Assert.True(factory.TryCreate("type=lndhub;server=http://mylndhub:password@lndhub.io/;allowinsecure=true", out conn, out _));
+            Assert.True(factory.TryCreate("type=lndhub;server=http://mylndhub:password@lndhubviator.onion/", out conn, out _));
+
+            // lndhub scheme - https
+            Assert.True(factory.TryCreate("lndhub://mylndhub:password@https://lndhub.io", out conn, out _));
+            Assert.Equal("type=lndhub;server=https://mylndhub:password@lndhub.io/", conn.ToString());
+
+            // lndhub scheme - http
+            Assert.True(factory.TryCreate("lndhub://mylndhub:password@http://lndhub.io", out conn, out _));
+            Assert.Equal("type=lndhub;server=http://mylndhub:password@lndhub.io/;allowinsecure=true", conn.ToString());
         }
 
         private static async Task<RPCClient> GetRPCClient()
@@ -1070,8 +1212,8 @@ retry:
             Logs.Tester.LogInformation($"{test.Name}: Connecting channels...");
 
             var cashcow = await GetRPCClient();
-            var customerNodeClient = test.Customer;
-            var merchantNodeClient = test.Merchant;
+            var customerNodeClient = test.Customer is LndHubLightningClient ? Tester.CreateLndClient() : test.Customer;
+            var merchantNodeClient = test.Merchant is LndHubLightningClient ? Tester.CreateLndClientDest() : test.Merchant;
             await ConnectChannels.ConnectAll(cashcow, new[] { customerNodeClient }, new[] { merchantNodeClient });
             Logs.Tester.LogInformation($"{test.Name}: Channels connected");
 
@@ -1086,6 +1228,26 @@ retry:
                 Logs.Tester.LogInformation($"Merchant to {channel.RemoteNode}: Capacity = {channel.Capacity} BTC, Local Balance = {channel.LocalBalance} BTC");
             }
             Logs.Tester.LogInformation("-----------------");
+        }
+
+        private async Task FundLndHubWallet(ILightningClient receiver, LightMoney amount)
+        {
+            // The customers LNDhub wallet needs some initial funds.
+            // Connect to destination first - implicitly through the connected LND instance
+            ILightningClient dest = Tester.CreateLndClientDest();
+            await EnsureConnectedToDestinations(("LNDhub", receiver, dest));
+            // Fund the LNDhub account with some sats
+            var fundingInvoice = await receiver.CreateInvoice(amount, "FundLndHubWallet", TimeSpan.FromMinutes(1));
+            int retry = 0;
+            retry:
+            var resp = await dest.Pay(fundingInvoice.BOLT11);
+            if (resp.Result == PayResult.CouldNotFindRoute && retry < 10)
+            {
+                retry++;
+                await Task.Delay(100 * retry);
+                goto retry;
+            }
+            Assert.Equal(PayResult.Ok, resp.Result);
         }
     }
 }
