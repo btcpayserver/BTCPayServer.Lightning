@@ -163,6 +163,7 @@ namespace BTCPayServer.Lightning
             var fallbackAddresses = new List<BitcoinAddress>();
             var routes = new List<RouteInformation>();
             var features = FeatureBits.None;
+            BitArray? rawFeatures = null;
             while (reader.Position != reader.Count - 520 - 30)
             {
                 AssertSize(5 + 10);
@@ -272,12 +273,23 @@ namespace BTCPayServer.Lightning
                         }
 
                         // Read which feature bits are set from right-to-left.
+                        // 'size' can advertise more feature bits than the strongly
+                        // typed FeatureBits enum (backed by a 64-bit integer) can
+                        // hold. A feature bit at index 63 or above cannot be
+                        // represented as a distinct enum flag: shifting by >= 64
+                        // wraps around in .NET and would set an unrelated, lower
+                        // feature bit (e.g. the trampoline placeholder bit 149 would
+                        // incorrectly set bit 21). Capture every advertised bit in
+                        // RawFeatureBits and only fold the representable ones into
+                        // the FeatureBits enum.
+                        rawFeatures = new BitArray(size);
                         for (var i = size - 1; i >= 0; i--)
                         {
-                            if (reader.Read())
-                            {
+                            if (!reader.Read())
+                                continue;
+                            rawFeatures[i] = true;
+                            if (i < 63)
                                 features |= (FeatureBits)((long) 1 << i);
-                            }
                         }
                         break;
                 }
@@ -296,6 +308,7 @@ namespace BTCPayServer.Lightning
             Routes = routes;
             FallbackAddresses = fallbackAddresses;
             FeatureBits = features;
+            RawFeatureBits = rawFeatures ?? new BitArray(0);
         }
 
         public bool VerifySignature()
@@ -396,6 +409,15 @@ namespace BTCPayServer.Lightning
         public uint256? PaymentSecret { get; }
         public DateTimeOffset ExpiryDate { get; }
         public FeatureBits FeatureBits { get; }
+
+        /// <summary>
+        /// All feature bits advertised by the invoice, indexed by feature bit number
+        /// (<c>RawFeatureBits[n]</c> is <c>true</c> when feature bit <c>n</c> is set).
+        /// Unlike <see cref="FeatureBits"/> — which is backed by a 64-bit enum and can
+        /// therefore only represent feature bits below 63 — this exposes every feature
+        /// bit, including large ones such as the trampoline placeholder (bit 149).
+        /// </summary>
+        public BitArray RawFeatureBits { get; }
 
         public static bool TryParse(string str, [MaybeNullWhen(false)] out BOLT11PaymentRequest? result, Network network)
         {
