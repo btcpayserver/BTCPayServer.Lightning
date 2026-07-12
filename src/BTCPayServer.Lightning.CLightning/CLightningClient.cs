@@ -345,7 +345,11 @@ namespace BTCPayServer.Lightning.CLightning
                 {
                     if (payParams?.MaxFeePercent is { } feePercent && explicitAmount is not null)
                     {
-                        maxFeeFlat = (long)(explicitAmount.ToDecimal(LightMoneyUnit.Satoshi) * (decimal)feePercent / 100m);
+                        // The 'maxfee' argument of xpay/xkeysend is expressed in millisatoshi (like the flat
+                        // MaxFeeFlat branch above), so the percentage must be applied in millisatoshi as well.
+                        // Computing it in satoshi made the fee ceiling 1000x too low, causing valid payments to
+                        // be rejected for excessive fees.
+                        maxFeeFlat = (long)(explicitAmount.ToDecimal(LightMoneyUnit.MilliSatoshi) * (decimal)feePercent / 100m);
                     }
                 }
 
