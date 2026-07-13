@@ -790,6 +790,21 @@ retry:
             Assert.True((p.FeatureBits | (FeatureBits.MPPOptional | FeatureBits.PaymentAddrRequired | FeatureBits.TLVOnionPayloadOptional | FeatureBits.PaymentMetadataRequired)) ==
                         (FeatureBits.MPPOptional | FeatureBits.PaymentAddrRequired | FeatureBits.TLVOnionPayloadOptional | FeatureBits.PaymentMetadataRequired));
 
+            // Feature bits at index 63 or above must not overflow the 64-bit FeatureBits
+            // enum and corrupt unrelated low bits (issue #104). This invoice advertises
+            // feature bits 149 (trampoline placeholder, as used by ACINQ Phoenix), 15 and 9.
+            p = BOLT11PaymentRequest.Parse("lnbc1pj48ugq9q7sqqqqqqqqqqqqqqqqqqqqqqqqqpqsq0ek3nzu5qmahkcf28n2le2mgrz3argfyzqr96ha0yz9nedsah8uqrhg3fl24pyk0n2edx6ycpwznfmfp36qxvm2tam0kkzzy28wus4sqxryag5", Network.Main);
+            // The enum only carries the representable low bits (9 and 15)...
+            Assert.Equal(FeatureBits.TLVOnionPayloadOptional | FeatureBits.PaymentAddrOptional, p.FeatureBits);
+            // ...and no longer wraps bit 149 into the unrelated bit 21 (149 % 64 == 21).
+            Assert.Equal(0L, (long)p.FeatureBits & (1L << 21));
+            // RawFeatureBits preserves every advertised feature bit, including bit 149.
+            Assert.Equal(150, p.RawFeatureBits.Length);
+            Assert.True(p.RawFeatureBits[149]);
+            Assert.True(p.RawFeatureBits[15]);
+            Assert.True(p.RawFeatureBits[9]);
+            Assert.False(p.RawFeatureBits[21]);
+
             p = BOLT11PaymentRequest.Parse("lnbc2500u1pvjluezpp5qqqsyqcyq5rqwzqfqqqsyqcyq5rqwzqfqqqsyqcyq5rqwzqfqypqdq5xysxxatsyp3k7enxv4jsxqzpuaztrnwngzn3kdzw5hydlzf03qdgm2hdq27cqv3agm2awhz5se903vruatfhq77w3ls4evs3ch9zw97j25emudupq63nyw24cg27h2rspfj9srp", Network.Main);
             Assert.Equal("lnbc", p.Prefix);
             Assert.Equal(9, p.MinFinalCLTVExpiry);
