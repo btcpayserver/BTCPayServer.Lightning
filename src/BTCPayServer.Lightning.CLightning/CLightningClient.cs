@@ -114,7 +114,7 @@ namespace BTCPayServer.Lightning.CLightning
             parameters.Add(openChannelRequest.NodeInfo.NodeId.ToString());
             parameters.Add(openChannelRequest.ChannelAmount.Satoshi);
             if (openChannelRequest.FeeRate != null)
-                parameters.Add($"{openChannelRequest.FeeRate.FeePerK.Satoshi * 4}perkw");
+                parameters.Add($"{openChannelRequest.FeeRate.FeePerK.Satoshi}perkb");
             return SendCommandAsync<object>("fundchannel", parameters.ToArray(), true, cancellation: cancellation);
         }
 
