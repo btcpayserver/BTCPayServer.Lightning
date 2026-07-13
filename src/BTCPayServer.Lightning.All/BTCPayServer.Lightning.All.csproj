@@ -3,7 +3,7 @@
 	<PropertyGroup>
 		<TargetFrameworks>net10.0;netstandard2.0</TargetFrameworks>
 		<RootNamespace>BTCPayServer.Lightning</RootNamespace>
-		<Version>1.7.4</Version>
+		<Version>1.7.5</Version>
 		<LangVersion>10</LangVersion>
 		<PackageId>BTCPayServer.Lightning.All</PackageId>
 		<Description>Client library for lightning network implementations to build Lightning Network Apps in C#.</Description>
