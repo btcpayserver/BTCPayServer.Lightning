@@ -26,6 +26,9 @@ namespace BTCPayServer.Lightning.CLightning
         [JsonConverter(typeof(NBitcoin.JsonConverters.UInt256JsonConverter))]
         public uint256 FundingTxId { get; set; }
 
+        [JsonProperty("funding_outnum")]
+        public uint? FundingOutnum { get; set; }
+
         [JsonProperty("short_channel_id")]
         [JsonConverter(typeof(JsonConverters.ShortChannelIdJsonConverter))]
         public ShortChannelId ShortChannelId { get; set; }

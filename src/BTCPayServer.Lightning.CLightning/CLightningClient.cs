@@ -499,7 +499,7 @@ namespace BTCPayServer.Lightning.CLightning
 
         async Task<LightningChannel[]> ILightningClient.ListChannels(CancellationToken cancellation)
         {
-            var listChannels = await this.ListPeerChannelsAsync();
+            var listChannels = await this.ListPeerChannelsAsync(cancellation);
             List<LightningChannel> channels = new List<LightningChannel>();
             foreach (var channel in listChannels)
             {
@@ -508,7 +508,10 @@ namespace BTCPayServer.Lightning.CLightning
                     RemoteNode = new PubKey(channel.PeerId),
                     IsPublic = !channel.Private,
                     LocalBalance = channel.ToUs,
-                    ChannelPoint = new OutPoint(channel.FundingTxId, channel.ShortChannelId.TxOutIndex),
+                    // short_channel_id is not available until the funding transaction is confirmed.
+                    ChannelPoint = channel.FundingTxId is null || channel.FundingOutnum is null
+                        ? null
+                        : new OutPoint(channel.FundingTxId, channel.FundingOutnum.Value),
                     Capacity = channel.Total,
                     IsActive = channel.State == "CHANNELD_NORMAL"
                 });
