@@ -315,6 +315,11 @@ namespace BTCPayServer.Lightning.CLightning
             return payments.Select(ToLightningPayment).ToArray();
         }
 
+        // Default of c-lightning's 'exemptfee' on the legacy 'pay' command: fees below this are
+        // accepted regardless of the percentage ceiling. xpay has no equivalent knob, so it is
+        // folded into the absolute 'maxfee' we compute from MaxFeePercent.
+        const long CLightningExemptFeeMilliSatoshi = 5000;
+
         private async Task<PayResponse> PayAsync(string bolt11, PayInvoiceParams payParams, CancellationToken cancellation = default)
         {
             var isKeysend = bolt11 == null;
@@ -343,13 +348,23 @@ namespace BTCPayServer.Lightning.CLightning
 
                 if (maxFeeFlat is null)
                 {
-                    if (payParams?.MaxFeePercent is { } feePercent && explicitAmount is not null)
+                    if (payParams?.MaxFeePercent is { } feePercent)
                     {
-                        // The 'maxfee' argument of xpay/xkeysend is expressed in millisatoshi (like the flat
-                        // MaxFeeFlat branch above), so the percentage must be applied in millisatoshi as well.
-                        // Computing it in satoshi made the fee ceiling 1000x too low, causing valid payments to
-                        // be rejected for excessive fees.
-                        maxFeeFlat = (long)(explicitAmount.ToDecimal(LightMoneyUnit.MilliSatoshi) * (decimal)feePercent / 100m);
+                        // Before the switch to xpay, MaxFeePercent was handed to 'pay' as its native
+                        // 'maxfeepercent' for every invoice, with 'exemptfee' left at its 5000msat default,
+                        // so a payment was accepted when the fee was below *either* the percentage or
+                        // 5000msat. xpay takes only an absolute 'maxfee' (which overrides both of those),
+                        // so rebuild the same ceiling here as max(percentage, exemptfee).
+                        // The percentage applies to the amount actually being paid: the explicit amount when
+                        // we supply one (keysend, or a bolt11 without an amount), otherwise the amount carried
+                        // by the invoice.
+                        var feeBase = explicitAmount ?? pr?.MinimumAmount;
+                        // 'maxfee' is expressed in millisatoshi (like the flat MaxFeeFlat branch above), so the
+                        // percentage must be applied in millisatoshi as well.
+                        if (feeBase is not null && feeBase != LightMoney.Zero)
+                            maxFeeFlat = Math.Max(
+                                (long)(feeBase.ToDecimal(LightMoneyUnit.MilliSatoshi) * (decimal)feePercent / 100m),
+                                CLightningExemptFeeMilliSatoshi);
                     }
                 }
 
