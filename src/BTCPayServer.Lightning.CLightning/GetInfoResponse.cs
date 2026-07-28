@@ -1,3 +1,5 @@
+using Newtonsoft.Json;
+
 namespace BTCPayServer.Lightning.CLightning;
 
 //[{"type":"ipv4","address":"52.166.90.122","port":9735}]
@@ -10,9 +12,13 @@ public class GetInfoResponse
     public string Alias { get; set; }
     public string Network { get; set; }
     public int BlockHeight { get; set; }
+    [JsonProperty("num_peers")]
     public int NumPeers { get; set; }
+    [JsonProperty("num_pending_channels")]
     public int NumPendingChannels { get; set; }
+    [JsonProperty("num_active_channels")]
     public int NumActiveChannels { get; set; }
+    [JsonProperty("num_inactive_channels")]
     public int NumInactiveChannels { get; set; }
 
     public class GetInfoAddress
