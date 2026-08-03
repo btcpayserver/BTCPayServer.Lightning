@@ -854,8 +854,8 @@ retry:
         async Task<OpenChannelResponse> ILightningClient.OpenChannel(OpenChannelRequest openChannelRequest, CancellationToken cancellation)
         {
             OpenChannelRequest.AssertIsSane(openChannelRequest);
-retry:
             int retryCount = 0;
+retry:
             cancellation.ThrowIfCancellationRequested();
             try
             {
@@ -902,7 +902,7 @@ retry:
                 if (retryCount++ > 3)
                     return new OpenChannelResponse(OpenChannelResult.NeedMoreConf);
 
-                await Task.Delay(1000);
+                await Task.Delay(1000, cancellation);
                 goto retry;
             }
             catch (SwaggerException ex) when
@@ -912,7 +912,7 @@ retry:
                 if (retryCount++ > 3)
                     return new OpenChannelResponse(OpenChannelResult.NeedMoreConf);
 
-                await Task.Delay(1000);
+                await Task.Delay(1000, cancellation);
                 goto retry;
             }
             catch (SwaggerException ex) when
