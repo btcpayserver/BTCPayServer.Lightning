@@ -14,7 +14,7 @@
 	</PropertyGroup>
     <Import Project="../BTCPayServer.Lightning.Common/Common.csproj" />
 	<ItemGroup>
-		<PackageReference Include="NBitcoin" Version="10.0.1" />
+		<PackageReference Include="NBitcoin" Version="10.0.9" />
 		<PackageReference Include="Newtonsoft.Json" Version="13.0.3" />
 	</ItemGroup>
 
