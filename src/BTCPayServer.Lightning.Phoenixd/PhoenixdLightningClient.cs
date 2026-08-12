@@ -18,7 +18,6 @@ namespace BTCPayServer.Lightning.Phoenixd
         private readonly string _password;
         private readonly Network _network;
         private readonly PhoenixdClient _PhoenixdClient;
-        public static PhoenixdClient PhoenixdClientInstance { get; private set; }
 
         private string NormalizeChain(string input)
         {
@@ -102,7 +101,6 @@ namespace BTCPayServer.Lightning.Phoenixd
             _password = password;
             _network = network;
             _PhoenixdClient = new PhoenixdClient(address, username, password, network, httpClient);
-            PhoenixdClientInstance = _PhoenixdClient;
         }
 
         public async Task<LightningInvoice> GetInvoice(string invoiceId, CancellationToken cancellation = default)
