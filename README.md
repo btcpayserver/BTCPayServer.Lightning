@@ -1,4 +1,4 @@
-[![CircleCI](https://circleci.com/gh/btcpayserver/BTCPayServer.Lightning.svg?style=svg)](https://circleci.com/gh/btcpayserver/BTCPayServer.Lightning)
+[![CI](https://github.com/btcpayserver/BTCPayServer.Lightning/actions/workflows/ci.yml/badge.svg)](https://github.com/btcpayserver/BTCPayServer.Lightning/actions/workflows/ci.yml)
 
 # A C# library for Lightning Network clients
 
