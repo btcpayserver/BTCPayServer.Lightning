@@ -1,0 +1,29 @@
+name: CI
+
+on:
+  push:
+  pull_request:
+
+jobs:
+  test:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Clean up Docker volumes
+        working-directory: tests
+        run: docker compose down --volumes
+
+      - name: Build test image
+        working-directory: tests
+        run: docker compose build
+
+      - name: Run tests
+        working-directory: tests
+        run: docker compose run --rm tests
+
+      - name: Clean up Docker volumes
+        if: always()
+        working-directory: tests
+        run: docker compose down --volumes
