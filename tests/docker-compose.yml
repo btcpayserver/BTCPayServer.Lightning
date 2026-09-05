@@ -4,9 +4,10 @@ services:
 
   bitcoind:
     restart: unless-stopped
-    image: btcpayserver/bitcoin:29.0
+    image: btcpayserver/bitcoin:31.1
     environment:
       BITCOIN_NETWORK: regtest
+      BITCOIN_RPCUSERS: lnd
       BITCOIN_WALLETDIR: "/data/wallets"
       BITCOIN_EXTRA_ARGS: |
         rpcuser=ceiwHEbqWI83
@@ -98,14 +99,14 @@ services:
       LND_CHAIN: "btc"
       LND_ENVIRONMENT: "regtest"
       LND_REST_LISTEN_HOST: http://lnd:8080
+      RPCUSER_FILE: /deps/.bitcoin/RPCUsers/lnd
       LND_EXTRA_ARGS: |
         restlisten=lnd:8080
         rpclisten=127.0.0.1:10008
         rpclisten=lnd:10009
         bitcoin.node=bitcoind
         bitcoind.rpchost=bitcoind:43782
-        bitcoind.rpcuser=ceiwHEbqWI83
-        bitcoind.rpcpass=DwubwWsoo3
+        bitcoind.rpcuser=lnd
         bitcoind.zmqpubrawblock=tcp://bitcoind:28332
         bitcoind.zmqpubrawtx=tcp://bitcoind:28333
         externalip=lnd:9735
@@ -133,14 +134,14 @@ services:
       LND_CHAIN: "btc"
       LND_ENVIRONMENT: "regtest"
       LND_REST_LISTEN_HOST: http://lnd_dest:8080
+      RPCUSER_FILE: /deps/.bitcoin/RPCUsers/lnd
       LND_EXTRA_ARGS: |
         restlisten=lnd_dest:8080
         rpclisten=127.0.0.1:10008
         rpclisten=lnd_dest:10009
         bitcoin.node=bitcoind
         bitcoind.rpchost=bitcoind:43782
-        bitcoind.rpcuser=ceiwHEbqWI83
-        bitcoind.rpcpass=DwubwWsoo3
+        bitcoind.rpcuser=lnd
         bitcoind.zmqpubrawblock=tcp://bitcoind:28332
         bitcoind.zmqpubrawtx=tcp://bitcoind:28333
         externalip=lnd_dest:9735
