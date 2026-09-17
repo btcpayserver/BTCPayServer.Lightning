@@ -36,8 +36,29 @@ public class PhoenixdConnectionStringHandler : ILightningConnectionStringHandler
 
         kv.TryGetValue("username", out var username);
         kv.TryGetValue("password", out var password);
+        PhoenixdCredentials credentials;
+        if (kv.TryGetValue("passwordfilepath", out var passwordFilePath))
+        {
+            if (password != null)
+            {
+                error = "The key 'password' is already specified";
+                return null;
+            }
+
+            if (!passwordFilePath.EndsWith(".pwd", StringComparison.OrdinalIgnoreCase))
+            {
+                error = "The key 'passwordfilepath' should point to a .pwd file";
+                return null;
+            }
+
+            credentials = new PhoenixdCredentials.ByPasswordFile(passwordFilePath);
+        }
+        else
+        {
+            credentials = new PhoenixdCredentials.ByPassword(password);
+        }
 
         error = null;
-        return new PhoenixdLightningClient(Phoenixduri, username, password, network, _httpClient);
+        return new PhoenixdLightningClient(Phoenixduri, username, credentials, network, _httpClient);
     }
 }

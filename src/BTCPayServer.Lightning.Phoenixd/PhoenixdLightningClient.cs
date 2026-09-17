@@ -1,8 +1,6 @@
 using System;
 using System.Linq;
 using System.Net.Http;
-using System.Net.Http.Headers;
-using System.Text;
 using System.Threading;
 using System.Threading.Tasks;
 using System.Net.WebSockets;
@@ -15,7 +13,7 @@ namespace BTCPayServer.Lightning.Phoenixd
     {
         private readonly Uri _address;
         private readonly string _username;
-        private readonly string _password;
+        private readonly PhoenixdCredentials _creds;
         private readonly Network _network;
         private readonly PhoenixdClient _PhoenixdClient;
 
@@ -90,7 +88,12 @@ namespace BTCPayServer.Lightning.Phoenixd
         {
         }
 
-        public PhoenixdLightningClient(Uri address, string username, string password, Network network, HttpClient httpClient = null)
+        public PhoenixdLightningClient(Uri address, string username, string password, Network network, HttpClient httpClient = null) :
+            this(address, username, new PhoenixdCredentials.ByPassword(password), network, httpClient)
+        {
+        }
+
+        internal PhoenixdLightningClient(Uri address, string username, PhoenixdCredentials creds, Network network, HttpClient httpClient = null)
         {
             if (address == null)
                 throw new ArgumentNullException(nameof(address));
@@ -98,9 +101,9 @@ namespace BTCPayServer.Lightning.Phoenixd
                 throw new ArgumentNullException(nameof(network));
             _address = address;
             _username = username;
-            _password = password;
+            _creds = creds ?? throw new ArgumentNullException(nameof(creds));
             _network = network;
-            _PhoenixdClient = new PhoenixdClient(address, username, password, network, httpClient);
+            _PhoenixdClient = new PhoenixdClient(address, username, creds, network, httpClient);
         }
 
         public async Task<LightningInvoice> GetInvoice(string invoiceId, CancellationToken cancellation = default)
@@ -193,8 +196,7 @@ namespace BTCPayServer.Lightning.Phoenixd
         {
             return new PhoenixdSession(
                await ClientWebSocket(_address.AbsoluteUri,
-                  new AuthenticationHeaderValue("Basic",
-                        Convert.ToBase64String(Encoding.Default.GetBytes($"{_username??string.Empty}:{_password}"))).ToString(), cancellation), this);
+                   _creds.CreateAuthenticationHeaderValue(_username).ToString(), cancellation), this);
         }
 
         public async Task<LightningNodeInformation> GetInfo(CancellationToken cancellation = default)
@@ -320,8 +322,10 @@ namespace BTCPayServer.Lightning.Phoenixd
             var result= $"type=phoenixd;server={_address}";
             if (_username is { })
                 result += $";username={_username}";
-            if (_password is { })
-                result += $";password={_password}";
+            if (_creds is PhoenixdCredentials.ByPassword { Password: { } password })
+                result += $";password={password}";
+            if (_creds is PhoenixdCredentials.ByPasswordFile passwordFile)
+                result += $";passwordfilepath={passwordFile.PasswordFilePath}";
             return result;
         }
 
