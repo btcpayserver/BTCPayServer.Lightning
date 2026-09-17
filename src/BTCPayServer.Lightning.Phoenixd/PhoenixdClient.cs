@@ -4,7 +4,6 @@ using System.IO;
 using System.Linq;
 using System.Net.Http;
 using System.Net.Http.Headers;
-using System.Text;
 using System.Threading;
 using System.Threading.Tasks;
 using BTCPayServer.Lightning.Phoenixd.Models;
@@ -18,14 +17,16 @@ namespace BTCPayServer.Lightning.Phoenixd
     {
         private readonly Uri _address;
         private readonly string _username;
-        private readonly string _password;
+        private readonly PhoenixdCredentials _creds;
         private readonly HttpClient _httpClient;
         private static readonly HttpClient SharedClient = new();
 
         public Network Network { get; }
 
         public PhoenixdClient(Uri address, string password, Network network, HttpClient httpClient = null) : this(address, null, password, network, httpClient) { }
-        public PhoenixdClient(Uri address, string username, string password, Network network, HttpClient httpClient = null)
+        public PhoenixdClient(Uri address, string username, string password, Network network, HttpClient httpClient = null) :
+            this(address, username, new PhoenixdCredentials.ByPassword(password), network, httpClient) { }
+        public PhoenixdClient(Uri address, string username, PhoenixdCredentials creds, Network network, HttpClient httpClient = null)
         {
             if (address == null)
                 throw new ArgumentNullException(nameof(address));
@@ -33,7 +34,7 @@ namespace BTCPayServer.Lightning.Phoenixd
                 throw new ArgumentNullException(nameof(network));
             _address = address;
             _username = username;
-            _password = password;
+            _creds = creds ?? throw new ArgumentNullException(nameof(creds));
             Network = network;
             _httpClient = httpClient ?? SharedClient;
         }
@@ -184,7 +185,7 @@ retry:
             };
             httpRequest.Headers.Accept.Clear();
             httpRequest.Headers.Accept.Add(new MediaTypeWithQualityHeaderValue("application/json"));
-            httpRequest.Headers.Authorization = new AuthenticationHeaderValue("Basic", Convert.ToBase64String(Encoding.Default.GetBytes($"{_username ?? string.Empty}:{_password}")));
+            httpRequest.Headers.Authorization = _creds.CreateAuthenticationHeaderValue(_username);
             try
             {
                 using var rawResult = await _httpClient.SendAsync(httpRequest, cts);
@@ -223,7 +224,6 @@ retry:
                 goto retry;
             }
         }
-
 
         internal class NoRequestModel
         {
