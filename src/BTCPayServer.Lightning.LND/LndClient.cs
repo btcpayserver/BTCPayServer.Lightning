@@ -32,14 +32,14 @@ namespace BTCPayServer.Lightning.LND
             private int _consecutiveSubscriptionErrors;
             private const int MaxReconnectAttempts = 3;
 
-            public LndInvoiceClientSession(LndSwaggerClient parent, CancellationToken cancellation)
+            public LndInvoiceClientSession(LndSwaggerClient parent)
             {
                 _Parent = parent;
-                _Cts = CancellationTokenSource.CreateLinkedTokenSource(cancellation);
             }
 
-            public async Task StartListening()
+            public async Task StartListening(CancellationToken cancellation)
             {
+                _Cts = CancellationTokenSource.CreateLinkedTokenSource(cancellation);
                 try
                 {
                     await Connect();
@@ -661,8 +661,8 @@ namespace BTCPayServer.Lightning.LND
 
         async Task<ILightningInvoiceListener> ILightningClient.Listen(CancellationToken cancellation)
         {
-            var session = new LndInvoiceClientSession(SwaggerClient, cancellation);
-            await session.StartListening();
+            var session = new LndInvoiceClientSession(SwaggerClient);
+            await session.StartListening(cancellation);
             return session;
         }
 
