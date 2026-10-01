@@ -79,19 +79,20 @@ namespace BTCPayServer.Lightning.LND
             {
                 _Client?.Dispose();
                 _Client = _Parent.CreateClientWebSocket();
-                var httpUri = new Uri(WithTrailingSlash(_Parent.BaseUrl) + "v1/invoices/subscribe?method=GET");
+                var endpoint = new StringBuilder(WithTrailingSlash(_Parent.BaseUrl) +
+                                                 "v1/invoices/subscribe?method=GET");
+                if (_addIndex != 0)
+                    endpoint.Append("&add_index=").Append(_addIndex.ToString(CultureInfo.InvariantCulture));
+                if (_settleIndex != 0)
+                    endpoint.Append("&settle_index=").Append(_settleIndex.ToString(CultureInfo.InvariantCulture));
+                var httpUri = new Uri(endpoint.ToString());
                 var uriBuilder = new UriBuilder(httpUri)
                 {
                     Scheme = httpUri.Scheme == "https" ? "wss" : "ws"
                 };
                 await _Client.ConnectAsync(uriBuilder.Uri, _Cts.Token);
 
-                var subscription = new JObject();
-                if (_addIndex != 0)
-                    subscription["add_index"] = _addIndex.ToString(CultureInfo.InvariantCulture);
-                if (_settleIndex != 0)
-                    subscription["settle_index"] = _settleIndex.ToString(CultureInfo.InvariantCulture);
-                var requestBody = Encoding.UTF8.GetBytes(subscription.ToString(Newtonsoft.Json.Formatting.None));
+                var requestBody = Encoding.UTF8.GetBytes("{}");
                 await _Client.SendAsync(new ArraySegment<byte>(requestBody), WebSocketMessageType.Text, true, _Cts.Token);
             }
 

@@ -119,10 +119,6 @@ namespace BTCPayServer.Lightning.LND
         [Newtonsoft.Json.JsonProperty("last_index_offset", Required = Newtonsoft.Json.Required.Default,
             NullValueHandling = Newtonsoft.Json.NullValueHandling.Ignore)]
         public string LastIndexOffset { get; set; }
-
-        [Newtonsoft.Json.JsonProperty("first_index_offset", Required = Newtonsoft.Json.Required.Default,
-            NullValueHandling = Newtonsoft.Json.NullValueHandling.Ignore)]
-        public string FirstIndexOffset { get; set; }
     }
 
     public partial class LnrpcInvoice
