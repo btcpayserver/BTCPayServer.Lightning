@@ -1,5 +1,6 @@
 using System;
 using System.Collections.Generic;
+using System.Net.Http;
 using System.Threading.Tasks;
 using BTCPayServer.Lightning.CLightning;
 using BTCPayServer.Lightning.Eclair;
@@ -19,10 +20,11 @@ namespace BTCPayServer.Lightning.Tests
             return new RPCClient("ceiwHEbqWI83:DwubwWsoo3", host, Network);
         }
 
-        internal static LndClient CreateLndClient()
+        internal static LndClient CreateLndClient(HttpClient httpClient = null)
         {
             var host = CommonTests.Docker ? "http://lnd:8080" : "http://127.0.0.1:32736";
-            return new LndClient(new LndRestSettings { AllowInsecure = true, Uri = new Uri(host) }, Network.RegTest);
+            var settings = new LndRestSettings { AllowInsecure = true, Uri = new Uri(host) };
+            return new LndClient(new LndSwaggerClient(settings, httpClient), Network.RegTest);
         }
 
         internal static LndClient CreateLndClientDest()

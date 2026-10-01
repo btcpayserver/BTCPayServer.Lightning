@@ -90,7 +90,7 @@ namespace BTCPayServer.Lightning.LND
                 {
                     Scheme = httpUri.Scheme == "https" ? "wss" : "ws"
                 };
-                await _Client.ConnectAsync(uriBuilder.Uri, _Cts.Token);
+                await _Parent.ConnectClientWebSocket(_Client, uriBuilder.Uri, _Cts.Token);
 
                 var requestBody = Encoding.UTF8.GetBytes("{}");
                 await _Client.SendAsync(new ArraySegment<byte>(requestBody), WebSocketMessageType.Text, true, _Cts.Token);

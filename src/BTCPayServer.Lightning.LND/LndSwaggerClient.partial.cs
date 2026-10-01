@@ -159,6 +159,7 @@ namespace BTCPayServer.Lightning.LND
                     socket.Options.SetRequestHeader(header.Key, string.Join(",", header.Value));
             }
 
+#if !NET7_0_OR_GREATER
             var expectedThumbprint = _LndSettings.CertificateThumbprint?.ToArray();
             if (expectedThumbprint != null)
             {
@@ -188,8 +189,18 @@ namespace BTCPayServer.Lightning.LND
                 SetRemoteCertificateValidationCallback(socket.Options, (sender, cert, chain, errors) => true);
             else if (!_LndSettings.AllowInsecure && _LndSettings.Uri.Scheme == "http")
                 throw new InvalidOperationException("AllowInsecure is set to false, but the URI is not using https");
+#endif
 
             return socket;
+        }
+
+        internal Task ConnectClientWebSocket(ClientWebSocket socket, Uri uri, CancellationToken cancellationToken)
+        {
+#if NET7_0_OR_GREATER
+            return socket.ConnectAsync(uri, _httpClient, cancellationToken);
+#else
+            return socket.ConnectAsync(uri, cancellationToken);
+#endif
         }
 
         private static void SetRemoteCertificateValidationCallback(ClientWebSocketOptions options,

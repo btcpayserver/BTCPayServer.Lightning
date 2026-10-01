@@ -1,6 +1,7 @@
 using System;
 using System.Diagnostics;
 using System.IO;
+using System.Net.Http;
 using System.Runtime.CompilerServices;
 using System.Threading;
 using System.Threading.Tasks;
@@ -25,10 +26,13 @@ namespace BTCPayServer.Lightning.Tests
             await rpc.ScanRPCCapabilitiesAsync();
             await rpc.GenerateAsync(1);
 
-            ILightningClient client = Tester.CreateLndClient();
+            var handler = new WebSocketTrackingHandler(new HttpClientHandler());
+            using var httpClient = new HttpClient(handler);
+            ILightningClient client = Tester.CreateLndClient(httpClient);
             await WaitForLndReady(client, TimeSpan.FromSeconds(10));
 
             using var listener = await client.Listen(CancellationToken.None);
+            Assert.True(handler.WebSocketRequested);
             var created = await client.CreateInvoice(LightMoney.Satoshis(1), "WebSocket test", TimeSpan.FromMinutes(1));
             using var cts = new CancellationTokenSource(TimeSpan.FromSeconds(10));
             var received = await listener.WaitInvoice(cts.Token);
@@ -103,6 +107,25 @@ namespace BTCPayServer.Lightning.Tests
         }
 
         #region Helpers
+
+        private sealed class WebSocketTrackingHandler : DelegatingHandler
+        {
+            private int _webSocketRequested;
+
+            public WebSocketTrackingHandler(HttpMessageHandler innerHandler) : base(innerHandler)
+            {
+            }
+
+            public bool WebSocketRequested => Volatile.Read(ref _webSocketRequested) != 0;
+
+            protected override Task<HttpResponseMessage> SendAsync(HttpRequestMessage request,
+                CancellationToken cancellationToken)
+            {
+                if (request.Method == HttpMethod.Connect || request.Headers.Contains("Sec-WebSocket-Key"))
+                    Interlocked.Exchange(ref _webSocketRequested, 1);
+                return base.SendAsync(request, cancellationToken);
+            }
+        }
 
         private static async Task AssertWaitInvoiceThrows(ILightningInvoiceListener listener, string message)
         {
