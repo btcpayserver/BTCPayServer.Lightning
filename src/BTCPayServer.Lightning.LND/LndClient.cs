@@ -40,6 +40,7 @@ namespace BTCPayServer.Lightning.LND
             {
                 try
                 {
+                    await InitializeCursors();
                     await Connect();
                     _ListenLoop = ListenLoop();
                 }
@@ -47,6 +48,30 @@ namespace BTCPayServer.Lightning.LND
                 {
                     Dispose();
                     throw;
+                }
+            }
+
+            private async Task InitializeCursors()
+            {
+                long? offset = null;
+                while (!_Cts.IsCancellationRequested)
+                {
+                    var response = await _Parent.ListInvoicesAsync(false, offset, _Cts.Token);
+                    if (response?.Invoices == null || response.Invoices.Count == 0)
+                        return;
+
+                    foreach (var invoice in response.Invoices)
+                    {
+                        UpdateCursor(ref _addIndex, invoice.AddIndex);
+                        UpdateCursor(ref _settleIndex, invoice.SettleIndex);
+                    }
+
+                    if (!ulong.TryParse(response.LastIndexOffset, NumberStyles.None,
+                            CultureInfo.InvariantCulture, out var nextOffset) ||
+                        nextOffset > long.MaxValue || offset == (long)nextOffset)
+                        return;
+
+                    offset = (long)nextOffset;
                 }
             }
 
@@ -84,6 +109,7 @@ namespace BTCPayServer.Lightning.LND
                 {
                     while (!_Cts.IsCancellationRequested)
                     {
+                        next:
                         try
                         {
                             var message = await ReceiveMessage(_Cts.Token);
@@ -108,7 +134,6 @@ namespace BTCPayServer.Lightning.LND
                         catch (Exception ex) when (!_Cts.IsCancellationRequested && IsTransient(ex))
                         {
                             lastException = ex;
-                            var reconnected = false;
                             var firstAttempt = 1;
                             if (ex is LndException)
                                 firstAttempt = ++_consecutiveSubscriptionErrors;
@@ -121,19 +146,17 @@ namespace BTCPayServer.Lightning.LND
                                 {
                                     await Task.Delay(TimeSpan.FromSeconds(attempt), _Cts.Token);
                                     await Connect();
-                                    reconnected = true;
-                                    break;
+                                    goto next;
                                 }
                                 catch (Exception reconnectException) when (!_Cts.IsCancellationRequested)
                                 {
                                     lastException = reconnectException;
                                 }
                             }
-
-                            if (!reconnected)
-                                break;
+                            goto end;
                         }
                     }
+                    end: ;
                 }
                 catch when (_Cts.IsCancellationRequested)
                 {

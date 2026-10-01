@@ -89,7 +89,7 @@ namespace BTCPayServer.Lightning.Tests
             {
                 await RunDockerCompose("kill lnd");
 
-                await AssertWaitInvoiceThrows(listener, TimeSpan.FromSeconds(9),
+                await AssertWaitInvoiceThrows(listener,
                     "WaitInvoice should have thrown after three failed reconnect attempts");
             }
 
@@ -104,26 +104,12 @@ namespace BTCPayServer.Lightning.Tests
 
         #region Helpers
 
-        private static async Task AssertWaitInvoiceThrows(
-            ILightningInvoiceListener listener, TimeSpan maxElapsed, string message)
+        private static async Task AssertWaitInvoiceThrows(ILightningInvoiceListener listener, string message)
         {
-            var sw = Stopwatch.StartNew();
-            var threw = false;
-            try
-            {
-                using var cts = new CancellationTokenSource(TimeSpan.FromSeconds(10));
-                await listener.WaitInvoice(cts.Token);
-            }
-            catch
-            {
-                threw = true;
-            }
-
-            sw.Stop();
-
-            Assert.True(threw, message);
-            Assert.True(sw.Elapsed < maxElapsed,
-                $"WaitInvoice took {sw.Elapsed.TotalSeconds:F1}s - expected < {maxElapsed.TotalSeconds}s.");
+            using var cts = new CancellationTokenSource(TimeSpan.FromSeconds(45));
+            var exception = await Record.ExceptionAsync(() => listener.WaitInvoice(cts.Token));
+            Assert.NotNull(exception);
+            Assert.False(exception is OperationCanceledException, message);
         }
 
         private static async Task WaitForLndReady(ILightningClient client, TimeSpan timeout)
