@@ -26,6 +26,10 @@ namespace BTCPayServer.Lightning.LND
             CancellationTokenSource _Cts = new CancellationTokenSource();
             ClientWebSocket _Client;
             Task _ListenLoop;
+            private ulong _addIndex;
+            private ulong _settleIndex;
+            private int _consecutiveSubscriptionErrors;
+            private const int MaxReconnectAttempts = 3;
 
             public LndInvoiceClientSession(LndSwaggerClient parent)
             {
@@ -36,16 +40,7 @@ namespace BTCPayServer.Lightning.LND
             {
                 try
                 {
-                    _Client = _Parent.CreateClientWebSocket();
-                    var httpUri = new Uri(WithTrailingSlash(_Parent.BaseUrl) + "v1/invoices/subscribe?method=GET");
-                    var uriBuilder = new UriBuilder(httpUri)
-                    {
-                        Scheme = httpUri.Scheme == "https" ? "wss" : "ws"
-                    };
-                    await _Client.ConnectAsync(uriBuilder.Uri, _Cts.Token);
-
-                    var requestBody = Encoding.UTF8.GetBytes("{}");
-                    await _Client.SendAsync(new ArraySegment<byte>(requestBody), WebSocketMessageType.Text, true, _Cts.Token);
+                    await Connect();
                     _ListenLoop = ListenLoop();
                 }
                 catch
@@ -53,6 +48,26 @@ namespace BTCPayServer.Lightning.LND
                     Dispose();
                     throw;
                 }
+            }
+
+            private async Task Connect()
+            {
+                _Client?.Dispose();
+                _Client = _Parent.CreateClientWebSocket();
+                var httpUri = new Uri(WithTrailingSlash(_Parent.BaseUrl) + "v1/invoices/subscribe?method=GET");
+                var uriBuilder = new UriBuilder(httpUri)
+                {
+                    Scheme = httpUri.Scheme == "https" ? "wss" : "ws"
+                };
+                await _Client.ConnectAsync(uriBuilder.Uri, _Cts.Token);
+
+                var subscription = new JObject();
+                if (_addIndex != 0)
+                    subscription["add_index"] = _addIndex.ToString(CultureInfo.InvariantCulture);
+                if (_settleIndex != 0)
+                    subscription["settle_index"] = _settleIndex.ToString(CultureInfo.InvariantCulture);
+                var requestBody = Encoding.UTF8.GetBytes(subscription.ToString(Newtonsoft.Json.Formatting.None));
+                await _Client.SendAsync(new ArraySegment<byte>(requestBody), WebSocketMessageType.Text, true, _Cts.Token);
             }
 
             private string WithTrailingSlash(string str)
@@ -64,25 +79,60 @@ namespace BTCPayServer.Lightning.LND
 
             private async Task ListenLoop()
             {
+                Exception lastException = null;
                 try
                 {
                     while (!_Cts.IsCancellationRequested)
                     {
-                        var message = await ReceiveMessage(_Cts.Token);
-                        if (message.StartsWith("{\"result\":", StringComparison.OrdinalIgnoreCase))
+                        try
                         {
-                            var invoiceString = JObject.Parse(message)["result"].ToString();
-                            LnrpcInvoice parsedInvoice = _Parent.Deserialize<LnrpcInvoice>(invoiceString);
-                            await _Invoices.Writer.WriteAsync(ConvertLndInvoice(parsedInvoice), _Cts.Token);
+                            var message = await ReceiveMessage(_Cts.Token);
+                            if (message.StartsWith("{\"result\":", StringComparison.OrdinalIgnoreCase))
+                            {
+                                var invoiceString = JObject.Parse(message)["result"].ToString();
+                                LnrpcInvoice parsedInvoice = _Parent.Deserialize<LnrpcInvoice>(invoiceString);
+                                await _Invoices.Writer.WriteAsync(ConvertLndInvoice(parsedInvoice), _Cts.Token);
+                                UpdateCursor(ref _addIndex, parsedInvoice.AddIndex);
+                                UpdateCursor(ref _settleIndex, parsedInvoice.SettleIndex);
+                                _consecutiveSubscriptionErrors = 0;
+                            }
+                            else if (message.StartsWith("{\"error\":", StringComparison.OrdinalIgnoreCase))
+                            {
+                                var errorString = JObject.Parse(message)["error"].ToString();
+                                var error = _Parent.Deserialize<LNDError>(errorString);
+                                throw new LndException(error);
+                            }
+                            else
+                                throw new LndException("Unknown result from LND: " + message);
                         }
-                        else if (message.StartsWith("{\"error\":", StringComparison.OrdinalIgnoreCase))
+                        catch (Exception ex) when (!_Cts.IsCancellationRequested && IsTransient(ex))
                         {
-                            var errorString = JObject.Parse(message)["error"].ToString();
-                            var error = _Parent.Deserialize<LNDError>(errorString);
-                            throw new LndException(error);
+                            lastException = ex;
+                            var reconnected = false;
+                            var firstAttempt = 1;
+                            if (ex is LndException)
+                                firstAttempt = ++_consecutiveSubscriptionErrors;
+                            else
+                                _consecutiveSubscriptionErrors = 0;
+
+                            for (var attempt = firstAttempt; attempt <= MaxReconnectAttempts && !_Cts.IsCancellationRequested; attempt++)
+                            {
+                                try
+                                {
+                                    await Task.Delay(TimeSpan.FromSeconds(attempt), _Cts.Token);
+                                    await Connect();
+                                    reconnected = true;
+                                    break;
+                                }
+                                catch (Exception reconnectException) when (!_Cts.IsCancellationRequested)
+                                {
+                                    lastException = reconnectException;
+                                }
+                            }
+
+                            if (!reconnected)
+                                break;
                         }
-                        else
-                            throw new LndException("Unknown result from LND: " + message);
                     }
                 }
                 catch when (_Cts.IsCancellationRequested)
@@ -91,12 +141,26 @@ namespace BTCPayServer.Lightning.LND
                 }
                 catch (Exception ex)
                 {
-                    _Invoices.Writer.TryComplete(ex);
+                    lastException = ex;
                 }
                 finally
                 {
+                    if (!_Cts.IsCancellationRequested && lastException != null)
+                        _Invoices.Writer.TryComplete(lastException);
                     Dispose(false);
                 }
+            }
+
+            private static void UpdateCursor(ref ulong cursor, string value)
+            {
+                if (ulong.TryParse(value, NumberStyles.None, CultureInfo.InvariantCulture, out var index) && index > cursor)
+                    cursor = index;
+            }
+
+            private static bool IsTransient(Exception exception)
+            {
+                return exception is LndException || exception is WebSocketException ||
+                       exception is HttpRequestException || exception is IOException;
             }
 
             private async Task<string> ReceiveMessage(CancellationToken cancellation)

@@ -113,4 +113,15 @@ namespace BTCPayServer.Lightning.LND
     public partial class InvoicesrpcCancelInvoiceResp
     {
     }
+
+    public partial class LnrpcInvoice
+    {
+        [Newtonsoft.Json.JsonProperty("add_index", Required = Newtonsoft.Json.Required.Default,
+            NullValueHandling = Newtonsoft.Json.NullValueHandling.Ignore)]
+        public string AddIndex { get; set; }
+
+        [Newtonsoft.Json.JsonProperty("settle_index", Required = Newtonsoft.Json.Required.Default,
+            NullValueHandling = Newtonsoft.Json.NullValueHandling.Ignore)]
+        public string SettleIndex { get; set; }
+    }
 }

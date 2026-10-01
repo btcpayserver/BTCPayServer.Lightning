@@ -37,12 +37,42 @@ namespace BTCPayServer.Lightning.Tests
         }
 
         /// <summary>
-        /// Kills the real LND Docker container and verifies EOF detection + reconnection.
+        /// Restarts LND and verifies the existing listener reconnects and catches up from its add index.
         /// Requires docker-compose stack running. Run: dotnet test --filter "Category=LndTestListener"
         /// </summary>
         [Fact(Timeout = 90_000)]
         [Trait("Category", "LndTestListener")]
-        public async Task ListenRecoversAfterDockerContainerKill()
+        public async Task ListenReconnectsAfterDockerContainerRestart()
+        {
+            CommonTests.Docker = !string.IsNullOrEmpty(Environment.GetEnvironmentVariable("IN_DOCKER_CONTAINER"));
+
+            var rpc = Tester.CreateRPC();
+            await rpc.ScanRPCCapabilitiesAsync();
+            await rpc.GenerateAsync(1);
+
+            ILightningClient client = Tester.CreateLndClient();
+            await WaitForLndReady(client, TimeSpan.FromSeconds(10));
+
+            using var listener = await client.Listen(CancellationToken.None);
+            var first = await client.CreateInvoice(LightMoney.Satoshis(1), "Before restart", TimeSpan.FromMinutes(1));
+            using (var firstCts = new CancellationTokenSource(TimeSpan.FromSeconds(10)))
+                Assert.Equal(first.Id, (await listener.WaitInvoice(firstCts.Token)).Id);
+
+            await RunDockerCompose("restart lnd");
+            await WaitForLndReady(client, TimeSpan.FromSeconds(30));
+
+            var second = await client.CreateInvoice(LightMoney.Satoshis(2), "After restart", TimeSpan.FromMinutes(1));
+            using var secondCts = new CancellationTokenSource(TimeSpan.FromSeconds(20));
+            Assert.Equal(second.Id, (await listener.WaitInvoice(secondCts.Token)).Id);
+        }
+
+        /// <summary>
+        /// Kills LND and verifies the listener ends after three failed reconnect attempts.
+        /// Requires docker-compose stack running. Run: dotnet test --filter "Category=LndTestListener"
+        /// </summary>
+        [Fact(Timeout = 90_000)]
+        [Trait("Category", "LndTestListener")]
+        public async Task ListenEndsAfterThreeFailedReconnects()
         {
             CommonTests.Docker = !string.IsNullOrEmpty(Environment.GetEnvironmentVariable("IN_DOCKER_CONTAINER"));
 
@@ -59,11 +89,11 @@ namespace BTCPayServer.Lightning.Tests
             {
                 await RunDockerCompose("kill lnd");
 
-                await AssertWaitInvoiceThrowsOnEOF(listener, TimeSpan.FromSeconds(5),
-                    "WaitInvoice should have thrown after LND container was killed");
+                await AssertWaitInvoiceThrows(listener, TimeSpan.FromSeconds(9),
+                    "WaitInvoice should have thrown after three failed reconnect attempts");
             }
 
-            // Restart and verify reconnection
+            // Restore the shared test service.
             await RunDockerCompose("start lnd");
             await rpc.GenerateAsync(1);
             ILightningClient freshClient = Tester.CreateLndClient();
@@ -74,7 +104,7 @@ namespace BTCPayServer.Lightning.Tests
 
         #region Helpers
 
-        private static async Task AssertWaitInvoiceThrowsOnEOF(
+        private static async Task AssertWaitInvoiceThrows(
             ILightningInvoiceListener listener, TimeSpan maxElapsed, string message)
         {
             var sw = Stopwatch.StartNew();
@@ -93,8 +123,7 @@ namespace BTCPayServer.Lightning.Tests
 
             Assert.True(threw, message);
             Assert.True(sw.Elapsed < maxElapsed,
-                $"WaitInvoice took {sw.Elapsed.TotalSeconds:F1}s — expected < {maxElapsed.TotalSeconds}s. " +
-                "If close to 10s, ListenLoop is not detecting EOF.");
+                $"WaitInvoice took {sw.Elapsed.TotalSeconds:F1}s - expected < {maxElapsed.TotalSeconds}s.");
         }
 
         private static async Task WaitForLndReady(ILightningClient client, TimeSpan timeout)

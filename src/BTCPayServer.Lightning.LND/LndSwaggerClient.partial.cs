@@ -186,7 +186,7 @@ namespace BTCPayServer.Lightning.LND
 
             if (_LndSettings.AllowInsecure && _LndSettings.Uri.Scheme == "https")
                 SetRemoteCertificateValidationCallback(socket.Options, (sender, cert, chain, errors) => true);
-            else if (_LndSettings.Uri.Scheme == "http")
+            else if (!_LndSettings.AllowInsecure && _LndSettings.Uri.Scheme == "http")
                 throw new InvalidOperationException("AllowInsecure is set to false, but the URI is not using https");
 
             return socket;
