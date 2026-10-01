@@ -12,6 +12,31 @@ namespace BTCPayServer.Lightning.Tests
     public class LndListenStreamTests
     {
         /// <summary>
+        /// Verifies the LND WebSocket subscription receives invoice events.
+        /// Requires docker-compose stack running. Run: dotnet test --filter "Category=LndTestListener"
+        /// </summary>
+        [Fact(Timeout = 90_000)]
+        [Trait("Category", "LndTestListener")]
+        public async Task ListenReceivesCreatedInvoiceOverWebSocket()
+        {
+            CommonTests.Docker = !string.IsNullOrEmpty(Environment.GetEnvironmentVariable("IN_DOCKER_CONTAINER"));
+
+            var rpc = Tester.CreateRPC();
+            await rpc.ScanRPCCapabilitiesAsync();
+            await rpc.GenerateAsync(1);
+
+            ILightningClient client = Tester.CreateLndClient();
+            await WaitForLndReady(client, TimeSpan.FromSeconds(10));
+
+            using var listener = await client.Listen(CancellationToken.None);
+            var created = await client.CreateInvoice(LightMoney.Satoshis(1), "WebSocket test", TimeSpan.FromMinutes(1));
+            using var cts = new CancellationTokenSource(TimeSpan.FromSeconds(10));
+            var received = await listener.WaitInvoice(cts.Token);
+
+            Assert.Equal(created.Id, received.Id);
+        }
+
+        /// <summary>
         /// Kills the real LND Docker container and verifies EOF detection + reconnection.
         /// Requires docker-compose stack running. Run: dotnet test --filter "Category=LndTestListener"
         /// </summary>
