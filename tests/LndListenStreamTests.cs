@@ -40,6 +40,30 @@ namespace BTCPayServer.Lightning.Tests
             Assert.Equal(created.Id, received.Id);
         }
 
+        [Fact(Timeout = 90_000)]
+        [Trait("Category", "LndTestListener")]
+        public async Task ListenStopsWhenCancellationIsRequested()
+        {
+            CommonTests.Docker = !string.IsNullOrEmpty(Environment.GetEnvironmentVariable("IN_DOCKER_CONTAINER"));
+
+            var rpc = Tester.CreateRPC();
+            await rpc.ScanRPCCapabilitiesAsync();
+            await rpc.GenerateAsync(1);
+
+            ILightningClient client = Tester.CreateLndClient();
+            await WaitForLndReady(client, TimeSpan.FromSeconds(10));
+
+            using var listenCts = new CancellationTokenSource();
+            using var listener = await client.Listen(listenCts.Token);
+            var waiting = listener.WaitInvoice(CancellationToken.None);
+
+            listenCts.Cancel();
+
+            var completed = await Task.WhenAny(waiting, Task.Delay(TimeSpan.FromSeconds(10)));
+            Assert.Same(waiting, completed);
+            await Assert.ThrowsAnyAsync<OperationCanceledException>(() => waiting);
+        }
+
         /// <summary>
         /// Restarts LND and verifies the existing listener reconnects and catches up from its add index.
         /// Requires docker-compose stack running. Run: dotnet test --filter "Category=LndTestListener"

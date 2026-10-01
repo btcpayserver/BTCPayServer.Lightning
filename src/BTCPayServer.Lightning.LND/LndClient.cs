@@ -23,24 +23,25 @@ namespace BTCPayServer.Lightning.LND
         {
             private LndSwaggerClient _Parent;
             Channel<LightningInvoice> _Invoices = Channel.CreateBounded<LightningInvoice>(50);
-            CancellationTokenSource _Cts = new CancellationTokenSource();
+            CancellationTokenSource _Cts;
             ClientWebSocket _Client;
             Task _ListenLoop;
+            private int _disposed;
             private ulong _addIndex;
             private ulong _settleIndex;
             private int _consecutiveSubscriptionErrors;
             private const int MaxReconnectAttempts = 3;
 
-            public LndInvoiceClientSession(LndSwaggerClient parent)
+            public LndInvoiceClientSession(LndSwaggerClient parent, CancellationToken cancellation)
             {
                 _Parent = parent;
+                _Cts = CancellationTokenSource.CreateLinkedTokenSource(cancellation);
             }
 
             public async Task StartListening()
             {
                 try
                 {
-                    await InitializeCursors();
                     await Connect();
                     _ListenLoop = ListenLoop();
                 }
@@ -48,30 +49,6 @@ namespace BTCPayServer.Lightning.LND
                 {
                     Dispose();
                     throw;
-                }
-            }
-
-            private async Task InitializeCursors()
-            {
-                long? offset = null;
-                while (!_Cts.IsCancellationRequested)
-                {
-                    var response = await _Parent.ListInvoicesAsync(false, offset, _Cts.Token);
-                    if (response?.Invoices == null || response.Invoices.Count == 0)
-                        return;
-
-                    foreach (var invoice in response.Invoices)
-                    {
-                        UpdateCursor(ref _addIndex, invoice.AddIndex);
-                        UpdateCursor(ref _settleIndex, invoice.SettleIndex);
-                    }
-
-                    if (!ulong.TryParse(response.LastIndexOffset, NumberStyles.None,
-                            CultureInfo.InvariantCulture, out var nextOffset) ||
-                        nextOffset > long.MaxValue || offset == (long)nextOffset)
-                        return;
-
-                    offset = (long)nextOffset;
                 }
             }
 
@@ -230,8 +207,12 @@ namespace BTCPayServer.Lightning.LND
             }
             void Dispose(bool waitLoop)
             {
-                if (_Cts.IsCancellationRequested)
+                if (Interlocked.Exchange(ref _disposed, 1) != 0)
+                {
+                    if (waitLoop)
+                        _ListenLoop?.Wait();
                     return;
+                }
                 _Cts.Cancel();
                 _Client?.Dispose();
                 _Client = null;
@@ -680,7 +661,7 @@ namespace BTCPayServer.Lightning.LND
 
         async Task<ILightningInvoiceListener> ILightningClient.Listen(CancellationToken cancellation)
         {
-            var session = new LndInvoiceClientSession(SwaggerClient);
+            var session = new LndInvoiceClientSession(SwaggerClient, cancellation);
             await session.StartListening();
             return session;
         }
