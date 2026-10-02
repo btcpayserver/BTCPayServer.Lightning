@@ -287,7 +287,7 @@ namespace BTCPayServer.Lightning.LND
                 }
                 finally
                 {
-                    Dispose(false);
+                    Dispose();
                 }
             }
 
@@ -321,10 +321,6 @@ namespace BTCPayServer.Lightning.LND
 
             public void Dispose()
             {
-                Dispose(true);
-            }
-            void Dispose(bool waitLoop)
-            {
                 if (_Cts.IsCancellationRequested)
                     return;
                 _Cts.Cancel();
@@ -337,8 +333,6 @@ namespace BTCPayServer.Lightning.LND
                 if (_Parent._DefaultHttpClient is null)
                     _Client?.Dispose();
                 _Client = null;
-                if (waitLoop)
-                    _ListenLoop?.Wait();
                 _Payments.Writer.TryComplete();
             }
         }
