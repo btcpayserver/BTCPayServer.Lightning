@@ -96,8 +96,7 @@ namespace BTCPayServer.Lightning.LND
                                 var invoiceString = JObject.Parse(message)["result"].ToString();
                                 LnrpcInvoice parsedInvoice = _Parent.Deserialize<LnrpcInvoice>(invoiceString);
                                 await _Invoices.Writer.WriteAsync(ConvertLndInvoice(parsedInvoice), _Cts.Token);
-                                UpdateCursor(ref _addIndex, parsedInvoice.AddIndex);
-                                UpdateCursor(ref _settleIndex, parsedInvoice.SettleIndex);
+                                UpdateCursors(parsedInvoice);
                                 _consecutiveSubscriptionErrors = 0;
                             }
                             else if (message.StartsWith("{\"error\":", StringComparison.OrdinalIgnoreCase))
@@ -152,10 +151,17 @@ namespace BTCPayServer.Lightning.LND
                 }
             }
 
-            private static void UpdateCursor(ref ulong cursor, string value)
+            private void UpdateCursors(LnrpcInvoice invoice)
             {
-                if (ulong.TryParse(value, NumberStyles.None, CultureInfo.InvariantCulture, out var index) && index > cursor)
-                    cursor = index;
+                ulong.TryParse(invoice.AddIndex, NumberStyles.None, CultureInfo.InvariantCulture, out var addIndex);
+                ulong.TryParse(invoice.SettleIndex, NumberStyles.None, CultureInfo.InvariantCulture, out var settleIndex);
+
+                // LND replays additions before settlements. Advance only the cursor for the event represented
+                // by this snapshot so a settled addition cannot skip older settlement replays.
+                if (addIndex > _addIndex && (_addIndex != 0 || settleIndex == 0))
+                    _addIndex = addIndex;
+                else if (settleIndex > _settleIndex)
+                    _settleIndex = settleIndex;
             }
 
             private static bool IsTransient(Exception exception)
