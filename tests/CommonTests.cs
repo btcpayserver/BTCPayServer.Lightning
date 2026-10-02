@@ -22,23 +22,8 @@ using System.Net.Http.Headers;
 namespace BTCPayServer.Lightning.Tests
 {
     [Collection(nameof(NonParallelizableCollectionDefinition))]
-    public class CommonTests
+    public class CommonTests(ITestOutputHelper h) : BaseTests(h)
     {
-#if DEBUG
-        public const int Timeout = 20 * 60 * 1000;
-#else
-        public const int Timeout = 2 * 60 * 1000;
-#endif
-        public CommonTests(ITestOutputHelper helper)
-        {
-            Docker = !string.IsNullOrEmpty(Environment.GetEnvironmentVariable("IN_DOCKER_CONTAINER"));
-            Logs.Tester = new XUnitLog(helper) { Name = "Tests" };
-            Logs.LogProvider = new XUnitLogProvider(helper);
-            ConnectChannels.Logs = Logs.LogProvider.CreateLogger("Tests");
-        }
-
-        public static bool Docker { get; set; }
-
         [Fact(Timeout = Timeout)]
         public async Task CanCreateInvoice()
         {

@@ -16,44 +16,44 @@ namespace BTCPayServer.Lightning.Tests
 
         public static RPCClient CreateRPC()
         {
-            var host = CommonTests.Docker ? "bitcoind:43782" : "127.0.0.1:37393";
+            var host = BaseTests.Docker ? "bitcoind:43782" : "127.0.0.1:37393";
             return new RPCClient("ceiwHEbqWI83:DwubwWsoo3", host, Network);
         }
 
         internal static LndClient CreateLndClient(HttpClient httpClient = null)
         {
-            var host = CommonTests.Docker ? "http://lnd:8080" : "http://127.0.0.1:32736";
+            var host = BaseTests.Docker ? "http://lnd:8080" : "http://127.0.0.1:32736";
             var settings = new LndRestSettings { AllowInsecure = true, Uri = new Uri(host) };
             return new LndClient(new LndSwaggerClient(settings, httpClient), Network.RegTest);
         }
 
         internal static LndClient CreateLndClientDest()
         {
-            var host = CommonTests.Docker ? "http://lnd_dest:8080" : "http://127.0.0.1:42802";
+            var host = BaseTests.Docker ? "http://lnd_dest:8080" : "http://127.0.0.1:42802";
             return new LndClient(new LndRestSettings { AllowInsecure = true, Uri = new Uri(host) }, Network.RegTest);
         }
 
         private static CLightningClient CreateCLightningClient()
         {
-            var host = CommonTests.Docker ? "tcp://lightningd:9835" : "tcp://127.0.0.1:48532";
+            var host = BaseTests.Docker ? "tcp://lightningd:9835" : "tcp://127.0.0.1:48532";
             return new CLightningClient(new Uri(host), Network);
         }
 
         private static CLightningClient CreateCLightningClientDest()
         {
-            var host = CommonTests.Docker ? "tcp://lightningd_dest:9835" : "tcp://127.0.0.1:42549";
+            var host = BaseTests.Docker ? "tcp://lightningd_dest:9835" : "tcp://127.0.0.1:42549";
             return new CLightningClient(new Uri(host), Network);
         }
 
         private static EclairLightningClient CreateEclairClient()
         {
-            var host = CommonTests.Docker ? "http://eclair:8080" : "http://127.0.0.1:4570";
+            var host = BaseTests.Docker ? "http://eclair:8080" : "http://127.0.0.1:4570";
             return new EclairLightningClient(new Uri(host), "bukkake", Network);
         }
 
         private static EclairLightningClient CreateEclairClientDest()
         {
-            var host = CommonTests.Docker ? "http://eclair_dest:8080" : "http://127.0.0.1:4571";
+            var host = BaseTests.Docker ? "http://eclair_dest:8080" : "http://127.0.0.1:4571";
             return new EclairLightningClient(new Uri(host), "bukkake", Network);
         }
 

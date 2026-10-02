@@ -5,12 +5,13 @@ using System.Net.Http;
 using System.Runtime.CompilerServices;
 using System.Threading;
 using System.Threading.Tasks;
-using NBitcoin.RPC;
 using Xunit;
+using Xunit.Abstractions;
 
 namespace BTCPayServer.Lightning.Tests
 {
-    public class LndListenStreamTests
+    [Collection(nameof(NonParallelizableCollectionDefinition))]
+    public class LndListenStreamTests(ITestOutputHelper h) : BaseTests(h)
     {
         /// <summary>
         /// Verifies the LND WebSocket subscription receives invoice events.
@@ -20,8 +21,6 @@ namespace BTCPayServer.Lightning.Tests
         [Trait("Category", "LndTestListener")]
         public async Task ListenReceivesCreatedInvoiceOverWebSocket()
         {
-            CommonTests.Docker = !string.IsNullOrEmpty(Environment.GetEnvironmentVariable("IN_DOCKER_CONTAINER"));
-
             var rpc = Tester.CreateRPC();
             await rpc.ScanRPCCapabilitiesAsync();
             await rpc.GenerateAsync(1);
@@ -44,8 +43,6 @@ namespace BTCPayServer.Lightning.Tests
         [Trait("Category", "LndTestListener")]
         public async Task ListenHonorsCancellationDuringStartup()
         {
-            CommonTests.Docker = !string.IsNullOrEmpty(Environment.GetEnvironmentVariable("IN_DOCKER_CONTAINER"));
-
             ILightningClient client = Tester.CreateLndClient();
             using var listenCts = new CancellationTokenSource();
             listenCts.Cancel();
@@ -61,8 +58,6 @@ namespace BTCPayServer.Lightning.Tests
         [Trait("Category", "LndTestListener")]
         public async Task ListenReconnectsAfterDockerContainerRestart()
         {
-            CommonTests.Docker = !string.IsNullOrEmpty(Environment.GetEnvironmentVariable("IN_DOCKER_CONTAINER"));
-
             var rpc = Tester.CreateRPC();
             await rpc.ScanRPCCapabilitiesAsync();
             await rpc.GenerateAsync(1);
@@ -91,8 +86,6 @@ namespace BTCPayServer.Lightning.Tests
         [Trait("Category", "LndTestListener")]
         public async Task ListenEndsAfterThreeFailedReconnects()
         {
-            CommonTests.Docker = !string.IsNullOrEmpty(Environment.GetEnvironmentVariable("IN_DOCKER_CONTAINER"));
-
             var rpc = Tester.CreateRPC();
             await rpc.ScanRPCCapabilitiesAsync();
 
