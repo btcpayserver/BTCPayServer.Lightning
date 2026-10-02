@@ -5,6 +5,7 @@ using System.Net.Http;
 using System.Runtime.CompilerServices;
 using System.Threading;
 using System.Threading.Tasks;
+using BTCPayServer.Lightning.LND;
 using Xunit;
 using Xunit.Abstractions;
 
@@ -48,6 +49,25 @@ namespace BTCPayServer.Lightning.Tests
             listenCts.Cancel();
 
             await Assert.ThrowsAnyAsync<OperationCanceledException>(() => client.Listen(listenCts.Token));
+        }
+
+        [Fact]
+        public void InvoiceReplayAdvancesOnlyTheEventCursor()
+        {
+            ulong addCursor = 10;
+            ulong settleCursor = 5;
+
+            LndClient.UpdateInvoiceCursors(ref addCursor, ref settleCursor,
+                new LnrpcInvoice { AddIndex = "11", SettleIndex = "7" });
+
+            Assert.Equal(11UL, addCursor);
+            Assert.Equal(5UL, settleCursor);
+
+            LndClient.UpdateInvoiceCursors(ref addCursor, ref settleCursor,
+                new LnrpcInvoice { AddIndex = "8", SettleIndex = "6" });
+
+            Assert.Equal(11UL, addCursor);
+            Assert.Equal(6UL, settleCursor);
         }
 
         /// <summary>

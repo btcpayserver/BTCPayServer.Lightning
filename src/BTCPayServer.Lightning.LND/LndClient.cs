@@ -41,6 +41,7 @@ namespace BTCPayServer.Lightning.LND
             {
                 try
                 {
+                    await InitializeCursors(cancellation);
                     await Connect(cancellation);
                     _ListenLoop = ListenLoop();
                 }
@@ -48,6 +49,31 @@ namespace BTCPayServer.Lightning.LND
                 {
                     Dispose();
                     throw;
+                }
+            }
+
+            private async Task InitializeCursors(CancellationToken cancellation)
+            {
+                using var cts = CancellationTokenSource.CreateLinkedTokenSource(cancellation, _Cts.Token);
+                long? offset = null;
+                while (!cts.IsCancellationRequested)
+                {
+                    var response = await _Parent.ListInvoicesAsync(false, offset, cts.Token);
+                    if (response?.Invoices == null || response.Invoices.Count == 0)
+                        return;
+
+                    foreach (var invoice in response.Invoices)
+                    {
+                        UpdateCursor(ref _addIndex, invoice.AddIndex);
+                        UpdateCursor(ref _settleIndex, invoice.SettleIndex);
+                    }
+
+                    if (!ulong.TryParse(response.LastIndexOffset, NumberStyles.None,
+                            CultureInfo.InvariantCulture, out var nextOffset) ||
+                        nextOffset > long.MaxValue || offset == (long)nextOffset)
+                        return;
+
+                    offset = (long)nextOffset;
                 }
             }
 
@@ -96,7 +122,7 @@ namespace BTCPayServer.Lightning.LND
                                 var invoiceString = JObject.Parse(message)["result"].ToString();
                                 LnrpcInvoice parsedInvoice = _Parent.Deserialize<LnrpcInvoice>(invoiceString);
                                 await _Invoices.Writer.WriteAsync(ConvertLndInvoice(parsedInvoice), _Cts.Token);
-                                UpdateCursors(parsedInvoice);
+                                UpdateInvoiceCursors(ref _addIndex, ref _settleIndex, parsedInvoice);
                                 _consecutiveSubscriptionErrors = 0;
                             }
                             else if (message.StartsWith("{\"error\":", StringComparison.OrdinalIgnoreCase))
@@ -149,19 +175,6 @@ namespace BTCPayServer.Lightning.LND
                         _Invoices.Writer.TryComplete(lastException);
                     Dispose(false);
                 }
-            }
-
-            private void UpdateCursors(LnrpcInvoice invoice)
-            {
-                ulong.TryParse(invoice.AddIndex, NumberStyles.None, CultureInfo.InvariantCulture, out var addIndex);
-                ulong.TryParse(invoice.SettleIndex, NumberStyles.None, CultureInfo.InvariantCulture, out var settleIndex);
-
-                // LND replays additions before settlements. Advance only the cursor for the event represented
-                // by this snapshot so a settled addition cannot skip older settlement replays.
-                if (addIndex > _addIndex && (_addIndex != 0 || settleIndex == 0))
-                    _addIndex = addIndex;
-                else if (settleIndex > _settleIndex)
-                    _settleIndex = settleIndex;
             }
 
             private static bool IsTransient(Exception exception)
@@ -670,6 +683,26 @@ namespace BTCPayServer.Lightning.LND
             var session = new LndInvoiceClientSession(SwaggerClient);
             await session.StartListening(cancellation);
             return session;
+        }
+
+        internal static void UpdateInvoiceCursors(ref ulong addCursor, ref ulong settleCursor,
+            LnrpcInvoice invoice)
+        {
+            ulong.TryParse(invoice.AddIndex, NumberStyles.None, CultureInfo.InvariantCulture, out var addIndex);
+            ulong.TryParse(invoice.SettleIndex, NumberStyles.None, CultureInfo.InvariantCulture, out var settleIndex);
+
+            // LND replays additions before settlements. Advance only the cursor for the event represented
+            // by this snapshot so a settled addition cannot skip older settlement replays.
+            if (addIndex > addCursor && (addCursor != 0 || settleIndex == 0))
+                addCursor = addIndex;
+            else if (settleIndex > settleCursor)
+                settleCursor = settleIndex;
+        }
+
+        private static void UpdateCursor(ref ulong cursor, string value)
+        {
+            if (ulong.TryParse(value, NumberStyles.None, CultureInfo.InvariantCulture, out var index) && index > cursor)
+                cursor = index;
         }
 
         private static LightningInvoice ConvertLndInvoice(LnrpcInvoice resp)
