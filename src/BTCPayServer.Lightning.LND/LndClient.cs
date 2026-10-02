@@ -167,7 +167,7 @@ namespace BTCPayServer.Lightning.LND
         class LndPaymentClientSession : IDisposable
         {
             private LndSwaggerClient _Parent;
-            Channel<LightningPayment> _Payments = Channel.CreateBounded<LightningPayment>(10);
+            Channel<LightningPayment> _Payments = Channel.CreateUnbounded<LightningPayment>();
             CancellationTokenSource _Cts = new CancellationTokenSource();
             HttpClient _Client;
             HttpResponseMessage _Response;
