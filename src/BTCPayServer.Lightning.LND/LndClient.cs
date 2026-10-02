@@ -23,7 +23,7 @@ namespace BTCPayServer.Lightning.LND
         {
             private LndSwaggerClient _Parent;
             Channel<LightningInvoice> _Invoices = Channel.CreateBounded<LightningInvoice>(50);
-            CancellationTokenSource _Cts;
+            CancellationTokenSource _Cts = new CancellationTokenSource();
             ClientWebSocket _Client;
             Task _ListenLoop;
             private int _disposed;
@@ -39,10 +39,9 @@ namespace BTCPayServer.Lightning.LND
 
             public async Task StartListening(CancellationToken cancellation)
             {
-                _Cts = CancellationTokenSource.CreateLinkedTokenSource(cancellation);
                 try
                 {
-                    await Connect();
+                    await Connect(cancellation);
                     _ListenLoop = ListenLoop();
                 }
                 catch
@@ -52,8 +51,9 @@ namespace BTCPayServer.Lightning.LND
                 }
             }
 
-            private async Task Connect()
+            private async Task Connect(CancellationToken cancellation = default)
             {
+                using var cts = CancellationTokenSource.CreateLinkedTokenSource(cancellation, _Cts.Token);
                 _Client?.Dispose();
                 _Client = _Parent.CreateClientWebSocket();
                 var endpoint = new StringBuilder(WithTrailingSlash(_Parent.BaseUrl) +
@@ -67,10 +67,10 @@ namespace BTCPayServer.Lightning.LND
                 {
                     Scheme = httpUri.Scheme == "https" ? "wss" : "ws"
                 };
-                await _Parent.ConnectClientWebSocket(_Client, uriBuilder.Uri, _Cts.Token);
+                await _Parent.ConnectClientWebSocket(_Client, uriBuilder.Uri, cts.Token);
 
                 var requestBody = Encoding.UTF8.GetBytes("{}");
-                await _Client.SendAsync(new ArraySegment<byte>(requestBody), WebSocketMessageType.Text, true, _Cts.Token);
+                await _Client.SendAsync(new ArraySegment<byte>(requestBody), WebSocketMessageType.Text, true, cts.Token);
             }
 
             private string WithTrailingSlash(string str)
