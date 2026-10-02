@@ -5,6 +5,7 @@ using System.IO;
 using System.Linq;
 using System.Net.Http;
 using System.Net.Security;
+using System.Net.WebSockets;
 using System.Security.Authentication;
 using System.Security.Cryptography;
 using System.Security.Cryptography.X509Certificates;
@@ -141,6 +142,78 @@ namespace BTCPayServer.Lightning.LND
         internal HttpClient CreateHttpClient()
         {
             return LndSwaggerClient.CreateHttpClient(_LndSettings, _DefaultHttpClient);
+        }
+
+        internal ClientWebSocket CreateClientWebSocket()
+        {
+            var socket = new ClientWebSocket();
+            socket.Options.KeepAliveInterval = TimeSpan.FromSeconds(20);
+#if NET9_0_OR_GREATER
+            socket.Options.KeepAliveTimeout = TimeSpan.FromSeconds(10);
+#endif
+
+            using (var request = new HttpRequestMessage())
+            {
+                _Authentication.AddAuthentication(request);
+                foreach (var header in request.Headers)
+                    socket.Options.SetRequestHeader(header.Key, string.Join(",", header.Value));
+            }
+
+#if !NET7_0_OR_GREATER
+            var expectedThumbprint = _LndSettings.CertificateThumbprint?.ToArray();
+            if (expectedThumbprint != null)
+            {
+                SetRemoteCertificateValidationCallback(socket.Options, (sender, cert, chain, errors) =>
+                {
+                    var actualCert = chain.ChainElements[chain.ChainElements.Count - 1].Certificate;
+                    return GetHash(actualCert).SequenceEqual(expectedThumbprint);
+                });
+            }
+            else if (_LndSettings.CertificateFilePath != null)
+            {
+#if !NO_PEM_IMPORT
+                SetRemoteCertificateValidationCallback(socket.Options, (sender, cert, chain, errors) =>
+                {
+                    if (cert == null)
+                        return false;
+                    var expectedCollection = new X509Certificate2Collection();
+                    expectedCollection.ImportFromPemFile(_LndSettings.CertificateFilePath);
+                    return expectedCollection.Contains(cert);
+                });
+#else
+                throw new NotSupportedException("CertificateFilePath is supported only from .NET6.0");
+#endif
+            }
+
+            if (_LndSettings.AllowInsecure && _LndSettings.Uri.Scheme == "https")
+                SetRemoteCertificateValidationCallback(socket.Options, (sender, cert, chain, errors) => true);
+            else if (!_LndSettings.AllowInsecure && _LndSettings.Uri.Scheme == "http")
+                throw new InvalidOperationException("AllowInsecure is set to false, but the URI is not using https");
+#endif
+
+            return socket;
+        }
+
+        internal Task ConnectClientWebSocket(ClientWebSocket socket, Uri uri, CancellationToken cancellationToken)
+        {
+#if NET7_0_OR_GREATER
+            return socket.ConnectAsync(uri, _httpClient, cancellationToken);
+#else
+            return socket.ConnectAsync(uri, cancellationToken);
+#endif
+        }
+
+        private static void SetRemoteCertificateValidationCallback(ClientWebSocketOptions options,
+            RemoteCertificateValidationCallback callback)
+        {
+#if NETSTANDARD2_0
+            var property = options.GetType().GetProperty("RemoteCertificateValidationCallback");
+            if (property == null)
+                throw new PlatformNotSupportedException("This runtime does not support custom WebSocket certificate validation");
+            property.SetValue(options, callback);
+#else
+            options.RemoteCertificateValidationCallback = callback;
+#endif
         }
 
         internal T Deserialize<T>(string str)

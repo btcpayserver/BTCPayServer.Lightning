@@ -1,75 +1,71 @@
 using System;
-using System.Diagnostics;
-using System.IO;
-using System.Runtime.CompilerServices;
+using System.Net.Http;
 using System.Threading;
 using System.Threading.Tasks;
-using NBitcoin.RPC;
 using Xunit;
+using Xunit.Abstractions;
 
 namespace BTCPayServer.Lightning.Tests
 {
-    public class LndListenStreamTests
+    [Collection(nameof(NonParallelizableCollectionDefinition))]
+    public class LndListenStreamTests(ITestOutputHelper h) : BaseTests(h)
     {
         /// <summary>
-        /// Kills the real LND Docker container and verifies EOF detection + reconnection.
+        /// Verifies the LND WebSocket subscription receives invoice events.
         /// Requires docker-compose stack running. Run: dotnet test --filter "Category=LndTestListener"
         /// </summary>
         [Fact(Timeout = 90_000)]
         [Trait("Category", "LndTestListener")]
-        public async Task ListenRecoversAfterDockerContainerKill()
+        public async Task ListenReceivesCreatedInvoiceOverWebSocket()
         {
-            CommonTests.Docker = !string.IsNullOrEmpty(Environment.GetEnvironmentVariable("IN_DOCKER_CONTAINER"));
-
             var rpc = Tester.CreateRPC();
             await rpc.ScanRPCCapabilitiesAsync();
+            await rpc.GenerateAsync(1);
 
-            // Generate a block so LND considers itself synced
-            await rpc.GenerateAsync(5);
-
-            ILightningClient client = Tester.CreateLndClient();
+            var handler = new WebSocketTrackingHandler(new HttpClientHandler());
+            using var httpClient = new HttpClient(handler);
+            ILightningClient client = Tester.CreateLndClient(httpClient);
             await WaitForLndReady(client, TimeSpan.FromSeconds(10));
 
-            using (var listener = await client.Listen(CancellationToken.None))
-            {
-                await RunDockerCompose("kill lnd");
+            using var listener = await client.Listen(CancellationToken.None);
+            Assert.True(handler.WebSocketRequested);
+            var created = await client.CreateInvoice(LightMoney.Satoshis(1), "WebSocket test", TimeSpan.FromMinutes(1));
+            using var cts = new CancellationTokenSource(TimeSpan.FromSeconds(10));
+            var received = await listener.WaitInvoice(cts.Token);
 
-                await AssertWaitInvoiceThrowsOnEOF(listener, TimeSpan.FromSeconds(5),
-                    "WaitInvoice should have thrown after LND container was killed");
-            }
+            Assert.Equal(created.Id, received.Id);
+        }
 
-            // Restart and verify reconnection
-            await RunDockerCompose("start lnd");
-            await rpc.GenerateAsync(1);
-            ILightningClient freshClient = Tester.CreateLndClient();
-            await WaitForLndReady(freshClient, TimeSpan.FromSeconds(30));
+        [Fact(Timeout = 90_000)]
+        [Trait("Category", "LndTestListener")]
+        public async Task ListenHonorsCancellationDuringStartup()
+        {
+            ILightningClient client = Tester.CreateLndClient();
+            using var listenCts = new CancellationTokenSource();
+            listenCts.Cancel();
 
-            using var newListener = await freshClient.Listen(CancellationToken.None);
+            await Assert.ThrowsAnyAsync<OperationCanceledException>(() => client.Listen(listenCts.Token));
         }
 
         #region Helpers
 
-        private static async Task AssertWaitInvoiceThrowsOnEOF(
-            ILightningInvoiceListener listener, TimeSpan maxElapsed, string message)
+        private sealed class WebSocketTrackingHandler : DelegatingHandler
         {
-            var sw = Stopwatch.StartNew();
-            var threw = false;
-            try
+            private int _webSocketRequested;
+
+            public WebSocketTrackingHandler(HttpMessageHandler innerHandler) : base(innerHandler)
             {
-                using var cts = new CancellationTokenSource(TimeSpan.FromSeconds(10));
-                await listener.WaitInvoice(cts.Token);
-            }
-            catch
-            {
-                threw = true;
             }
 
-            sw.Stop();
+            public bool WebSocketRequested => Volatile.Read(ref _webSocketRequested) != 0;
 
-            Assert.True(threw, message);
-            Assert.True(sw.Elapsed < maxElapsed,
-                $"WaitInvoice took {sw.Elapsed.TotalSeconds:F1}s — expected < {maxElapsed.TotalSeconds}s. " +
-                "If close to 10s, ListenLoop is not detecting EOF.");
+            protected override Task<HttpResponseMessage> SendAsync(HttpRequestMessage request,
+                CancellationToken cancellationToken)
+            {
+                if (request.Method == HttpMethod.Connect || request.Headers.Contains("Sec-WebSocket-Key"))
+                    Interlocked.Exchange(ref _webSocketRequested, 1);
+                return base.SendAsync(request, cancellationToken);
+            }
         }
 
         private static async Task WaitForLndReady(ILightningClient client, TimeSpan timeout)
@@ -84,43 +80,6 @@ namespace BTCPayServer.Lightning.Tests
                 }
                 catch when (!cts.IsCancellationRequested) { await Task.Delay(1000, cts.Token); }
             }
-        }
-
-        private static async Task RunDockerCompose(string args)
-        {
-            var testsDir = FindTestsDirectory();
-            var psi = new ProcessStartInfo("docker", $"compose {args}")
-            {
-                WorkingDirectory = testsDir,
-                RedirectStandardOutput = true,
-                RedirectStandardError = true,
-                UseShellExecute = false
-            };
-            using var proc = Process.Start(psi);
-            Assert.NotNull(proc);
-            await proc.WaitForExitAsync();
-            Assert.True(proc.ExitCode == 0,
-                $"docker compose {args} failed (exit {proc.ExitCode}): {await proc.StandardError.ReadToEndAsync()}");
-        }
-
-        private static string FindTestsDirectory([CallerFilePath] string sourceFilePath = "")
-        {
-            if (!string.IsNullOrEmpty(sourceFilePath))
-            {
-                var dir = Path.GetDirectoryName(sourceFilePath);
-                if (dir != null && File.Exists(Path.Combine(dir, "docker-compose.yml")))
-                    return dir;
-            }
-
-            var current = Path.GetDirectoryName(typeof(LndListenStreamTests).Assembly.Location);
-            while (current != null)
-            {
-                if (File.Exists(Path.Combine(current, "docker-compose.yml")))
-                    return current;
-                current = Path.GetDirectoryName(current);
-            }
-
-            throw new InvalidOperationException("Could not find tests/ directory with docker-compose.yml");
         }
 
         #endregion

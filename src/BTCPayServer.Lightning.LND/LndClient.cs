@@ -4,6 +4,7 @@ using System.Globalization;
 using System.IO;
 using System.Linq;
 using System.Net.Http;
+using System.Net.WebSockets;
 using System.Runtime.ExceptionServices;
 using System.Text;
 using System.Threading;
@@ -23,35 +24,42 @@ namespace BTCPayServer.Lightning.LND
             private LndSwaggerClient _Parent;
             Channel<LightningInvoice> _Invoices = Channel.CreateBounded<LightningInvoice>(50);
             CancellationTokenSource _Cts = new CancellationTokenSource();
-            HttpClient _Client;
-            HttpResponseMessage _Response;
-            Stream _Body;
-            StreamReader _Reader;
+            ClientWebSocket _Client;
             Task _ListenLoop;
-            private readonly Action<string> _log;
-            private const int MaxConsecutiveNullReads = 5;
+            private int _disposed;
 
-            public LndInvoiceClientSession(LndSwaggerClient parent, Action<string> log)
+            public LndInvoiceClientSession(LndSwaggerClient parent)
             {
                 _Parent = parent;
-                _log = log ?? ((_) => { });
             }
 
-            public Task StartListening()
+            public async Task StartListening(CancellationToken cancellation)
             {
                 try
                 {
-                    _Client = _Parent.CreateHttpClient();
-                    _Client.Timeout = TimeSpan.FromMilliseconds(Timeout.Infinite);
-                    var request = new HttpRequestMessage(HttpMethod.Get, WithTrailingSlash(_Parent.BaseUrl) + "v1/invoices/subscribe");
-                    _Parent._Authentication.AddAuthentication(request);
-                    _ListenLoop = ListenLoop(request);
+                    await Connect(cancellation);
+                    _ListenLoop = ListenLoop();
                 }
                 catch
                 {
                     Dispose();
+                    throw;
                 }
-                return Task.CompletedTask;
+            }
+
+            private async Task Connect(CancellationToken cancellation)
+            {
+                using var cts = CancellationTokenSource.CreateLinkedTokenSource(cancellation, _Cts.Token);
+                _Client = _Parent.CreateClientWebSocket();
+                var httpUri = new Uri(WithTrailingSlash(_Parent.BaseUrl) + "v1/invoices/subscribe?method=GET");
+                var uriBuilder = new UriBuilder(httpUri)
+                {
+                    Scheme = httpUri.Scheme == "https" ? "wss" : "ws"
+                };
+                await _Parent.ConnectClientWebSocket(_Client, uriBuilder.Uri, cts.Token);
+
+                var requestBody = Encoding.UTF8.GetBytes("{}");
+                await _Client.SendAsync(new ArraySegment<byte>(requestBody), WebSocketMessageType.Text, true, cts.Token);
             }
 
             private string WithTrailingSlash(string str)
@@ -61,44 +69,27 @@ namespace BTCPayServer.Lightning.LND
                 return str + "/";
             }
 
-            private async Task ListenLoop(HttpRequestMessage request)
+            private async Task ListenLoop()
             {
                 try
                 {
-                    _Response = await _Client.SendAsync(request, HttpCompletionOption.ResponseHeadersRead, _Cts.Token);
-                    _Body = await _Response.Content.ReadAsStreamAsync();
-                    _Reader = new StreamReader(_Body);
-                    var consecutiveNullReads = 0;
                     while (!_Cts.IsCancellationRequested)
                     {
-                        string line = await WithCancellation(_Reader.ReadLineAsync(), _Cts.Token);
-                        if (line != null)
+                        var message = await ReceiveMessage(_Cts.Token);
+                        if (message.StartsWith("{\"result\":", StringComparison.OrdinalIgnoreCase))
                         {
-                            consecutiveNullReads = 0;
-                            if (line.StartsWith("{\"result\":", StringComparison.OrdinalIgnoreCase))
-                            {
-                                var invoiceString = JObject.Parse(line)["result"].ToString();
-                                LnrpcInvoice parsedInvoice = _Parent.Deserialize<LnrpcInvoice>(invoiceString);
-                                await _Invoices.Writer.WriteAsync(ConvertLndInvoice(parsedInvoice), _Cts.Token);
-                            }
-                            else if (line.StartsWith("{\"error\":", StringComparison.OrdinalIgnoreCase))
-                            {
-                                var errorString = JObject.Parse(line)["error"].ToString();
-                                var error = _Parent.Deserialize<LNDError>(errorString);
-                                throw new LndException(error);
-                            }
-                            else
-                            {
-                                throw new LndException("Unknown result from LND: " + line);
-                            }
+                            var invoiceString = JObject.Parse(message)["result"].ToString();
+                            LnrpcInvoice parsedInvoice = _Parent.Deserialize<LnrpcInvoice>(invoiceString);
+                            await _Invoices.Writer.WriteAsync(ConvertLndInvoice(parsedInvoice), _Cts.Token);
+                        }
+                        else if (message.StartsWith("{\"error\":", StringComparison.OrdinalIgnoreCase))
+                        {
+                            var errorString = JObject.Parse(message)["error"].ToString();
+                            var error = _Parent.Deserialize<LNDError>(errorString);
+                            throw new LndException(error);
                         }
                         else
-                        {
-                            consecutiveNullReads++;
-                            _log($"LND invoice stream returned null (read #{consecutiveNullReads} of {MaxConsecutiveNullReads})");
-                            if (consecutiveNullReads >= MaxConsecutiveNullReads)
-                                break;
-                        }
+                            throw new LndException("Unknown result from LND: " + message);
                     }
                 }
                 catch when (_Cts.IsCancellationRequested)
@@ -115,15 +106,24 @@ namespace BTCPayServer.Lightning.LND
                 }
             }
 
-            public static async Task<T> WithCancellation<T>(Task<T> task, CancellationToken cancellationToken)
+            private async Task<string> ReceiveMessage(CancellationToken cancellation)
             {
-                using var delayCTS = CancellationTokenSource.CreateLinkedTokenSource(cancellationToken);
-                var waiting = Task.Delay(-1, delayCTS.Token);
-                var doing = task;
-                await Task.WhenAny(waiting, doing);
-                delayCTS.Cancel();
-                cancellationToken.ThrowIfCancellationRequested();
-                return await doing;
+                var buffer = new byte[WebsocketHelper.ORIGINAL_BUFFER_SIZE];
+                using var message = new MemoryStream();
+                WebSocketReceiveResult result;
+                do
+                {
+                    result = await _Client.ReceiveAsync(new ArraySegment<byte>(buffer), cancellation);
+                    if (result.MessageType == WebSocketMessageType.Close)
+                        throw new WebSocketException("LND closed the invoice stream");
+                    if (result.MessageType != WebSocketMessageType.Text)
+                        throw new WebSocketException("LND invoice stream returned a non-text message");
+                    if (message.Length + result.Count > WebsocketHelper.MAX_BUFFER_SIZE)
+                        throw new WebSocketException("LND invoice stream message is too large");
+                    message.Write(buffer, 0, result.Count);
+                } while (!result.EndOfMessage);
+
+                return Encoding.UTF8.GetString(message.ToArray());
             }
 
             public async Task<LightningInvoice> WaitInvoice(CancellationToken cancellation)
@@ -149,17 +149,14 @@ namespace BTCPayServer.Lightning.LND
             }
             void Dispose(bool waitLoop)
             {
-                if (_Cts.IsCancellationRequested)
+                if (Interlocked.Exchange(ref _disposed, 1) != 0)
+                {
+                    if (waitLoop)
+                        _ListenLoop?.Wait();
                     return;
+                }
                 _Cts.Cancel();
-                _Reader?.Dispose();
-                _Reader = null;
-                _Body?.Dispose();
-                _Body = null;
-                _Response?.Dispose();
-                _Response = null;
-                if (_Parent._DefaultHttpClient is null)
-                    _Client?.Dispose();
+                _Client?.Dispose();
                 _Client = null;
                 if (waitLoop)
                     _ListenLoop?.Wait();
@@ -170,7 +167,7 @@ namespace BTCPayServer.Lightning.LND
         class LndPaymentClientSession : IDisposable
         {
             private LndSwaggerClient _Parent;
-            Channel<LightningPayment> _Payments = Channel.CreateBounded<LightningPayment>(10);
+            Channel<LightningPayment> _Payments = Channel.CreateUnbounded<LightningPayment>();
             CancellationTokenSource _Cts = new CancellationTokenSource();
             HttpClient _Client;
             HttpResponseMessage _Response;
@@ -290,7 +287,7 @@ namespace BTCPayServer.Lightning.LND
                 }
                 finally
                 {
-                    Dispose(false);
+                    Dispose();
                 }
             }
 
@@ -324,10 +321,6 @@ namespace BTCPayServer.Lightning.LND
 
             public void Dispose()
             {
-                Dispose(true);
-            }
-            void Dispose(bool waitLoop)
-            {
                 if (_Cts.IsCancellationRequested)
                     return;
                 _Cts.Cancel();
@@ -340,8 +333,6 @@ namespace BTCPayServer.Lightning.LND
                 if (_Parent._DefaultHttpClient is null)
                     _Client?.Dispose();
                 _Client = null;
-                if (waitLoop)
-                    _ListenLoop?.Wait();
                 _Payments.Writer.TryComplete();
             }
         }
@@ -606,8 +597,8 @@ namespace BTCPayServer.Lightning.LND
 
         async Task<ILightningInvoiceListener> ILightningClient.Listen(CancellationToken cancellation)
         {
-            var session = new LndInvoiceClientSession(SwaggerClient, Log);
-            await session.StartListening();
+            var session = new LndInvoiceClientSession(SwaggerClient);
+            await session.StartListening(cancellation);
             return session;
         }
 

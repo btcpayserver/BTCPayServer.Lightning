@@ -113,4 +113,5 @@ namespace BTCPayServer.Lightning.LND
     public partial class InvoicesrpcCancelInvoiceResp
     {
     }
+
 }
