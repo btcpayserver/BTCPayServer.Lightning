@@ -22,6 +22,7 @@ namespace BTCPayServer.Lightning.Phoenixd
         private static readonly HttpClient SharedClient = new();
 
         public Network Network { get; }
+        internal HttpClient HttpClient => _httpClient;
 
         public PhoenixdClient(Uri address, string password, Network network, HttpClient httpClient = null) : this(address, null, password, network, httpClient) { }
         public PhoenixdClient(Uri address, string username, string password, Network network, HttpClient httpClient = null) :

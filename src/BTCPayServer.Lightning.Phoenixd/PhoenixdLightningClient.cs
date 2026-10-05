@@ -180,6 +180,11 @@ namespace BTCPayServer.Lightning.Phoenixd
 
         public static async Task<ClientWebSocket> ClientWebSocket(string url, string authorizationValue, CancellationToken cancellation = default)
         {
+            return await ClientWebSocket(url, authorizationValue, cancellation, null);
+        }
+
+        private static async Task<ClientWebSocket> ClientWebSocket(string url, string authorizationValue, CancellationToken cancellation, HttpClient httpClient)
+        {
             var socket = new ClientWebSocket();
             socket.Options.SetRequestHeader("Authorization", authorizationValue);
             var uri = new UriBuilder(url) { UserName = null, Password = null }.Uri.AbsoluteUri;
@@ -188,15 +193,30 @@ namespace BTCPayServer.Lightning.Phoenixd
             uri += "websocket";
             uri = WebsocketHelper.ToWebsocketUri(uri);
 
-            await socket.ConnectAsync(new Uri(uri), cancellation);
-            return socket;
+            var websocketUri = new Uri(uri);
+            try
+            {
+#if NET10_0_OR_GREATER
+                if (httpClient is not null)
+                    await socket.ConnectAsync(websocketUri, httpClient, cancellation);
+                else
+#endif
+                    await socket.ConnectAsync(websocketUri, cancellation);
+                return socket;
+            }
+            catch
+            {
+                socket.Dispose();
+                throw;
+            }
         }
 
         public async Task<ILightningInvoiceListener> Listen(CancellationToken cancellation = default)
         {
             return new PhoenixdSession(
-               await ClientWebSocket(_address.AbsoluteUri,
-                   _creds.CreateAuthenticationHeaderValue(_username).ToString(), cancellation), this);
+                await ClientWebSocket(_address.AbsoluteUri,
+                    _creds.CreateAuthenticationHeaderValue(_username).ToString(),
+                    cancellation, _PhoenixdClient.HttpClient), this);
         }
 
         public async Task<LightningNodeInformation> GetInfo(CancellationToken cancellation = default)
