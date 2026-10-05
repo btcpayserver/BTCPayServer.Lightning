@@ -181,9 +181,10 @@ namespace BTCPayServer.Lightning.Eclair
         public async Task<ILightningInvoiceListener> Listen(CancellationToken cancellation = default)
         {
             return new EclairSession(
-               await WebsocketHelper.CreateClientWebSocket(_address.AbsoluteUri,
-                  new AuthenticationHeaderValue("Basic",
-                        Convert.ToBase64String(Encoding.Default.GetBytes($"{_username??string.Empty}:{_password}"))).ToString(), cancellation), this);
+                await WebsocketHelper.CreateClientWebSocket(_address.AbsoluteUri,
+                   new AuthenticationHeaderValue("Basic",
+                         Convert.ToBase64String(Encoding.Default.GetBytes($"{_username??string.Empty}:{_password}"))).ToString(),
+                   cancellation, _eclairClient.HttpClient), this);
         }
 
         public async Task<LightningNodeInformation> GetInfo(CancellationToken cancellation = default)

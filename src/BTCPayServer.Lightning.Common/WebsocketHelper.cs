@@ -1,5 +1,6 @@
 using System;
 using System.Net;
+using System.Net.Http;
 using System.Net.NetworkInformation;
 using System.Net.WebSockets;
 using System.Text;
@@ -24,6 +25,11 @@ namespace BTCPayServer.Lightning
 
         public static async Task<ClientWebSocket> CreateClientWebSocket(string url, string authorizationValue, CancellationToken cancellation = default)
         {
+            return await CreateClientWebSocket(url, authorizationValue, cancellation, null);
+        }
+
+        public static async Task<ClientWebSocket> CreateClientWebSocket(string url, string authorizationValue, CancellationToken cancellation, HttpClient httpClient)
+        {
             var socket = new ClientWebSocket();
             socket.Options.SetRequestHeader("Authorization", authorizationValue);
             var uri = new UriBuilder(url) { UserName = null, Password = null }.Uri.AbsoluteUri;
@@ -32,8 +38,22 @@ namespace BTCPayServer.Lightning
             uri += "ws";
             uri = ToWebsocketUri(uri);
 
-            await socket.ConnectAsync(new Uri(uri), cancellation);
-            return socket;
+            var websocketUri = new Uri(uri);
+            try
+            {
+#if NET10_0_OR_GREATER
+                if (httpClient is not null)
+                    await socket.ConnectAsync(websocketUri, httpClient, cancellation);
+                else
+#endif
+                    await socket.ConnectAsync(websocketUri, cancellation);
+                return socket;
+            }
+            catch
+            {
+                socket.Dispose();
+                throw;
+            }
         }
 
         public static async Task CloseSocket(WebSocket webSocket, WebSocketCloseStatus status = WebSocketCloseStatus.NormalClosure, string description = null, CancellationToken cancellationToken = default)

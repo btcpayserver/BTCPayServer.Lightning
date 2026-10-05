@@ -23,6 +23,7 @@ namespace BTCPayServer.Lightning.Eclair
         private static readonly HttpClient SharedClient = new();
 
         public Network Network { get; }
+        internal HttpClient HttpClient => _httpClient;
 
         public EclairClient(Uri address, string password, Network network, HttpClient httpClient = null) : this(address, null, password, network, httpClient) { }
         public EclairClient(Uri address, string username, string password, Network network, HttpClient httpClient = null)
