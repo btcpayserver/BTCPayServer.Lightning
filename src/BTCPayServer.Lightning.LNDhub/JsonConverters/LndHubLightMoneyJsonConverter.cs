@@ -1,5 +1,4 @@
 ﻿using System;
-using System.Globalization;
 using System.Reflection;
 using NBitcoin.JsonConverters;
 using Newtonsoft.Json;
@@ -24,11 +23,6 @@ namespace BTCPayServer.Lightning.LNDhub.JsonConverters
                     JsonToken.Integer => _longType.IsAssignableFrom(reader.ValueType)
                         ? LightMoney.Satoshis((long)reader.Value)
                         : LightMoney.Satoshis(long.MaxValue),
-                    // The spec says integer satoshis, but some servers send
-                    // fractional ones (LNbits: "fee": msat / 1000); they are
-                    // kept to the millisatoshi.
-                    JsonToken.Float => LightMoney.MilliSatoshis(
-                        (long)Math.Round(Convert.ToDecimal(reader.Value, CultureInfo.InvariantCulture) * 1000m)),
                     JsonToken.String =>
                         LightMoney.Satoshis(long.Parse((string)reader.Value)),
                     _ => null
