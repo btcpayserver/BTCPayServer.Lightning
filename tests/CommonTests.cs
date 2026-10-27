@@ -893,6 +893,15 @@ retry:
             Assert.Equal("0.00967878534", p.MinimumAmount.ToString());
         }
 
+        [Theory]
+        [InlineData("lnbc2x5m1pvjluezpp5qqqsyqcyq5rqwzqfqqqsyqcyq5rqwzqfqqqsyqcyq5rqwzqfqypqdq5vdhkven9v5sxyetpdeessp5zyg3zyg3zyg3zyg3zyg3zyg3zyg3zyg3zyg3zyg3zyg3zyg3zygs9qrsgq7hzdfpg4py03gtnsyd0g243l0z7wtsg8kw5wqefxfhfyfsk8sjdk496fcy2t2jrk78uhumjv8c38fg5t8y7zqrpqtu3fupz534maz5sput2p5c")]
+        [InlineData("lnbc18446744073709551617m1pvjluezpp5qqqsyqcyq5rqwzqfqqqsyqcyq5rqwzqfqqqsyqcyq5rqwzqfqypqdq5vdhkven9v5sxyetpdeessp5zyg3zyg3zyg3zyg3zyg3zyg3zyg3zyg3zyg3zyg3zyg3zyg3zygs9qrsgqls0lux2sthx5nr79k04pan9ayyvaf60rnvjuycvhauahqvgnc489c4zk3ruxg8mp9h049v8exgq4m5acn2uhut0wg6dgjw5nj84ys4qqwudhe5")]
+        [InlineData("lnbc92429106972m1pvjluezpp5qqqsyqcyq5rqwzqfqqqsyqcyq5rqwzqfqqqsyqcyq5rqwzqfqypqdq5vdhkven9v5sxyetpdeessp5zyg3zyg3zyg3zyg3zyg3zyg3zyg3zyg3zyg3zyg3zyg3zyg3zygs9qrsgqy5a3zeyxnv5ak0f67vd8rm796g4cfxu5n8dynpyjplqnft3xjfeytmyclyj84eaq9kj2snwqykq2alqn3kysmwqfz5nsnpuqtx96gcsqcqa6ug")]
+        public void RejectsInvalidBOLT11Amounts(string invoice)
+        {
+            Assert.Throws<FormatException>(() => BOLT11PaymentRequest.Parse(invoice, Network.Main));
+        }
+
         [Fact]
         public void CanUseLightMoney()
         {

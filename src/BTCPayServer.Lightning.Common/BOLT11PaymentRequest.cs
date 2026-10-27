@@ -3,6 +3,7 @@ using System;
 using System.Collections;
 using System.Collections.Generic;
 using System.Diagnostics.CodeAnalysis;
+using System.Globalization;
 using System.Linq;
 using System.Text;
 using NBitcoin;
@@ -72,7 +73,6 @@ namespace BTCPayServer.Lightning
             MinimumAmount = LightMoney.Zero;
             if (Prefix.Length == 0)
                 throw new FormatException("Invalid BOLT11: No prefix");
-            ulong amount = 0;
             int firstNumberIndex = -1;
             for (int i = 0; i < Prefix.Length; i++)
             {
@@ -81,8 +81,6 @@ namespace BTCPayServer.Lightning
                 {
                     if (firstNumberIndex == -1)
                         firstNumberIndex = i;
-                    amount *= 10;
-                    amount += (uint)digit;
                 }
                 else if (firstNumberIndex != -1)
                 {
@@ -93,22 +91,24 @@ namespace BTCPayServer.Lightning
             if (firstNumberIndex != -1)
             {
                 LightMoneyUnit unit = LightMoneyUnit.BTC;
+                var amountEndIndex = Prefix.Length;
                 switch (Prefix[Prefix.Length - 1])
                 {
                     case 'm':
                         unit = LightMoneyUnit.MilliBTC;
+                        amountEndIndex--;
                         break;
                     case 'u':
                         unit = LightMoneyUnit.Micro;
+                        amountEndIndex--;
                         break;
                     case 'n':
                         unit = LightMoneyUnit.Nano;
+                        amountEndIndex--;
                         break;
                     case 'p':
                         unit = LightMoneyUnit.MilliSatoshi;
-                        if (amount % 10 != 0)
-                            throw new FormatException("Pico BTC denomination which is not a multiple of 10 is not supported by BTCPayServer.Lightning");
-                        amount = amount / 10UL;
+                        amountEndIndex--;
                         break;
                     default:
                         if (Array.IndexOf(digits, Prefix[Prefix.Length - 1]) == -1)
@@ -116,7 +116,30 @@ namespace BTCPayServer.Lightning
                         unit = LightMoneyUnit.BTC;
                         break;
                 }
-                MinimumAmount = LightMoney.FromUnit(amount, unit);
+
+                for (var i = firstNumberIndex; i < amountEndIndex; i++)
+                {
+                    if (Array.IndexOf(digits, Prefix[i]) == -1)
+                        throw new FormatException("Invalid BOLT11: invalid amount");
+                }
+
+                var amountText = Prefix.Substring(firstNumberIndex, amountEndIndex - firstNumberIndex);
+                if (!decimal.TryParse(amountText, NumberStyles.None, CultureInfo.InvariantCulture, out var amount))
+                    throw new FormatException("Invalid BOLT11: invalid amount");
+                if (Prefix[Prefix.Length - 1] == 'p')
+                {
+                    if (amount % 10 != 0)
+                        throw new FormatException("Pico BTC denomination which is not a multiple of 10 is not supported by BTCPayServer.Lightning");
+                    amount /= 10;
+                }
+                try
+                {
+                    MinimumAmount = LightMoney.FromUnit(amount, unit);
+                }
+                catch (OverflowException ex)
+                {
+                    throw new FormatException("Invalid BOLT11: amount is too large", ex);
+                }
                 Prefix = Prefix.Substring(0, firstNumberIndex);
                 if (Prefix.Length == 0)
                     throw new FormatException("Invalid BOLT11: No prefix");
