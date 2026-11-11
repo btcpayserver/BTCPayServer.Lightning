@@ -253,6 +253,7 @@ namespace BTCPayServer.Lightning.Eclair
             var timeout = payParams?.SendTimeout ?? PayInvoiceParams.DefaultSendTimeout;
             cts.CancelAfter(timeout);
 
+            var paymentAccepted = false;
             try
             {
                 var req = new PayInvoiceRequest
@@ -265,6 +266,7 @@ namespace BTCPayServer.Lightning.Eclair
                     MaxFeeFlatSat = payParams?.MaxFeeFlat?.Satoshi
                 };
                 var uuid = await _eclairClient.PayInvoice(req, cts.Token);
+                paymentAccepted = true;
                 while (!cts.Token.IsCancellationRequested)
                 {
                     var status = await _eclairClient.GetSentInfo(null, uuid, cts.Token);
@@ -302,13 +304,13 @@ namespace BTCPayServer.Lightning.Eclair
             }
             catch (EclairClient.EclairApiException exception)
             {
-                return new PayResponse(PayResult.Error, exception.Message);
+                // A failed status lookup does not mean the accepted payment failed.
+                return new PayResponse(paymentAccepted ? PayResult.Unknown : PayResult.Error, exception.Message);
             }
             catch (Exception exception)
             {
-                return cts.Token.IsCancellationRequested
-                    ? new PayResponse(PayResult.Unknown)
-                    : new PayResponse(PayResult.Error, exception.Message);
+                // Transport errors can also hide a successful payment submission.
+                return new PayResponse(PayResult.Unknown, exception.Message);
             }
             return new PayResponse(PayResult.Unknown);
         }
@@ -320,6 +322,7 @@ namespace BTCPayServer.Lightning.Eclair
             var timeout = payParams?.SendTimeout ?? PayInvoiceParams.DefaultSendTimeout;
             cts.CancelAfter(timeout);
 
+            var paymentAccepted = false;
             try
             {
                 var req = new SendToNodeRequest
@@ -331,6 +334,7 @@ namespace BTCPayServer.Lightning.Eclair
 
                 };
                 var uuid = await _eclairClient.SendToNode(req, cts.Token);
+                paymentAccepted = true;
                 while (!cts.Token.IsCancellationRequested)
                 {
                     var status = await _eclairClient.GetSentInfo(null, uuid, cts.Token);
@@ -365,13 +369,13 @@ namespace BTCPayServer.Lightning.Eclair
             }
             catch (EclairClient.EclairApiException exception)
             {
-                return new PayResponse(PayResult.Error, exception.Message);
+                // A failed status lookup does not mean the accepted payment failed.
+                return new PayResponse(paymentAccepted ? PayResult.Unknown : PayResult.Error, exception.Message);
             }
             catch (Exception exception)
             {
-                return cts.Token.IsCancellationRequested
-                    ? new PayResponse(PayResult.Unknown)
-                    : new PayResponse(PayResult.Error, exception.Message);
+                // Transport errors can also hide a successful payment submission.
+                return new PayResponse(PayResult.Unknown, exception.Message);
             }
             return new PayResponse(PayResult.Unknown);
         }
