@@ -1,5 +1,6 @@
 using System;
 using System.IO;
+using System.Linq;
 using System.Net;
 using System.Net.Sockets;
 using System.Text;
@@ -23,7 +24,7 @@ namespace BTCPayServer.Lightning.Tests
         {
             var request = await CaptureFundChannelRequest(new FeeRate(Money.Satoshis(feePerK)));
 
-            Assert.Equal(expected, request["params"][2].Value<string>());
+            Assert.Equal(expected, request["params"]["feerate"].Value<string>());
         }
 
         [Fact]
@@ -31,7 +32,8 @@ namespace BTCPayServer.Lightning.Tests
         {
             var request = await CaptureFundChannelRequest(null);
 
-            Assert.Equal(2, ((JArray)request["params"]).Count);
+            var parameters = (JObject)request["params"];
+            Assert.Equal(new[] { "id", "amount" }, parameters.Properties().Select(p => p.Name));
         }
 
         private static async Task<JObject> CaptureFundChannelRequest(FeeRate feeRate)
