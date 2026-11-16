@@ -77,7 +77,7 @@ namespace BTCPayServer.Lightning
 
         public static  bool VerifySecureEndpoint(Uri uri, bool allowInsecure)
         {
-            return uri.Scheme== "https" || allowInsecure || uri.Host.EndsWith("onion");
+            return uri.Scheme== "https" || allowInsecure || uri.Host.EndsWith(".onion", StringComparison.OrdinalIgnoreCase);
         }
         
          private static bool TryParseLegacy(string str, out Dictionary<string, string> connectionString)

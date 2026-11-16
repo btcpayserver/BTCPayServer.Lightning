@@ -972,6 +972,16 @@ retry:
         }
 
         [Fact]
+        public void HttpWithoutAllowInsecureNeedsAnOnionHost()
+        {
+            ILightningClientFactory factory = new LightningClientFactory(Tester.Network);
+            Assert.True(factory.TryCreate("type=lndhub;server=http://login:password@abcdefghijklmnop.onion/", out _, out var error), error);
+            Assert.False(factory.TryCreate("type=lndhub;server=http://login:password@notonion/", out _, out _));
+            Assert.False(factory.TryCreate("type=lndhub;server=http://login:password@node-onion/", out _, out _));
+            Assert.True(factory.TryCreate("type=lndhub;server=http://login:password@node-onion/;allowinsecure=true", out _, out error), error);
+        }
+
+        [Fact]
         public void CanParseLightningURL()
         {
             var network = Tester.Network;
