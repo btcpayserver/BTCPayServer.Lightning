@@ -11,12 +11,18 @@
     <PackageLicenseExpression>MIT</PackageLicenseExpression>
 	  <PackageTags>lightning;bitcoin;clightning;lapps</PackageTags>
   </PropertyGroup>
+  <Import Project="../BTCPayServer.Lightning.Common/Common.csproj" />
 
   <ItemGroup>
   </ItemGroup>
 
   <ItemGroup>
     <ProjectReference Include="..\BTCPayServer.Lightning.Common\BTCPayServer.Lightning.Common.csproj" />
+  </ItemGroup>
+  <ItemGroup>
+    <AssemblyAttribute Include="System.Runtime.CompilerServices.InternalsVisibleTo">
+      <_Parameter1>BTCPayServer.Lightning.Tests</_Parameter1>
+    </AssemblyAttribute>
   </ItemGroup>
 
 </Project>

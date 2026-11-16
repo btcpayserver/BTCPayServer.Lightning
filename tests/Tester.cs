@@ -1,12 +1,17 @@
 using System;
+using System.Collections.Concurrent;
 using System.Collections.Generic;
 using System.Net.Http;
+using System.Net.Security;
+using System.Net.Sockets;
+using System.Security.Cryptography;
 using System.Threading.Tasks;
 using BTCPayServer.Lightning.CLightning;
 using BTCPayServer.Lightning.Eclair;
 using BTCPayServer.Lightning.LND;
 using NBitcoin;
 using NBitcoin.RPC;
+using Newtonsoft.Json.Linq;
 
 namespace BTCPayServer.Lightning.Tests
 {
@@ -45,6 +50,61 @@ namespace BTCPayServer.Lightning.Tests
             return new CLightningClient(new Uri(host), Network);
         }
 
+        private static string ClnRestHost => BaseTests.Docker ? "https://lightningd:3010/" : "https://127.0.0.1:48533/";
+
+        private static CLightningClient CreateCLightningRestClient()
+        {
+            return CreateCLightningRestClient(CreateCLightningClient(), ClnRestHost);
+        }
+
+        internal static async Task<CLightningClient> CreateRestrictedCLightningRestClient(JArray restrictions)
+        {
+            return new CLightningClient(await CreateClnRestSettings(CreateCLightningClient(), new Uri(ClnRestHost), restrictions), Network);
+        }
+
+        private static CLightningClient CreateCLightningRestClientDest()
+        {
+            var host = BaseTests.Docker ? "https://lightningd_dest:3010/" : "https://127.0.0.1:42550/";
+            return CreateCLightningRestClient(CreateCLightningClientDest(), host);
+        }
+
+        static readonly ConcurrentDictionary<string, Lazy<Task<CLightningRestSettings>>> ClnRestSettings = new();
+
+        private static CLightningClient CreateCLightningRestClient(CLightningClient rpc, string server)
+        {
+            // The setup runs once per server on the thread pool. Blocking on it from a test thread
+            // can't deadlock, even when xunit runs everything on a single thread.
+            var settings = ClnRestSettings.GetOrAdd(server, _ => new Lazy<Task<CLightningRestSettings>>(() =>
+                Task.Run(() => CreateClnRestSettings(rpc, new Uri(server)))));
+            return new CLightningClient(settings.Value.GetAwaiter().GetResult(), Network);
+        }
+
+        // Makes a rune over the RPC port and pins the certificate that clnrest serves.
+        // Retries while lightningd and clnrest start.
+        private static async Task<CLightningRestSettings> CreateClnRestSettings(CLightningClient rpc, Uri server, JArray restrictions = null)
+        {
+            for (var attempt = 1; ; attempt++)
+            {
+                try
+                {
+                    var rune = await rpc.SendCommandAsync<JObject>("createrune", new { restrictions });
+                    using var tcp = new TcpClient();
+                    await tcp.ConnectAsync(server.Host, server.Port);
+                    using var ssl = new SslStream(tcp.GetStream(), false, (_, _, _, _) => true);
+                    await ssl.AuthenticateAsClientAsync("localhost");
+                    return new CLightningRestSettings(server)
+                    {
+                        Rune = rune["rune"].Value<string>(),
+                        CertificateThumbprint = SHA256.HashData(ssl.RemoteCertificate.GetRawCertData())
+                    };
+                }
+                catch (Exception) when (attempt < 60)
+                {
+                    await Task.Delay(1000);
+                }
+            }
+        }
+
         private static EclairLightningClient CreateEclairClient()
         {
             var host = BaseTests.Docker ? "http://eclair:8080" : "http://127.0.0.1:4570";
@@ -60,6 +120,7 @@ namespace BTCPayServer.Lightning.Tests
         public static IEnumerable<(string Name, ILightningClient Client)> GetLightningClients()
         {
             yield return ("C-Lightning (Client)", CreateCLightningClient());
+            yield return ("C-Lightning (REST)", CreateCLightningRestClient());
             yield return ("LND (Client)", CreateLndClient());
             yield return ("Eclair (Client)", CreateEclairClient());
         }
@@ -67,6 +128,7 @@ namespace BTCPayServer.Lightning.Tests
         public static IEnumerable<(string Name, ILightningClient Customer, ILightningClient Merchant)> GetTestedPairs()
         {
             yield return ("C-Lightning", CreateCLightningClient(), CreateCLightningClientDest());
+            yield return ("C-Lightning (REST)", CreateCLightningRestClient(), CreateCLightningRestClientDest());
             yield return ("LND", CreateLndClient(), CreateLndClientDest());
             yield return ("Eclair", CreateEclairClient(), CreateEclairClientDest());
         }

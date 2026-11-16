@@ -58,7 +58,7 @@ LightningInvoice invoice = await client.CreateInvoice(10000, "CanCreateInvoice",
 
 The `connectionString` encapsulates the necessary information BTCPay needs to connect to your Lightning node, we currently support:
 
-* `clightning` via TCP or unix domain socket connection
+* `clightning` via TCP or unix domain socket connection, or via clnrest with a rune
 * `LND` via the REST proxy
 * `Eclair` via their new REST API
 * `LNDhub` via their REST API
@@ -67,6 +67,9 @@ The `connectionString` encapsulates the necessary information BTCPay needs to co
 
 * `type=clightning;server=unix://root/.lightning/lightning-rpc`
 * `type=clightning;server=tcp://1.1.1.1:27743/`
+* `type=clightning;server=https://127.0.0.1:3010/;rune=tU-RLjMiDpY2U0o3W1oFowar36RFGpWloPbW9-RuZdo9MA==;certthumbprint=abef263adfe...`
+* `type=clightning;server=https://127.0.0.1:3010/;runefilepath=/var/lib/btcpayserver/clightning.rune;certfilepath=/var/lib/clightning/bitcoin/server.pem`
+* `type=clightning;server=http://10.10.0.2:3010/;rune=tU-RLjMiDpY2U0o3W1oFowar36RFGpWloPbW9-RuZdo9MA==;allowinsecure=true`
 * `type=lnd-rest;server=http://mylnd:8080/;macaroonfilepath=/root/.lnd/invoice.macaroon;allowinsecure=true`
 * `type=lnd-rest;server=https://mylnd:8080/;macaroon=abef263adfe...`
 * `type=lnd-rest;server=https://mylnd:8080/;macaroon=abef263adfe...;certthumbprint=abef263adfe...`
@@ -79,6 +82,41 @@ The `connectionString` encapsulates the necessary information BTCPay needs to co
 
 Note that `bitcoin-host` and `bitcoin-auth` are optional, only useful if you want to call `ILightningClient.GetDepositAddress` on Eclair.
 We expect this won't be needed in the future.
+
+##### Core Lightning notes
+
+An `http://` or `https://` server connects through the [clnrest](https://docs.corelightning.org/docs/rest) plugin.
+clnrest needs a rune, given by `rune` or by `runefilepath` (a `.rune` file, read on each request).
+A rune can limit what BTCPay Server may do. This one only allows receiving payments:
+
+```bash
+lightning-cli -k createrune restrictions='[["method=getinfo","method=invoice","method=listinvoices","method=waitanyinvoice","method=delinvoice","method=listfunds","method=listpeerchannels"],["method/delinvoice","pnamestatus=unpaid"]]'
+```
+
+Invoice watching (`Listen`) needs `listinvoices` and `waitanyinvoice`.
+Paying invoices also needs `xpay` and `listpays`.
+
+`certthumbprint`, `certfilepath` and `allowinsecure=true` set how the client checks the clnrest certificate.
+They differ from LND in a few ways.
+The pin is on the leaf certificate, a pin wins over `allowinsecure=true`, and a pin needs an `https://` server.
+`certfilepath` is read once, when the client is created, so a renewed certificate needs a new client.
+clnrest serves its `server.pem` without the CA that signed it, so the thumbprint is the one of `server.pem`:
+
+```bash
+openssl x509 -noout -fingerprint -sha256 -in ~/.lightning/bitcoin/server.pem | sed -e 's/.*=//;s/://g'
+```
+
+The server has to be the root URL of clnrest.
+An `HttpClient` you pass needs a timeout of at least 2 seconds, and invoice watching keeps each wait shorter than it.
+Error messages from clnrest carry only a valid lightningd error's code and its message, cut to 200 characters.
+The client reads at most 128 MB per response, enough for `listinvoices` with about 160k paid invoices. On a bigger node, set up `autoclean` for paid invoices.
+`runefilepath` and `certfilepath` read files on the machine that runs the client, and the rune goes to the configured server.
+An app must not let untrusted users set them.
+If you pass your own `HttpClient`, it must not follow redirects, or it sends the rune to the redirect target.
+
+The client needs Core Lightning 24.11 or newer, because it pays with `xpay`.
+It sends named parameters (Core Lightning 0.12 or newer for these names) and uses the `timeout` of `waitanyinvoice` (0.8.1 or newer).
+clnrest is tested with Core Lightning 26.06.
 
 ##### LND notes
 
