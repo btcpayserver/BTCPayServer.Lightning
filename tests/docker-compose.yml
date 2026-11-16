@@ -51,11 +51,15 @@ services:
         dev-fast-gossip
         dev-bitcoind-poll=1
         database-upgrade=true
+        clnrest-port=3010
+        clnrest-host=0.0.0.0
     ports:
       - "48532:9835" # api port
+      - "48533:3010" # clnrest port
     expose:
       - "9735" # server port
       - "9835" # api port
+      - "3010" # clnrest port
     volumes:
       - "bitcoind_dir:/etc/bitcoin"
       - "lightningd_dir:/root/.lightning"
@@ -81,11 +85,15 @@ services:
         dev-fast-gossip
         dev-bitcoind-poll=1
         database-upgrade=true
+        clnrest-port=3010
+        clnrest-host=0.0.0.0
     ports:
       - "42549:9835" # api port
+      - "42550:3010" # clnrest port
     expose:
       - "9735" # server port
       - "9835" # api port
+      - "3010" # clnrest port
     volumes:
       - "bitcoind_dir:/etc/bitcoin"
       - "lightningd_dest_dir:/root/.lightning"

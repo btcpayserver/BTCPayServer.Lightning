@@ -405,6 +405,40 @@ retry:
         }
 
         [Fact(Timeout = Timeout)]
+        public async Task CanRestrictClnRestWithRune()
+        {
+            await WaitServersAreUp();
+            // The receive only rune from README.md
+            var restrictions = JArray.Parse("""
+                [["method=getinfo","method=invoice","method=listinvoices","method=waitanyinvoice","method=delinvoice","method=listfunds","method=listpeerchannels"],
+                 ["method/delinvoice","pnamestatus=unpaid"]]
+                """);
+            var cln = await Tester.CreateRestrictedCLightningRestClient(restrictions);
+            ILightningClient client = cln;
+
+            // The calls BTCPay Server makes to receive payments work.
+            var invoice = await client.CreateInvoice(10000, "CanRestrictClnRestWithRune", TimeSpan.FromMinutes(5));
+            AssertUnpaid(await client.GetInvoice(invoice.Id));
+            (await client.Listen()).Dispose();
+            await client.GetInfo();
+            await client.GetBalance();
+            await client.ListChannels();
+
+            // The groups are ANDed, so the second one limits delinvoice to unpaid invoices.
+            var ex = await Assert.ThrowsAsync<LightningRPCException>(() => cln.SendCommandAsync<JObject>("delinvoice", new { label = invoice.Id, status = "paid" }));
+            Assert.Equal(CLightningErrorCode.RUNE_NOT_PERMITTED, ex.Code);
+            await client.CancelInvoice(invoice.Id);
+            Assert.Null(await client.GetInvoice(invoice.Id));
+
+            ex = await Assert.ThrowsAsync<LightningRPCException>(() => client.GetDepositAddress());
+            Assert.Equal(CLightningErrorCode.RUNE_NOT_PERMITTED, ex.Code);
+            // A rune error from xpay is not a documented payment failure, so the outcome stays unknown.
+            var pay = await client.Pay(invoice.BOLT11);
+            Assert.Equal(PayResult.Unknown, pay.Result);
+            Assert.NotNull(pay.ErrorDetail);
+        }
+
+        [Fact(Timeout = Timeout)]
         public async Task CanPayInvoiceAndReceive()
         {
             foreach (var test in Tester.GetTestedPairs())
@@ -1025,6 +1059,20 @@ retry:
             Assert.False(factory.TryCreate($"type=lnd-rest;server=http://127.0.0.1:53280/;macaroon={macaroon};allowinsecure=false", out conn2, out _));
             Assert.True(factory.TryCreate($"type=lnd-rest;server=http://127.0.0.1:53280/;macaroon={macaroon};allowinsecure=true", out conn2, out _));
             Assert.True(factory.TryCreate($"type=lnd-rest;server=http://127.0.0.1:53280/;macaroon={macaroon};allowinsecure=true", out conn2, out _));
+
+            // clnrest
+            var rune = "tU-RLjMiDpY2U0o3W1oFowar36RFGpWloPbW9-RuZdo9MA==";
+            ParseCreateAndCheckConsistency(factory,
+                $"type=clightning;server=https://127.0.0.1:3010;rune={rune};certthumbprint={certthumbprint2}",
+                $"type=clightning;server=https://127.0.0.1:3010/;rune={rune};certthumbprint={certthumbprint}");
+            ParseCreateAndCheckConsistency(factory,
+                $"type=clightning;server=https://127.0.0.1:3010/;runefilepath=/run/btcpayserver/clightning.rune;certthumbprint={certthumbprint}",
+                $"type=clightning;server=https://127.0.0.1:3010/;runefilepath=/run/btcpayserver/clightning.rune;certthumbprint={certthumbprint}");
+            ParseCreateAndCheckConsistency(factory,
+                $"type=clightning;server=http://10.10.0.2:3010/;rune={rune};allowinsecure=true",
+                $"type=clightning;server=http://10.10.0.2:3010/;rune={rune};allowinsecure=true");
+            Assert.False(factory.TryCreate($"type=clightning;server=http://10.10.0.2:3010/;rune={rune}", out conn, out _));
+            Assert.False(factory.TryCreate($"type=clightning;server=tcp://127.0.0.1:9835/;rune={rune}", out conn, out _));
         }
 
         private static async Task<RPCClient> GetRPCClient()
