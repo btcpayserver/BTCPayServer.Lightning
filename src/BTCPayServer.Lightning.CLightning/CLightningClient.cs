@@ -1,8 +1,10 @@
 using System;
 using System.Collections.Generic;
+using System.Diagnostics;
 using System.IO;
 using System.Linq;
 using System.Net;
+using System.Net.Http;
 using System.Net.Sockets;
 using System.Text;
 using System.Threading;
@@ -43,11 +45,17 @@ namespace BTCPayServer.Lightning.CLightning
         /* Errors from `invoice` command */
         LABEL_ALREADY_EXISTS = 900,
         PREIMAGE_ALREADY_EXISTS = 901,
+        INVOICE_WAIT_TIMED_OUT = 904,
 
         /*delinvoice errors */
         DATABASE_ERROR = -1,
         LABEL_DOES_NOT_EXIST = 905,
         STATUS_NOT_MATCHED = 906,
+
+        /* rune errors */
+        RUNE_NOT_AUTHORIZED = 1501,
+        RUNE_NOT_PERMITTED = 1502,
+        RUNE_BLACKLISTED = 1503,
 
         /* general errors */
         WRONG_PARAMETERS = -32602,
@@ -83,6 +91,9 @@ namespace BTCPayServer.Lightning.CLightning
             get; private set;
         }
 
+        readonly ClnRestTransport _rest;
+        internal int? WaitAnyInvoiceTimeoutSeconds => _rest?.WaitAnyInvoiceTimeoutSeconds;
+
         public CLightningClient(Uri address, Network network)
         {
             if (address == null)
@@ -94,6 +105,17 @@ namespace BTCPayServer.Lightning.CLightning
                 address = new UriBuilder(address) { Scheme = "unix" }.Uri;
             }
             Address = address;
+            Network = network;
+        }
+
+        public CLightningClient(CLightningRestSettings settings, Network network, HttpClient httpClient = null)
+        {
+            if (settings == null)
+                throw new ArgumentNullException(nameof(settings));
+            if (network == null)
+                throw new ArgumentNullException(nameof(network));
+            _rest = new ClnRestTransport(settings, httpClient);
+            Address = settings.Server;
             Network = network;
         }
 
@@ -110,23 +132,56 @@ namespace BTCPayServer.Lightning.CLightning
         public Task FundChannelAsync(OpenChannelRequest openChannelRequest, CancellationToken cancellation)
         {
             OpenChannelRequest.AssertIsSane(openChannelRequest);
-            List<object> parameters = new List<object>();
-            parameters.Add(openChannelRequest.NodeInfo.NodeId.ToString());
-            parameters.Add(openChannelRequest.ChannelAmount.Satoshi);
-            if (openChannelRequest.FeeRate != null)
-                parameters.Add($"{openChannelRequest.FeeRate.FeePerK.Satoshi}perkb");
-            return SendCommandAsync<object>("fundchannel", parameters.ToArray(), true, cancellation: cancellation);
+            var parameters = new
+            {
+                id = openChannelRequest.NodeInfo.NodeId.ToString(),
+                amount = openChannelRequest.ChannelAmount.Satoshi,
+                feerate = openChannelRequest.FeeRate is null ? null : $"{openChannelRequest.FeeRate.FeePerK.Satoshi}perkb"
+            };
+            return SendCommandAsync<object>("fundchannel", parameters, true, cancellation: cancellation);
         }
 
         public Task ConnectAsync(NodeInfo nodeInfo, CancellationToken cancellation = default)
         {
-            return SendCommandAsync<object>("connect", new[] { $"{nodeInfo.NodeId}@{nodeInfo.Host}:{nodeInfo.Port}" }, true, cancellation: cancellation);
+            return SendCommandAsync<object>("connect", new { id = $"{nodeInfo.NodeId}@{nodeInfo.Host}:{nodeInfo.Port}" }, true, cancellation: cancellation);
         }
 
         static Encoding UTF8 = new UTF8Encoding(false);
-        internal async Task<T> SendCommandAsync<T>(string command, object[] parameters = null, bool noReturn = false, bool isArray = false, CancellationToken cancellation = default)
+        // Null values are left out, so optional parameters keep their lightningd defaults.
+        static readonly JsonSerializer ParametersSerializer = JsonSerializer.Create(new JsonSerializerSettings { NullValueHandling = NullValueHandling.Ignore });
+
+        // onSending runs once the request is ready and about to go out, after anything that can fail locally.
+        internal async Task<T> SendCommandAsync<T>(string command, object parameters = null, bool noReturn = false, bool isArray = false, CancellationToken cancellation = default, Action onSending = null)
         {
-            parameters = parameters ?? Array.Empty<string>();
+            var namedParameters = parameters is null ? new JObject() : JObject.FromObject(parameters, ParametersSerializer);
+            var result = _rest is null
+                ? await CallSocketAsync(command, namedParameters, onSending, cancellation)
+                : await _rest.CallAsync(command, namedParameters, onSending, cancellation);
+            if (noReturn)
+                return default;
+            if (isArray)
+            {
+                return result.Children().First().Children().First().ToObject<T>();
+            }
+            return result.ToObject<T>();
+        }
+
+        // A lightningd error has an integer code and a string message. Anything else, like a code
+        // sent as a string or a fraction, doesn't come from lightningd and leaves the outcome unknown.
+        internal static bool TryParseRpcError(JToken error, out LightningRPCException exception)
+        {
+            exception = null;
+            if (error is JObject obj
+                && obj["message"] is JValue { Type: JTokenType.String } message
+                && obj["code"] is JValue { Type: JTokenType.Integer, Value: long code }
+                && code >= int.MinValue && code <= int.MaxValue)
+                exception = new LightningRPCException((string)message, (int)code);
+            return exception != null;
+        }
+
+        private async Task<JToken> CallSocketAsync(string command, JObject namedParameters, Action onSending, CancellationToken cancellation)
+        {
+            onSending?.Invoke();
             using (Socket socket = await Connect())
             {
                 using (var networkStream = new NetworkStream(socket))
@@ -139,7 +194,7 @@ namespace BTCPayServer.Lightning.CLightning
                             req.Add("id", 0);
                             req.Add("jsonrpc", "2.0");
                             req.Add("method", command);
-                            req.Add("params", new JArray(parameters));
+                            req.Add("params", namedParameters);
                             await req.WriteToAsync(jsonWriter, cancellation);
                             await jsonWriter.FlushAsync(cancellation);
                         }
@@ -164,20 +219,11 @@ namespace BTCPayServer.Lightning.CLightning
                                     var error = result.Property("error");
                                     if (error != null)
                                     {
-                                        var errorCode = error.Value["code"].Value<int>();
-                                        var message = error.Value["message"].Value<string>();
-                                        // For some reason, they decided that they should stop sending and error code...
-                                        if (errorCode == 0 && message.EndsWith("is not reachable directly and all routehints were unusable.", StringComparison.OrdinalIgnoreCase))
-                                            errorCode = (int)CLightningErrorCode.ROUTE_NOT_FOUND;
-                                        throw new LightningRPCException(message, errorCode);
+                                        if (TryParseRpcError(error.Value, out var rpcError))
+                                            throw rpcError;
+                                        throw new IOException($"lightningd answered with an error without an integer code: {error.Value.ToString(Formatting.None)}");
                                     }
-                                    if (noReturn)
-                                        return default;
-                                    if (isArray)
-                                    {
-                                        return result["result"].Children().First().Children().First().ToObject<T>();
-                                    }
-                                    return result["result"].ToObject<T>();
+                                    return result["result"];
                                 }
                                 catch when (cancellation.IsCancellationRequested)
                                 {
@@ -237,12 +283,7 @@ namespace BTCPayServer.Lightning.CLightning
 
         public async Task<CLightningChannel[]> ListChannelsAsync(ShortChannelId ShortChannelId = null, CancellationToken cancellation = default)
         {
-            var resp =
-                ShortChannelId == null
-                ? await SendCommandAsync<CLightningChannel[]>("listchannels", null, false, true, cancellation)
-                : await SendCommandAsync<CLightningChannel[]>("listchannels", new[] { ShortChannelId.ToString() }, false, true, cancellation);
-
-            return resp;
+            return await SendCommandAsync<CLightningChannel[]>("listchannels", new { short_channel_id = ShortChannelId?.ToString() }, false, true, cancellation);
         }
         public async Task<PeerChannel[]> ListPeerChannelsAsync(CancellationToken cancellation = default)
         {
@@ -256,13 +297,13 @@ namespace BTCPayServer.Lightning.CLightning
 
         async Task<LightningPayment> GetPayment(string paymentHash, CancellationToken cancellation)
         {
-            var payments = await SendCommandAsync<CLightningPayment[]>("listpays", new[] { null, paymentHash }, false, true, cancellation);
+            var payments = await SendCommandAsync<CLightningPayment[]>("listpays", new { payment_hash = paymentHash }, false, true, cancellation);
             return payments.Length == 0 ? null : ToLightningPayment(payments.Last());
         }
 
         async Task<LightningInvoice> ILightningClient.GetInvoice(string invoiceId, CancellationToken cancellation)
         {
-            var invoices = await SendCommandAsync<CLightningInvoice[]>("listinvoices", new[] { invoiceId }, false, true, cancellation);
+            var invoices = await SendCommandAsync<CLightningInvoice[]>("listinvoices", new { label = invoiceId }, false, true, cancellation);
             if (invoices.Length == 0 && invoiceId.Length == 64)
             {
                 var paymentHash = new uint256(invoiceId);
@@ -273,7 +314,7 @@ namespace BTCPayServer.Lightning.CLightning
 
         public async Task<LightningInvoice> GetInvoice(uint256 paymentHash, CancellationToken cancellation)
         {
-            var invoices = await SendCommandAsync<CLightningInvoice[]>("listinvoices", new[] { null, null, paymentHash.ToString() }, false, true, cancellation);
+            var invoices = await SendCommandAsync<CLightningInvoice[]>("listinvoices", new { payment_hash = paymentHash.ToString() }, false, true, cancellation);
             return invoices.Length == 0 ? null : ToLightningInvoice(invoices[0]);
         }
 
@@ -337,6 +378,8 @@ namespace BTCPayServer.Lightning.CLightning
             var timeout = payParams?.SendTimeout ?? PayInvoiceParams.DefaultSendTimeout;
             cts.CancelAfter(timeout);
             
+            // Once the request may have gone out, nothing but the caller's cancellation escapes.
+            var requestSent = false;
             try
             {
                 var pr = bolt11 is null ? null : BOLT11PaymentRequest.Parse(bolt11, Network);
@@ -369,12 +412,10 @@ namespace BTCPayServer.Lightning.CLightning
                 }
 
                 var command = isKeysend ? "xkeysend" : "xpay";
-                var opts = isKeysend
-                    // xkeysend: destination amount_msat [label] [maxfee] [layers] [retry_for] [maxdelay] [extratlvs]
-                    ? new object[] { payParams.Destination.ToHex(), explicitAmount!.MilliSatoshi, null, maxFeeFlat }
-                    // xpay: invstring [amount_msat] [maxfee] [layers] [retry_for] [retry_for] [partial_msat] [maxdelay] [payer_note] [label] [localinvreqid]
-                    : new object[] { bolt11, explicitAmount?.MilliSatoshi, maxFeeFlat };
-                var response = await SendCommandAsync<CLightningPayResponse>(command, opts, false, cancellation: cts.Token);
+                object opts = isKeysend
+                    ? new { destination = payParams.Destination.ToHex(), amount_msat = explicitAmount!.MilliSatoshi, maxfee = maxFeeFlat }
+                    : new { invstring = bolt11, amount_msat = explicitAmount?.MilliSatoshi, maxfee = maxFeeFlat };
+                var response = await SendCommandAsync<CLightningPayResponse>(command, opts, false, cancellation: cts.Token, onSending: () => requestSent = true);
 
                 return new PayResponse(PayResult.Ok, new PayDetails
                 {
@@ -385,54 +426,87 @@ namespace BTCPayServer.Lightning.CLightning
                     Status = LightningPaymentStatus.Complete
                 });
             }
-            catch (LightningRPCException ex) when (
-                // specific payment errors
-                (ex.Code >= CLightningErrorCode.IN_PROGRESS && ex.Code <= CLightningErrorCode.STOPPED_RETRYING) ||
-                // general know error codes
-                ex.Code == CLightningErrorCode.WRONG_PARAMETERS || ex.Code == CLightningErrorCode.GENERAL_ERROR)
+            catch (LightningRPCException ex) when (IsPaymentFailure(ex.Code))
             {
                 var routingError = ex.Code == CLightningErrorCode.ROUTE_NOT_FOUND ||
-                                   (ex.Code == CLightningErrorCode.STOPPED_RETRYING && !ex.Message.Contains("invalid payload")) ||
-                                   (ex.Code == CLightningErrorCode.WRONG_PARAMETERS && ex.Message.Contains("Self-payment"));
+                                   (ex.Code == CLightningErrorCode.STOPPED_RETRYING && !ex.Message.Contains("invalid payload"));
                 var result =
                     routingError
                         ? PayResult.CouldNotFindRoute
                         : PayResult.Error;
                 return new PayResponse(result, ex.Message);
             }
+            catch (LightningRPCException ex)
+            {
+                // Any other error, -1 and the in-progress codes included, doesn't prove that nothing was sent.
+                return new PayResponse(PayResult.Unknown, ex.Message);
+            }
             catch (Exception ex) when (cts.Token.IsCancellationRequested && !cancellation.IsCancellationRequested)
             {
                 if (bolt11 != null)
-                {
-                    var pr = BOLT11PaymentRequest.Parse(bolt11, Network);
-                    var paymentHash = pr.PaymentHash?.ToString();
-                    var response = await GetPayment(paymentHash, cancellation);
-                    
-                    switch (response.Status)
-                    {
-                        case LightningPaymentStatus.Unknown:
-                        case LightningPaymentStatus.Pending:
-                            return new PayResponse(PayResult.Unknown, ex.Message);
-
-                        case LightningPaymentStatus.Failed:
-                            return new PayResponse(PayResult.Error, ex.Message);
-                        
-                        case LightningPaymentStatus.Complete:
-                            return new PayResponse(PayResult.Ok, new PayDetails
-                            {
-                                TotalAmount = response.AmountSent,
-                                FeeAmount = response.Fee,
-                                PaymentHash = new uint256(response.PaymentHash),
-                                Preimage = new uint256(response.Preimage),
-                                Status = response.Status
-                            });
-                        default:
-                            throw new ArgumentOutOfRangeException();
-                    }
-                }
+                    return await GetCompletePayment(bolt11, ex.Message, cancellation);
+            }
+            catch (Exception ex) when (requestSent && !cancellation.IsCancellationRequested)
+            {
+                // A broken connection, an HttpClient timeout or an answer that doesn't parse.
+                // The request may have reached lightningd, so the outcome is unknown.
+                return new PayResponse(PayResult.Unknown, ex.Message);
             }
             return new PayResponse(PayResult.Unknown);
         }
+
+        private async Task<PayResponse> GetCompletePayment(string bolt11, string errorDetail, CancellationToken cancellation)
+        {
+            try
+            {
+                var pr = BOLT11PaymentRequest.Parse(bolt11, Network);
+                var payments = await SendCommandAsync<CLightningPayment[]>("listpays", new { payment_hash = pr.PaymentHash?.ToString() }, false, true, cancellation);
+                // A failed entry can belong to an earlier attempt while the one we sent is still
+                // in flight, so only a complete payment settles the outcome.
+                var complete = payments.LastOrDefault(payment => payment.Status == "complete");
+                if (complete is null)
+                    return new PayResponse(PayResult.Unknown, errorDetail);
+                var response = ToLightningPayment(complete);
+                return new PayResponse(PayResult.Ok, new PayDetails
+                {
+                    TotalAmount = response.AmountSent,
+                    FeeAmount = response.Fee,
+                    PaymentHash = new uint256(response.PaymentHash),
+                    Preimage = new uint256(response.Preimage),
+                    Status = response.Status
+                });
+            }
+            catch (Exception ex) when (!cancellation.IsCancellationRequested)
+            {
+                // Any failure of the lookup, an RPC error or an answer that doesn't parse, leaves the outcome unknown.
+                return new PayResponse(PayResult.Unknown, ex.Message);
+            }
+        }
+
+        // The errors that prove nothing was sent. In plugins/xpay/xpay.c at v26.06.10, xpay returns
+        // them only before its first attempt, which new_attempt() counts with
+        // "attempt->partid = ++payment->total_num_attempts;" (line 1551).
+        // - -32602 from the parameter and invoice checks in json_xpay_params(), xpay_core() and
+        //   json_xkeysend(), and from common/json_param.c before the command runs.
+        // - 207 from xpay_core(), "if (now > invexpiry) return command_fail(cmd, PAY_INVOICE_EXPIRED," (line 2879).
+        // - 205 from check_onion_budget() and populate_private_layer(), which run before getroutes.
+        // - 205, 206 and 210 that getroutes_done_err() passes on only under
+        //   "if (payment->total_num_attempts == 0) { payment_give_up(aux_cmd, payment, code, ..." (line 1812).
+        // xpay.c has no PAY_ROUTE_TOO_EXPENSIVE or PAY_STOPPED_RETRYING of its own. Both come only from
+        // askrene's getroutes ("*ecode = PAY_STOPPED_RETRYING;" at plugins/askrene/child/mcf.c:1504, and
+        // "*ecode = PAY_ROUTE_TOO_EXPENSIVE;" at mcf.c:1656, 1680 and 1784). xpay passes a getroutes code
+        // on only under the check above. After an attempt it reports PAY_UNSPECIFIED_ERROR instead (line 1826),
+        // and its other passed on errors (forward_error) all come from fetchinvoice, fetchbip353 and the
+        // preapprove calls, which run before the payment starts.
+        // xpay gives up without waiting for parts in flight unless xpay-slow-mode is set
+        // ("if (!xpay->slow_mode) return true;" in should_finish_command(), line 454). So 203 from
+        // update_knowledge_from_error() and 209, which can follow an attempt, leave the outcome unknown.
+        static bool IsPaymentFailure(CLightningErrorCode code) => code is
+            CLightningErrorCode.WRONG_PARAMETERS or
+            CLightningErrorCode.ROUTE_NOT_FOUND or
+            CLightningErrorCode.ROUTE_TOO_EXPENSIVE or
+            CLightningErrorCode.INVOICE_EXPIRED or
+            CLightningErrorCode.STOPPED_RETRYING;
 
         async Task<PayResponse> ILightningClient.Pay(string bolt11, PayInvoiceParams payParams, CancellationToken cancellation)
         {
@@ -464,24 +538,19 @@ namespace BTCPayServer.Lightning.CLightning
             var expiry = Math.Max(0, (int)req.Expiry.TotalSeconds);
             var id = InvoiceIdEncoder.EncodeData(RandomUtils.GetBytes(20));
             
-            List<object> args = new List<object>();
-            args.Add(msat);
-            args.Add(id);
-            args.Add(req.Description ?? "");
-            args.Add(expiry);
-            args.Add(null); // [fallbacks]
-            args.Add(null); // [preimage]
-            args.Add(req.PrivateRouteHints);
-
-            if (req.DescriptionHashOnly)
+            var args = new
             {
-                args.Add(null); // [cltv]
-                args.Add(true);
-            }
+                amount_msat = msat,
+                label = id,
+                description = req.Description ?? "",
+                expiry,
+                exposeprivatechannels = req.PrivateRouteHints,
+                deschashonly = req.DescriptionHashOnly ? true : (bool?)null
+            };
 
             CLightningInvoice invoice = await SendCommandAsync<CLightningInvoice>(
                 "invoice",
-                args.ToArray(),
+                args,
                 cancellation: cancellation);
 
             if (invoice is null)
@@ -509,7 +578,7 @@ namespace BTCPayServer.Lightning.CLightning
 
         public async Task CancelInvoice(string invoiceId, CancellationToken cancellation = default)
         {
-            await SendCommandAsync<CLightningInvoice>("delinvoice", new object[] { invoiceId, "unpaid" }, cancellation: cancellation);
+            await SendCommandAsync<CLightningInvoice>("delinvoice", new { label = invoiceId, status = "unpaid" }, cancellation: cancellation);
         }
 
         async Task<LightningChannel[]> ILightningClient.ListChannels(CancellationToken cancellation)
@@ -592,9 +661,20 @@ namespace BTCPayServer.Lightning.CLightning
             }
         }
 
-        Task<ILightningInvoiceListener> ILightningClient.Listen(CancellationToken cancellation)
+        async Task<ILightningInvoiceListener> ILightningClient.Listen(CancellationToken cancellation)
         {
-            return Task.FromResult<ILightningInvoiceListener>(new CLightningInvoiceListener(this));
+            // Over clnrest each wait is short, and a payment can land between two waits. Starting
+            // from the newest pay_index lets the next wait return it.
+            var lastPayIndex = _rest is null
+                ? CLightningInvoiceListener.NextPayment
+                : await GetLastPayIndex(cancellation);
+            return new CLightningInvoiceListener(this, lastPayIndex);
+        }
+
+        private async Task<long> GetLastPayIndex(CancellationToken cancellation)
+        {
+            var invoices = await SendCommandAsync<CLightningInvoice[]>("listinvoices", null, false, true, cancellation);
+            return invoices.Select(invoice => (long?)invoice.PayIndex).Max() ?? 0;
         }
 
         async Task<LightningNodeInformation> ILightningClient.GetInfo(CancellationToken cancellation)
@@ -737,7 +817,15 @@ retry:
 
         public override string ToString()
         {
-            return $"type=clightning;server={Address}";
+            if (_rest is null)
+                return $"type=clightning;server={Address}";
+            var settings = _rest.Settings;
+            var builder = new StringBuilder($"type=clightning;server={settings.Server}");
+            if (settings.Rune != null)
+                builder.Append($";rune={settings.Rune}");
+            if (settings.RuneFilePath != null)
+                builder.Append($";runefilepath={settings.RuneFilePath}");
+            return builder.ToString();
         }
     }
 
@@ -745,26 +833,63 @@ retry:
     {
         CancellationTokenSource _Cts = new CancellationTokenSource();
         CLightningClient _Parent;
-        public CLightningInvoiceListener(CLightningClient parent)
+        public CLightningInvoiceListener(CLightningClient parent, long lastPayIndex)
         {
             if (parent == null)
                 throw new ArgumentNullException(nameof(parent));
             _Parent = parent;
+            lastInvoiceIndex = lastPayIndex;
         }
         public void Dispose()
         {
             _Cts.Cancel();
         }
 
-        long lastInvoiceIndex = 99999999999;
+        // Above any real pay_index, so the first wait returns the next payment.
+        internal const long NextPayment = 99999999999;
+        long lastInvoiceIndex;
+
+        // A server that answers INVOICE_WAIT_TIMED_OUT much sooner than asked must not make the loop spin.
+        static readonly TimeSpan RetryDelay = TimeSpan.FromSeconds(1);
+        // Over clnrest a broken request is retried, waiting twice as long each time, up to 30 seconds.
+        static readonly TimeSpan MaxFailureDelay = TimeSpan.FromSeconds(30);
 
         public async Task<LightningInvoice> WaitInvoice(CancellationToken cancellation)
         {
             using (var cancellation2 = CancellationTokenSource.CreateLinkedTokenSource(cancellation, _Cts.Token))
             {
-                var invoice = await _Parent.SendCommandAsync<CLightningInvoice>("waitanyinvoice", new object[] { lastInvoiceIndex }, cancellation: cancellation2.Token);
-                lastInvoiceIndex = invoice.PayIndex.Value;
-                return CLightningClient.ToLightningInvoice(invoice);
+                // Over clnrest each wait ends with INVOICE_WAIT_TIMED_OUT before HttpClient gives up.
+                // The socket keeps a single open wait, as before.
+                var timeout = _Parent.WaitAnyInvoiceTimeoutSeconds;
+                var failureDelay = RetryDelay;
+                while (true)
+                {
+                    var waiting = Stopwatch.StartNew();
+                    try
+                    {
+                        var invoice = await _Parent.SendCommandAsync<CLightningInvoice>("waitanyinvoice", new { lastpay_index = lastInvoiceIndex, timeout }, cancellation: cancellation2.Token);
+                        // Move the cursor only once the invoice converts, so a failure retries it instead of skipping it.
+                        var paid = CLightningClient.ToLightningInvoice(invoice);
+                        lastInvoiceIndex = invoice.PayIndex.Value;
+                        return paid;
+                    }
+                    catch (LightningRPCException ex) when (ex.Code == CLightningErrorCode.INVOICE_WAIT_TIMED_OUT)
+                    {
+                        failureDelay = RetryDelay;
+                        if (waiting.Elapsed < TimeSpan.FromSeconds(timeout.GetValueOrDefault() / 2.0))
+                            await Task.Delay(RetryDelay, cancellation2.Token);
+                    }
+                    catch (Exception ex) when (timeout != null
+                                               && ex is not LightningRPCException
+                                               && !cancellation2.IsCancellationRequested)
+                    {
+                        // A proxy error page, clnrest unable to reach lightningd, an HttpClient timeout,
+                        // an answer that doesn't parse or a rune file that can't be read. Only the caller's
+                        // cancellation and a lightningd error other than 904 end the wait.
+                        await Task.Delay(failureDelay, cancellation2.Token);
+                        failureDelay = TimeSpan.FromTicks(Math.Min(failureDelay.Ticks * 2, MaxFailureDelay.Ticks));
+                    }
+                }
             }
         }
     }
