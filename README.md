@@ -58,7 +58,7 @@ LightningInvoice invoice = await client.CreateInvoice(10000, "CanCreateInvoice",
 
 The `connectionString` encapsulates the necessary information BTCPay needs to connect to your Lightning node, we currently support:
 
-* `clightning` via TCP or unix domain socket connection
+* `clightning` via TCP or unix domain socket connection, or via clnrest with a rune
 * `LND` via the REST proxy
 * `Eclair` via their new REST API
 * `LNDhub` via their REST API
@@ -67,6 +67,9 @@ The `connectionString` encapsulates the necessary information BTCPay needs to co
 
 * `type=clightning;server=unix://root/.lightning/lightning-rpc`
 * `type=clightning;server=tcp://1.1.1.1:27743/`
+* `type=clightning;server=https://127.0.0.1:3010/;rune=tU-RLjMiDpY2U0o3W1oFowar36RFGpWloPbW9-RuZdo9MA==`
+* `type=clightning;server=https://127.0.0.1:3010/;runefilepath=/var/lib/btcpayserver/clightning.rune`
+* `type=clightning;server=http://10.10.0.2:3010/;rune=tU-RLjMiDpY2U0o3W1oFowar36RFGpWloPbW9-RuZdo9MA==`
 * `type=lnd-rest;server=http://mylnd:8080/;macaroonfilepath=/root/.lnd/invoice.macaroon`
 * `type=lnd-rest;server=https://mylnd:8080/;macaroon=abef263adfe...`
 * `type=lnd-rest;server=https://mylnd:8080/;macaroonfilepath=/root/.lnd/invoice.macaroon`
@@ -78,6 +81,27 @@ The `connectionString` encapsulates the necessary information BTCPay needs to co
 
 Note that `bitcoin-host` and `bitcoin-auth` are optional, only useful if you want to call `ILightningClient.GetDepositAddress` on Eclair.
 We expect this won't be needed in the future.
+
+##### Core Lightning notes
+
+An `http://` or `https://` server connects through the [clnrest](https://docs.corelightning.org/docs/rest) plugin.
+Use the root URL of clnrest and provide `rune` or `runefilepath`.
+Core Lightning 24.11 or newer is required.
+
+A rune can limit what BTCPay Server may do. For receiving payments:
+
+```bash
+lightning-cli -k createrune restrictions='[["method=getinfo","method=invoice","method=listinvoices","method=waitanyinvoice","method=delinvoice","method=listfunds","method=listpeerchannels"],["method/delinvoice","pnamestatus=unpaid"]]'
+```
+
+Paying invoices also needs `xpay` and `listpays`.
+To rotate a file-based rune, replace the file and revoke the old rune.
+
+Configure TLS validation and proxies on the supplied `HttpClient` handler; legacy TLS connection-string options are ignored.
+Self-signed certificates require platform trust or caller-configured validation.
+Use plain HTTP only in tightly controlled environments.
+Do not let untrusted users set `runefilepath`, since its contents are sent to the configured server.
+An injected `HttpClient` must not follow redirects, to avoid leaking the rune.
 
 ##### LND notes
 
