@@ -93,6 +93,8 @@ The `netstandard2.0` WebSocket API cannot use the supplied `HttpClient` and uses
 
 You can also use the `lndhub://` URL, which can be retrieved e.g. from the BlueWallet Export/Backup screen.
 The library turns it into the expected `type=lndhub` connection string format.
+HTTP and HTTPS endpoints are accepted without a connection-string opt-in; legacy TLS options are ignored.
+Configure transport security on the supplied `HttpClient` handler, and use plain HTTP only in tightly controlled environments.
 
 ### Using implementation specific class
 
