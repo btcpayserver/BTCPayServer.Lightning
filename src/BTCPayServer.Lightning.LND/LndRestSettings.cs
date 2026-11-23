@@ -17,13 +17,7 @@ namespace BTCPayServer.Lightning.LND
             Uri = uri;
         }
         public Uri Uri { get; set; }
-        /// <summary>
-        /// The SHA256 of the PEM certificate
-        /// </summary>
-        public byte[] CertificateThumbprint { get; set; }
-        public string CertificateFilePath { get; set; }
         public byte[] Macaroon { get; set; }
-        public bool AllowInsecure { get; set; }
         public string MacaroonFilePath { get; set; }
         public string MacaroonDirectoryPath { get; set; }
 
