@@ -214,7 +214,7 @@ namespace BTCPayServer.Lightning.LndHub
             };
             builder.UserName = _login;
             builder.Password = _password;
-            return $"type=lndhub;server={builder.Uri.AbsoluteUri}{(builder.Scheme != "https" ? ";allowinsecure=true" : "")}";
+            return $"type=lndhub;server={builder.Uri.AbsoluteUri}";
         }
     }
 }

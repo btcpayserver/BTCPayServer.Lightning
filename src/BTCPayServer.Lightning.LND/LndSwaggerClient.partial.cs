@@ -1,20 +1,9 @@
 using System;
-using System.Collections.Generic;
-using System.Diagnostics;
-using System.IO;
-using System.Linq;
 using System.Net.Http;
-using System.Net.Security;
 using System.Net.WebSockets;
-using System.Security.Authentication;
-using System.Security.Cryptography;
-using System.Security.Cryptography.X509Certificates;
-using System.Text;
 using System.Threading;
 using System.Threading.Tasks;
-using NBitcoin.DataEncoders;
 using Newtonsoft.Json;
-using Newtonsoft.Json.Linq;
 
 namespace BTCPayServer.Lightning.LND
 {
@@ -56,7 +45,7 @@ namespace BTCPayServer.Lightning.LND
             _LndSettings = settings;
             _Authentication = settings.CreateLndAuthentication();
             BaseUrl = settings.Uri.AbsoluteUri.TrimEnd('/');
-            _httpClient = CreateHttpClient(settings, _DefaultHttpClient);
+            _httpClient = CreateHttpClient();
             _settings = new System.Lazy<Newtonsoft.Json.JsonSerializerSettings>(() =>
             {
                 var json = new Newtonsoft.Json.JsonSerializerSettings();
@@ -72,76 +61,9 @@ namespace BTCPayServer.Lightning.LND
             _Authentication.AddAuthentication(request);
         }
 
-        internal static HttpClient CreateHttpClient(LndRestSettings settings, HttpClient defaultHttpClient)
-        {
-            // If certificate pinning or https disabled, we need to create a special HttpClientHandler
-            // But if that's not the case, we can just use the default httpclient
-            if (defaultHttpClient != null)
-            {
-                // If we allow insecure and want http, we don't need specific http handlers
-                if (settings.AllowInsecure)
-                {
-                    if (settings.Uri.Scheme == "http")
-                        return defaultHttpClient;
-                }
-                // If we do not allow insecure and want https and do not pin certificates, we don't need specific http handlers
-                else if (settings.CertificateThumbprint == null
-                         && settings.CertificateFilePath == null
-                         && settings.Uri.Scheme == "https")
-                {
-                    return defaultHttpClient;
-                }
-            }
-
-            var handler = new HttpClientHandler
-            {
-                SslProtocols = SslProtocols.Tls12
-            };
-
-            var expectedThumbprint = settings.CertificateThumbprint?.ToArray();
-            if (expectedThumbprint != null)
-            {
-                handler.ServerCertificateCustomValidationCallback = (request, cert, chain, errors) =>
-                {
-                    var actualCert = chain.ChainElements[chain.ChainElements.Count - 1].Certificate;
-                    var hash = GetHash(actualCert);
-                    return hash.SequenceEqual(expectedThumbprint);
-                };
-            } else if (settings.CertificateFilePath != null) {
-#if !NO_PEM_IMPORT
-                handler.ServerCertificateCustomValidationCallback = (request, cert, chain, errors) =>
-                {
-                    if (cert == null) throw new ArgumentNullException("cert");
-                    var expectedCollection = new X509Certificate2Collection();
-                    expectedCollection.ImportFromPemFile(settings.CertificateFilePath);
-                    return expectedCollection.Contains(cert);
-                };
-#else
-                throw new NotSupportedException("CertificateFilePath is supported only from .NET6.0");
-#endif
-            }
-
-            if (settings.AllowInsecure)
-            {
-                handler.ServerCertificateCustomValidationCallback = (request, cert, chain, errors) => true;
-            }
-            else
-            {
-                if (settings.Uri.Scheme == "http")
-                    throw new InvalidOperationException("AllowInsecure is set to false, but the URI is not using https");
-            }
-            return new HttpClient(handler);
-        }
-
-        private static byte[] GetHash(X509Certificate2 cert)
-        {
-            using HashAlgorithm alg = SHA256.Create();
-            return alg.ComputeHash(cert.RawData);
-        }
-
         internal HttpClient CreateHttpClient()
         {
-            return LndSwaggerClient.CreateHttpClient(_LndSettings, _DefaultHttpClient);
+            return _DefaultHttpClient ?? new HttpClient();
         }
 
         internal ClientWebSocket CreateClientWebSocket()
@@ -159,38 +81,6 @@ namespace BTCPayServer.Lightning.LND
                     socket.Options.SetRequestHeader(header.Key, string.Join(",", header.Value));
             }
 
-#if !NET7_0_OR_GREATER
-            var expectedThumbprint = _LndSettings.CertificateThumbprint?.ToArray();
-            if (expectedThumbprint != null)
-            {
-                SetRemoteCertificateValidationCallback(socket.Options, (sender, cert, chain, errors) =>
-                {
-                    var actualCert = chain.ChainElements[chain.ChainElements.Count - 1].Certificate;
-                    return GetHash(actualCert).SequenceEqual(expectedThumbprint);
-                });
-            }
-            else if (_LndSettings.CertificateFilePath != null)
-            {
-#if !NO_PEM_IMPORT
-                SetRemoteCertificateValidationCallback(socket.Options, (sender, cert, chain, errors) =>
-                {
-                    if (cert == null)
-                        return false;
-                    var expectedCollection = new X509Certificate2Collection();
-                    expectedCollection.ImportFromPemFile(_LndSettings.CertificateFilePath);
-                    return expectedCollection.Contains(cert);
-                });
-#else
-                throw new NotSupportedException("CertificateFilePath is supported only from .NET6.0");
-#endif
-            }
-
-            if (_LndSettings.AllowInsecure && _LndSettings.Uri.Scheme == "https")
-                SetRemoteCertificateValidationCallback(socket.Options, (sender, cert, chain, errors) => true);
-            else if (!_LndSettings.AllowInsecure && _LndSettings.Uri.Scheme == "http")
-                throw new InvalidOperationException("AllowInsecure is set to false, but the URI is not using https");
-#endif
-
             return socket;
         }
 
@@ -200,19 +90,6 @@ namespace BTCPayServer.Lightning.LND
             return socket.ConnectAsync(uri, _httpClient, cancellationToken);
 #else
             return socket.ConnectAsync(uri, cancellationToken);
-#endif
-        }
-
-        private static void SetRemoteCertificateValidationCallback(ClientWebSocketOptions options,
-            RemoteCertificateValidationCallback callback)
-        {
-#if NETSTANDARD2_0
-            var property = options.GetType().GetProperty("RemoteCertificateValidationCallback");
-            if (property == null)
-                throw new PlatformNotSupportedException("This runtime does not support custom WebSocket certificate validation");
-            property.SetValue(options, callback);
-#else
-            options.RemoteCertificateValidationCallback = callback;
 #endif
         }
 

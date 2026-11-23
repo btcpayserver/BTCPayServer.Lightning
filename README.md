@@ -67,10 +67,9 @@ The `connectionString` encapsulates the necessary information BTCPay needs to co
 
 * `type=clightning;server=unix://root/.lightning/lightning-rpc`
 * `type=clightning;server=tcp://1.1.1.1:27743/`
-* `type=lnd-rest;server=http://mylnd:8080/;macaroonfilepath=/root/.lnd/invoice.macaroon;allowinsecure=true`
+* `type=lnd-rest;server=http://mylnd:8080/;macaroonfilepath=/root/.lnd/invoice.macaroon`
 * `type=lnd-rest;server=https://mylnd:8080/;macaroon=abef263adfe...`
-* `type=lnd-rest;server=https://mylnd:8080/;macaroon=abef263adfe...;certthumbprint=abef263adfe...`
-* `type=lnd-rest;server=https://mylnd:8080/;macaroonfilepath=/root/.lnd/invoice.macaroon;certfilepath=/var/lib/lnd/tls.cert`
+* `type=lnd-rest;server=https://mylnd:8080/;macaroonfilepath=/root/.lnd/invoice.macaroon`
 * `type=eclair;server=http://127.0.0.1:4570;password=eclairpass`
 * `type=eclair;server=http://127.0.0.1:4570;password=eclairpass;bitcoin-host=bitcoin.host;bitcoin-auth=btcpass`
 * `type=lndhub;server=https://login:password@lndhub.io`
@@ -82,26 +81,20 @@ We expect this won't be needed in the future.
 
 ##### LND notes
 
-Unless the LND certificate is trusted by your machine you need to set the server authentication scheme for LND by specifying one of: `certthumbprint`, `certfilepath`, `allowinsecure=true`.
+LND uses the supplied `HttpClient` for HTTP requests and, on .NET 7 or later, WebSocket connections.
+Configure certificate validation, certificate pinning, proxies, and any insecure TLS behavior on that client's HTTP handler.
+Without a supplied client, normal platform HTTP/TLS defaults apply. Self-signed certificates must be trusted by the platform or explicitly handled by the caller's HTTP handler.
 
-`certfilepath` and `certthumbprint` are equivalent in terms of security but differ in their practical usage.
-`certfilepath` reads a file on your file system so unless you set up some kind of file syncing you can not use it for remote connections.
-The advantage is that if the certificate is updated (and synced in case of a remote machine) no more reconfiguration is required for RPC connections to continue to work.
-It is therefore the recommended option if you can use it.
-
-The `certthumbprint` to connect to your LND node can be obtained through this command line:
-
-```bash
-openssl x509 -noout -fingerprint -sha256 -in /root/.lnd/tls.cert | sed -e 's/.*=//;s/://g'
-```
-
-`allowinsecure=true` just blindly accepts any server connection and is therefore not secure unless used in tightly controlled environments.
-E.g. host is the same machine or is accessed over an encrypted tunnel, assuming no untrusted entities can bind the specified port.
+Legacy TLS connection-string options are accepted but ignored; they do not bypass certificate validation.
+Plain HTTP endpoints are accepted, but should only be used in tightly controlled environments, such as a local connection or an encrypted tunnel.
+The `netstandard2.0` WebSocket API cannot use the supplied `HttpClient` and uses platform defaults instead.
 
 ##### LNDhub notes
 
 You can also use the `lndhub://` URL, which can be retrieved e.g. from the BlueWallet Export/Backup screen.
 The library turns it into the expected `type=lndhub` connection string format.
+HTTP and HTTPS endpoints are accepted without a connection-string opt-in; legacy TLS options are ignored.
+Configure transport security on the supplied `HttpClient` handler, and use plain HTTP only in tightly controlled environments.
 
 ### Using implementation specific class
 

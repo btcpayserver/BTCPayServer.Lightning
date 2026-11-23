@@ -1,5 +1,4 @@
 ﻿using System;
-using System.Linq;
 using System.Net.Http;
 using NBitcoin;
 
@@ -40,7 +39,6 @@ public class LndConnectionStringHandler : ILightningConnectionStringHandler
 
         string username = null;
         string password = null;
-        byte[] certificateThumbprint = null;
         var parts = uri.UserInfo.Split(':');
         if (!string.IsNullOrEmpty(uri.UserInfo) && parts.Length == 2)
         {
@@ -81,60 +79,8 @@ public class LndConnectionStringHandler : ILightningConnectionStringHandler
         }
 
 
-        string securitySet = null;
-        if (kv.TryGetValue("certthumbprint", out var certthumbprint))
-        {
-            try
-            {
-                var bytes = ConvertHelper.FromHexString(certthumbprint.Replace(":", string.Empty));
-                if (bytes.Length != 32)
-                {
-                    error =
-                        $"The key 'certthumbprint' has invalid length: it should be the SHA256 of the PEM format of the certificate (32 bytes)";
-                    return null;
-                }
-
-                certificateThumbprint = bytes;
-            }
-            catch
-            {
-                error =
-                    $"The key 'certthumbprint' has invalid format: it should be the SHA256 of the PEM format of the certificate";
-                return null;
-            }
-
-            securitySet = "certthumbprint";
-        }
-
-        if (kv.TryGetValue("certfilepath", out var certificateFilePath))
-        {
-            if (securitySet != null)
-            {
-                error = $"The key 'certfilepath' conflict with '{securitySet}'";
-                return null;
-            }
-
-            securitySet = "certfilepath";
-        }
-
-        bool allowInsecure = false;
-        if (kv.TryGetValue("allowinsecure", out var allowinsecureStr))
-        {
-            var allowedValues = new[] {"true", "false"};
-            if (!allowedValues.Any(v => v.Equals(allowinsecureStr, StringComparison.OrdinalIgnoreCase)))
-            {
-                error = "The key 'allowinsecure' should be true or false";
-                return null;
-            }
-
-            allowInsecure = allowinsecureStr.Equals("true", StringComparison.OrdinalIgnoreCase);
-        }
-
-        if (!LightningConnectionStringHelper.VerifySecureEndpoint(uri, allowInsecure))
-        {
-            error = "The key 'allowinsecure' is false, but server's Uri is not using https";
-            return null;
-        }
+        // Legacy TLS options are intentionally ignored. TLS configuration belongs
+        // to the caller's HttpClient handler, not to the connection string.
 
         error = null;
         return new LndClient(new LndSwaggerClient(new LndRestSettings(uri)
@@ -142,10 +88,6 @@ public class LndConnectionStringHandler : ILightningConnectionStringHandler
             Macaroon = macaroonData,
             MacaroonFilePath = macaroonFilePath,
             MacaroonDirectoryPath = macaroonDirectoryPath,
-            CertificateThumbprint = certificateThumbprint,
-            CertificateFilePath = certificateFilePath,
-            AllowInsecure = allowInsecure,
-            
         }, _httpClient), network);
     }
 }

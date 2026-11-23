@@ -1,5 +1,4 @@
 ﻿using System;
-using System.Linq;
 using System.Net.Http;
 using BTCPayServer.Lightning.LndHub;
 using NBitcoin;
@@ -25,7 +24,7 @@ public class LndHubConnectionStringHandler : ILightningConnectionStringHandler
         }
             
         // transform into connection string format
-        transformedConnectionString = $"type=lndhub;server={uri.AbsoluteUri}" + (uri.Scheme == "http" ? ";allowinsecure=true" : "");
+        transformedConnectionString = $"type=lndhub;server={uri.AbsoluteUri}";
         error = null;
         return true; 
     }
@@ -55,24 +54,8 @@ public class LndHubConnectionStringHandler : ILightningConnectionStringHandler
             return null;
         }
 
-        bool allowInsecure = false;
-        if (kv.TryGetValue("allowinsecure", out var allowinsecureStr))
-        {
-            var allowedValues = new[] {"true", "false"};
-            if (!allowedValues.Any(v => v.Equals(allowinsecureStr, StringComparison.OrdinalIgnoreCase)))
-            {
-                error = "The key 'allowinsecure' should be true or false";
-                return null;
-            }
-
-            allowInsecure = allowinsecureStr.Equals("true", StringComparison.OrdinalIgnoreCase);
-        }
-
-        if (!LightningConnectionStringHelper.VerifySecureEndpoint(uri, allowInsecure))
-        {
-            error = "The key 'allowinsecure' is false, but server's Uri is not using https";
-            return null;
-        }
+        // Legacy TLS options are ignored. Transport security is configured by
+        // the caller's HttpClient handler.
         
         var parts = uri.UserInfo.Split(':');
         string username = null;

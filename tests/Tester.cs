@@ -23,14 +23,14 @@ namespace BTCPayServer.Lightning.Tests
         internal static LndClient CreateLndClient(HttpClient httpClient = null)
         {
             var host = BaseTests.Docker ? "http://lnd:8080" : "http://127.0.0.1:32736";
-            var settings = new LndRestSettings { AllowInsecure = true, Uri = new Uri(host) };
+            var settings = new LndRestSettings { Uri = new Uri(host) };
             return new LndClient(new LndSwaggerClient(settings, httpClient), Network.RegTest);
         }
 
         internal static LndClient CreateLndClientDest()
         {
             var host = BaseTests.Docker ? "http://lnd_dest:8080" : "http://127.0.0.1:42802";
-            return new LndClient(new LndRestSettings { AllowInsecure = true, Uri = new Uri(host) }, Network.RegTest);
+            return new LndClient(new LndRestSettings { Uri = new Uri(host) }, Network.RegTest);
         }
 
         private static CLightningClient CreateCLightningClient()
