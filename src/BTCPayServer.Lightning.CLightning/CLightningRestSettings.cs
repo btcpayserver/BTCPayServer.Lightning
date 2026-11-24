@@ -18,8 +18,7 @@ public class CLightningRestSettings
     }
 
     /// <summary>
-    /// The base URL of clnrest, optionally including a reverse-proxy path prefix, without a query or fragment.
-    /// A missing trailing slash is added when building request URLs.
+    /// The URL of clnrest, without a query or fragment.
     /// </summary>
     public Uri Server { get; set; }
     /// <summary>

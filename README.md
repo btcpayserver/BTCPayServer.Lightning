@@ -85,14 +85,7 @@ We expect this won't be needed in the future.
 ##### Core Lightning notes
 
 An `http://` or `https://` server connects through the [clnrest](https://docs.corelightning.org/docs/rest) plugin.
-Use the base URL of clnrest and provide `rune` or `runefilepath`.
-Reverse-proxy path prefixes are supported, with or without a trailing slash:
-
-```text
-type=clightning;server=https://btcpay.example.com/clightning-rest/btc/;rune=<rune>
-```
-
-Calls append `v1/<method>` to this base URL. Queries and fragments are not allowed.
+Use the URL of clnrest and provide `rune` or `runefilepath`.
 Core Lightning 24.11 or newer is required.
 
 A rune can limit what BTCPay Server may do. For receiving payments:
