@@ -815,18 +815,6 @@ retry:
             return new LightningNodeBalance(onchain, offchain);
         }
 
-        public override string ToString()
-        {
-            if (_rest is null)
-                return $"type=clightning;server={Address}";
-            var settings = _rest.Settings;
-            var builder = new StringBuilder($"type=clightning;server={settings.Server}");
-            if (settings.Rune != null)
-                builder.Append($";rune={settings.Rune}");
-            if (settings.RuneFilePath != null)
-                builder.Append($";runefilepath={settings.RuneFilePath}");
-            return builder.ToString();
-        }
     }
 
     class CLightningInvoiceListener : ILightningInvoiceListener

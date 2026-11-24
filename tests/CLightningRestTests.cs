@@ -889,7 +889,6 @@ namespace BTCPayServer.Lightning.Tests
                     connectionString + options, Network.Main, out var error));
 
                 Assert.Null(error);
-                Assert.Equal(connectionString, client.ToString());
                 await client.GetInfoAsync();
                 Assert.Single(clnrest.Requests);
                 Assert.Equal(Rune, clnrest.Requests[0].Rune);

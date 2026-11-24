@@ -475,15 +475,5 @@ namespace BTCPayServer.Lightning.Eclair
             }).ToArray();
         }
 
-        public override string ToString()
-        {
-            var result= $"type=eclair;server={_address}";
-            if (_username is { })
-                result += $";username={_username}";
-            if (_password is { })
-                result += $";password={_password}";
-            return result;
-            
-        }
     }
 }

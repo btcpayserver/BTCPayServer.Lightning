@@ -337,18 +337,6 @@ namespace BTCPayServer.Lightning.Phoenixd
             throw new NotSupportedException();
         }
 
-        public override string ToString()
-        {
-            var result= $"type=phoenixd;server={_address}";
-            if (_username is { })
-                result += $";username={_username}";
-            if (_creds is PhoenixdCredentials.ByPassword { Password: { } password })
-                result += $";password={password}";
-            if (_creds is PhoenixdCredentials.ByPasswordFile passwordFile)
-                result += $";passwordfilepath={passwordFile.PasswordFilePath}";
-            return result;
-        }
-
         internal class PhoenixdApiException : Exception
         {
             public PhoenixdApiError Error { get; set; }

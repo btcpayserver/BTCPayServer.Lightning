@@ -993,14 +993,12 @@ retry:
             Assert.Equal($"{pkObj}@[2a03:4000:2:b2::2]:9735", ipv6.ToString());
         }
 
-        private void ParseCreateAndCheckConsistency(ILightningClientFactory lightningClientFactory,
-            string connectionStringToCheck, string expectedConnectionString)
+        private void ParseCreateAndCheckAddress(ILightningClientFactory lightningClientFactory,
+            string connectionStringToCheck, string expectedAddress)
         {
 
             Assert.True(lightningClientFactory.TryCreate(connectionStringToCheck, out var conn, out _));
-            Assert.Equal(expectedConnectionString, conn.ToString());
-            Assert.True(lightningClientFactory.TryCreate(conn.ToString(), out conn, out _));
-            Assert.Equal(expectedConnectionString, conn.ToString());
+            Assert.Equal(expectedAddress, Assert.IsType<CLightningClient>(conn).Address.ToString());
         }
 
         [Fact]
@@ -1009,9 +1007,9 @@ retry:
             var network = Tester.Network;
             ILightningClientFactory factory = new LightningClientFactory(network);
 
-            ParseCreateAndCheckConsistency(factory, "/test/a", "type=clightning;server=unix://test/a");
-            ParseCreateAndCheckConsistency(factory, "unix://test/a", "type=clightning;server=unix://test/a");
-            ParseCreateAndCheckConsistency(factory, "tcp://test/a", "type=clightning;server=tcp://test/a");
+            ParseCreateAndCheckAddress(factory, "/test/a", "unix://test/a");
+            ParseCreateAndCheckAddress(factory, "unix://test/a", "unix://test/a");
+            ParseCreateAndCheckAddress(factory, "tcp://test/a", "tcp://test/a");
             Assert.False(factory.TryCreate("lol://aaa:bbb@test/a", out var conn, out _));
             Assert.False(factory.TryCreate("http://aaa:bbb@test/a", out conn, out _));
             Assert.False(factory.TryCreate("http://api-token:bbb@test/a", out conn, out _));
@@ -1040,10 +1038,9 @@ retry:
             Assert.True(factory.TryCreate(lndUri2, out var conn2, out _));
             Assert.True(factory.TryCreate(lndUri3, out var conn3, out _));
             Assert.True(factory.TryCreate(lndUri4, out var conn4, out _));
-            Assert.Equal(lndUri4, conn4.ToString());
             Assert.Equal("path", Assert.IsType<LndClient>(conn4).SwaggerClient._LndSettings.MacaroonDirectoryPath);
-            Assert.Equal(conn2.ToString(), conn.ToString());
-            Assert.Equal($"type=lnd-rest;server=https://lnd:lnd@127.0.0.1:53280/;macaroon={macaroon}", conn.ToString());
+            Assert.Equal(Assert.IsType<LndClient>(conn2).SwaggerClient._LndSettings.Uri,
+                Assert.IsType<LndClient>(conn).SwaggerClient._LndSettings.Uri);
             // Assert.Equal(LightningConnectionType.LndREST, conn.ConnectionType);
 
             Assert.Equal(macaroon, Encoders.Hex.EncodeData(Assert.IsType<LndClient>(conn).SwaggerClient._LndSettings.Macaroon));
@@ -1054,15 +1051,15 @@ retry:
 
             // clnrest
             var rune = "tU-RLjMiDpY2U0o3W1oFowar36RFGpWloPbW9-RuZdo9MA==";
-            ParseCreateAndCheckConsistency(factory,
+            ParseCreateAndCheckAddress(factory,
                 $"type=clightning;server=https://127.0.0.1:3010;rune={rune};certthumbprint={certthumbprint2}",
-                $"type=clightning;server=https://127.0.0.1:3010/;rune={rune}");
-            ParseCreateAndCheckConsistency(factory,
+                "https://127.0.0.1:3010/");
+            ParseCreateAndCheckAddress(factory,
                 $"type=clightning;server=https://127.0.0.1:3010/;runefilepath=/run/btcpayserver/clightning.rune;certthumbprint={certthumbprint}",
-                $"type=clightning;server=https://127.0.0.1:3010/;runefilepath=/run/btcpayserver/clightning.rune");
-            ParseCreateAndCheckConsistency(factory,
+                "https://127.0.0.1:3010/");
+            ParseCreateAndCheckAddress(factory,
                 $"type=clightning;server=http://10.10.0.2:3010/;rune={rune};allowinsecure=true",
-                $"type=clightning;server=http://10.10.0.2:3010/;rune={rune}");
+                "http://10.10.0.2:3010/");
             Assert.True(factory.TryCreate($"type=clightning;server=http://10.10.0.2:3010/;rune={rune}", out conn, out _));
             Assert.False(factory.TryCreate($"type=clightning;server=tcp://127.0.0.1:9835/;rune={rune}", out conn, out _));
         }
