@@ -43,22 +43,15 @@ namespace BTCPayServer.Lightning.LND
             {
                 if (filePath == null)
                     throw new ArgumentNullException(nameof(filePath));
-                // Because this dump the whole file, let's make sure it is indeed the macaroon
-                if (!filePath.EndsWith(".macaroon", StringComparison.OrdinalIgnoreCase))
-                    throw new ArgumentException(message: "filePath is not a macaroon file", paramName: nameof(filePath));
                 FilePath = filePath;
             }
             public string FilePath { get; set; }
             public override void AddAuthentication(HttpRequestMessage httpRequest)
             {
-                try
-                {
-                    var bytes = File.ReadAllBytes(FilePath);
-                    httpRequest.Headers.Add("Grpc-Metadata-macaroon", Encoders.Hex.EncodeData(bytes));
-                }
-                catch
-                {
-                }
+                var bytes = File.ReadAllBytes(FilePath);
+                if (!MacaroonFormat.IsValid(bytes))
+                    throw new InvalidDataException($"The macaroon file '{FilePath}' is not a valid binary macaroon");
+                httpRequest.Headers.Add("Grpc-Metadata-macaroon", Encoders.Hex.EncodeData(bytes));
             }
         }
 

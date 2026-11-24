@@ -77,6 +77,14 @@ The `connectionString` encapsulates the necessary information BTCPay needs to co
 * `type=eclair;server=http://127.0.0.1:4570;password=eclairpass;bitcoin-host=bitcoin.host;bitcoin-auth=btcpass`
 * `type=lndhub;server=https://login:password@lndhub.io`
 
+Credential files may have any filename or extension. Their contents are validated when read, not when parsing the connection string:
+
+* `macaroonfilepath` expects a binary V1 or V2 macaroon, not hex or Base64 text.
+* `passwordfilepath` (Phoenixd) expects a nonempty, single-line UTF-8 password. Surrounding whitespace is trimmed; embedded control characters are rejected.
+* `runefilepath` expects a URL-safe Base64 rune.
+
+Unreadable or malformed credential files fail authentication locally. Format checks do not verify credentials or make arbitrary file paths safe: only trusted users should configure credential file paths and server URLs.
+
 ##### Eclair notes
 
 Note that `bitcoin-host` and `bitcoin-auth` are optional, only useful if you want to call `ILightningClient.GetDepositAddress` on Eclair.

@@ -9,10 +9,13 @@ namespace BTCPayServer.Lightning.Tests
 {
     public class PhoenixdConnectionStringTests
     {
-        [Fact]
-        public void PasswordFileIsReadForEachAuthentication()
+        [Theory]
+        [InlineData("")]
+        [InlineData(".txt")]
+        [InlineData(".pwd")]
+        public void PasswordFileIsReadForEachAuthentication(string extension)
         {
-            var passwordFile = Path.Combine(Path.GetTempPath(), $"{Guid.NewGuid()}.pwd");
+            var passwordFile = Path.Combine(Path.GetTempPath(), $"{Guid.NewGuid()}{extension}");
             try
             {
                 File.WriteAllText(passwordFile, " first-password\r\n");
@@ -47,21 +50,53 @@ namespace BTCPayServer.Lightning.Tests
             Assert.Equal("The key 'password' is already specified", error);
         }
 
-        [Fact]
-        public void PasswordFileMustUsePwdExtension()
+        [Theory]
+        [InlineData("/nonexistent/secret")]
+        [InlineData("/nonexistent/secret.txt")]
+        [InlineData("/nonexistent/secret.PWD")]
+        public void PasswordFileIsNotReadByHandler(string path)
         {
             var handler = new PhoenixdConnectionStringHandler();
 
-            var client = handler.Create(
-                "type=phoenixd;server=http://localhost:9740;passwordfilepath=/tmp/secret.txt",
-                Network.RegTest, out var error);
-
-            Assert.Null(client);
-            Assert.Equal("The key 'passwordfilepath' should point to a .pwd file", error);
             Assert.NotNull(handler.Create(
-                "type=phoenixd;server=http://localhost:9740;passwordfilepath=/tmp/secret.PWD",
-                Network.RegTest, out error));
+                $"type=phoenixd;server=http://localhost:9740;passwordfilepath={path}",
+                Network.RegTest, out var error));
             Assert.Null(error);
+        }
+
+        [Theory]
+        [InlineData("password\nanother-password")]
+        [InlineData("password\0")]
+        [InlineData("pass\tword")]
+        public void InvalidPasswordFileContentsFailAuthentication(string contents)
+        {
+            var path = Path.Combine(Path.GetTempPath(), Guid.NewGuid().ToString());
+            try
+            {
+                var credentials = new PhoenixdCredentials.ByPasswordFile(path);
+                File.WriteAllText(path, contents);
+                Assert.Throws<InvalidDataException>(() => credentials.CreateAuthenticationHeaderValue(null));
+            }
+            finally
+            {
+                File.Delete(path);
+            }
+        }
+
+        [Fact]
+        public void InvalidUtf8PasswordFileFailsAuthentication()
+        {
+            var path = Path.Combine(Path.GetTempPath(), Guid.NewGuid().ToString());
+            try
+            {
+                File.WriteAllBytes(path, new byte[] { 0xff, 0xfe, 0x41, 0 });
+                var credentials = new PhoenixdCredentials.ByPasswordFile(path);
+                Assert.Throws<DecoderFallbackException>(() => credentials.CreateAuthenticationHeaderValue(null));
+            }
+            finally
+            {
+                File.Delete(path);
+            }
         }
 
         [Fact]

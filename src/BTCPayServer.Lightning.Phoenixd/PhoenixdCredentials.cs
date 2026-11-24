@@ -37,9 +37,15 @@ public abstract record PhoenixdCredentials
         public string PasswordFilePath { get; set; }
         protected override string GetPassword()
         {
-            var password = File.ReadAllText(PasswordFilePath).Trim();
+            var password = new UTF8Encoding(false, true).GetString(File.ReadAllBytes(PasswordFilePath))
+                .TrimStart('\uFEFF').Trim();
             if (password.Length == 0)
                 throw new InvalidOperationException($"The password file '{PasswordFilePath}' is empty");
+            foreach (var character in password)
+            {
+                if (char.IsControl(character))
+                    throw new InvalidDataException($"The password file '{PasswordFilePath}' must contain a single-line password without control characters");
+            }
             return password;
         }
     }

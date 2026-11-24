@@ -69,13 +69,6 @@ public class LndConnectionStringHandler : ILightningConnectionStringHandler
                 error = $"The key 'macaroon' is already specified";
                 return null;
             }
-
-            if (!macaroonFilePath.EndsWith(".macaroon", StringComparison.OrdinalIgnoreCase))
-            {
-                error = $"The key 'macaroonfilepath' should point to a .macaroon file";
-                return null;
-            }
-            
         }
 
 

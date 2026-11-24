@@ -45,12 +45,6 @@ public class PhoenixdConnectionStringHandler : ILightningConnectionStringHandler
                 return null;
             }
 
-            if (!passwordFilePath.EndsWith(".pwd", StringComparison.OrdinalIgnoreCase))
-            {
-                error = "The key 'passwordfilepath' should point to a .pwd file";
-                return null;
-            }
-
             credentials = new PhoenixdCredentials.ByPasswordFile(passwordFilePath);
         }
         else
