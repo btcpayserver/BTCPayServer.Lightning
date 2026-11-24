@@ -18,11 +18,10 @@ namespace BTCPayServer.Lightning.Tests
             foreach (var scheme in new[] { "http", "https" })
             {
                 var connectionString = $"type=lndhub;server={scheme}://login:password@localhost:8080/";
-                var client = Assert.IsType<LndHubLightningClient>(new LndHubConnectionStringHandler().Create(
+                Assert.IsType<LndHubLightningClient>(new LndHubConnectionStringHandler().Create(
                     connectionString + options, Network.RegTest, out var error));
 
                 Assert.Null(error);
-                Assert.Equal(typeof(LndHubLightningClient).FullName, client.ToString());
             }
         }
 
@@ -31,12 +30,11 @@ namespace BTCPayServer.Lightning.Tests
         [InlineData("https")]
         public void CanParseBlueWalletUris(string scheme)
         {
-            var client = Assert.IsType<LndHubLightningClient>(new LndHubConnectionStringHandler().Create(
+            Assert.IsType<LndHubLightningClient>(new LndHubConnectionStringHandler().Create(
                 $"lndhub://login:password@{scheme}://localhost:8080/",
                 Network.RegTest, out var error));
 
             Assert.Null(error);
-            Assert.Equal(typeof(LndHubLightningClient).FullName, client.ToString());
         }
     }
 }

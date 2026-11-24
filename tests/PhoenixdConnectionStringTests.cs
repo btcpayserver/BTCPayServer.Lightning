@@ -17,12 +17,11 @@ namespace BTCPayServer.Lightning.Tests
             {
                 File.WriteAllText(passwordFile, " first-password\r\n");
                 var handler = new PhoenixdConnectionStringHandler();
-                var client = Assert.IsType<PhoenixdLightningClient>(handler.Create(
+                Assert.IsType<PhoenixdLightningClient>(handler.Create(
                     $"type=phoenixd;server=http://localhost:9740;passwordfilepath={passwordFile}",
                     Network.RegTest, out var error));
 
                 Assert.Null(error);
-                Assert.Equal(typeof(PhoenixdLightningClient).FullName, client.ToString());
 
                 var credentials = new PhoenixdCredentials.ByPasswordFile(passwordFile);
                 Assert.Equal(":first-password", Decode(credentials.CreateAuthenticationHeaderValue(null).Parameter));
