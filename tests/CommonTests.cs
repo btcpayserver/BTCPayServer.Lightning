@@ -135,6 +135,25 @@ namespace BTCPayServer.Lightning.Tests
             }
         }
 
+        [Fact(Timeout = Timeout)]
+        public async Task PayingCancelledCoreLightningInvoiceFails()
+        {
+            foreach (var test in Tester.GetTestedPairs())
+            {
+                if (test.Customer is not CLightningClient)
+                    continue;
+                await EnsureConnectedToDestinations(test);
+                var invoice = await test.Merchant.CreateInvoice(LightMoney.Satoshis(21),
+                    nameof(PayingCancelledCoreLightningInvoiceFails), TimeSpan.FromMinutes(5));
+                await test.Merchant.CancelInvoice(invoice.Id);
+
+                var response = await test.Customer.Pay(invoice.BOLT11);
+
+                Assert.Equal(PayResult.Error, response.Result);
+                Assert.Null(await test.Merchant.GetInvoice(invoice.Id));
+            }
+        }
+
         [Fact]
         public async Task CanCreateInvoiceUsingConnectionString()
         {

@@ -55,7 +55,6 @@ namespace BTCPayServer.Lightning.Tests
         [Theory]
         [InlineData(-32602, PayResult.Error)]
         [InlineData(205, PayResult.CouldNotFindRoute)]
-        [InlineData(203, PayResult.Unknown)]
         [InlineData(-1, PayResult.Unknown)]
         [InlineData(200, PayResult.Unknown)]
         public async Task SocketPayOnlyFailsWhenNothingWasSent(int code, PayResult expected)
@@ -63,6 +62,19 @@ namespace BTCPayServer.Lightning.Tests
             PayResponse response = null;
             await CaptureRequest(async client => response = await ((ILightningClient)client).Pay(CLightningPayTests.AmountInvoice),
                 Error($"{{\"code\":{code},\"message\":\"Failed\"}}"));
+
+            Assert.Equal(expected, response.Result);
+        }
+
+        [Theory]
+        [InlineData("failed", PayResult.Error)]
+        [InlineData("pending", PayResult.Unknown)]
+        public async Task SocketDestinationFailureReconcilesPayment(string status, PayResult expected)
+        {
+            PayResponse response = null;
+            await CaptureRequest(async client => response = await ((ILightningClient)client).Pay(CLightningPayTests.AmountInvoice),
+                Error("{\"code\":203,\"message\":\"Destination said it doesn't know invoice\"}"),
+                Result($"{{\"pays\":[{{\"status\":\"{status}\"}}]}}"));
 
             Assert.Equal(expected, response.Result);
         }
@@ -113,7 +125,7 @@ namespace BTCPayServer.Lightning.Tests
             }, CancellationToken.None));
         }
 
-        private static async Task<JObject> CaptureRequest(Func<CLightningClient, Task> call, string response = null)
+        private static async Task<JObject> CaptureRequest(Func<CLightningClient, Task> call, string response = null, string lookupResponse = null)
         {
             var listener = new TcpListener(IPAddress.Loopback, 0);
             try
@@ -132,6 +144,18 @@ namespace BTCPayServer.Lightning.Tests
                 using var textWriter = new StreamWriter(stream, new UTF8Encoding(false), 1024, true);
                 await textWriter.WriteAsync(response ?? Result("{}"));
                 await textWriter.FlushAsync();
+                if (lookupResponse != null)
+                {
+                    using var lookupClient = await listener.AcceptTcpClientAsync();
+                    using var lookupStream = lookupClient.GetStream();
+                    using var lookupReader = new StreamReader(lookupStream, Encoding.UTF8, false, 1024, true);
+                    using var lookupJsonReader = new JsonTextReader(lookupReader);
+                    var lookup = await JObject.LoadAsync(lookupJsonReader);
+                    Assert.Equal("listpays", lookup["method"].Value<string>());
+                    using var lookupWriter = new StreamWriter(lookupStream, new UTF8Encoding(false), 1024, true);
+                    await lookupWriter.WriteAsync(lookupResponse);
+                    await lookupWriter.FlushAsync();
+                }
                 await callTask;
                 return request;
             }

@@ -434,7 +434,7 @@ namespace BTCPayServer.Lightning.Tests
             return Convert.ToBase64String(bytes).Replace('+', '-').Replace('/', '_');
         }
 
-        // Only the codes that xpay returns before it sends any part are final.
+        // Only the codes that xpay returns before it sends any part are immediately final.
         // Any other code, even from a proxy that forges one, leaves the payout pending.
         [Theory]
         [InlineData(-32602, PayResult.Error)]
@@ -480,6 +480,93 @@ namespace BTCPayServer.Lightning.Tests
 
             Assert.Equal(PayResult.Unknown, response.Result);
             Assert.Contains($"HTTP {(int)status}", response.ErrorDetail);
+        }
+
+        [Theory]
+        [InlineData("failed", PayResult.Error)]
+        [InlineData("pending", PayResult.Unknown)]
+        [InlineData("complete", PayResult.Ok)]
+        [InlineData("unrecognized", PayResult.Unknown)]
+        [InlineData(null, PayResult.Unknown)]
+        public async Task DestinationFailureReconcilesPayment(string status, PayResult expected)
+        {
+            var pays = new JObject
+            {
+                ["pays"] = status == null ? new JArray() : new JArray(new JObject
+                {
+                    ["payment_hash"] = AmountInvoiceHash,
+                    ["status"] = status,
+                    ["amount_msat"] = 250_000_000,
+                    ["amount_sent_msat"] = 250_001_000,
+                    ["preimage"] = new string('2', 64)
+                })
+            };
+            var clnrest = new FakeClnRest(
+                Respond(HttpStatusCode.InternalServerError, "{\"code\":203,\"message\":\"Destination said it doesn't know invoice\"}"),
+                Respond(HttpStatusCode.Created, pays.ToString()));
+
+            var response = await ((ILightningClient)CreateClient(clnrest)).Pay(AmountInvoice);
+
+            Assert.Equal(expected, response.Result);
+            Assert.Equal(new[] { "xpay", "listpays" }, clnrest.Requests.Select(r => r.Uri.Segments.Last()));
+            Assert.Equal(AmountInvoiceHash, JObject.Parse(clnrest.Requests[1].Body)["payment_hash"].Value<string>());
+            if (expected == PayResult.Error)
+                Assert.Contains("doesn't know invoice", response.ErrorDetail);
+        }
+
+        [Theory]
+        [InlineData("pending", PayResult.Unknown)]
+        [InlineData("failed", PayResult.Error)]
+        [InlineData("complete", PayResult.Ok)]
+        public async Task DestinationFailureConsidersAllRecords(string status, PayResult expected)
+        {
+            var pays = new JObject
+            {
+                ["pays"] = new JArray(
+                    new JObject { ["status"] = "failed" },
+                    new JObject
+                    {
+                        ["payment_hash"] = AmountInvoiceHash,
+                        ["status"] = status,
+                        ["amount_msat"] = 250_000_000,
+                        ["amount_sent_msat"] = 250_001_000,
+                        ["preimage"] = new string('2', 64)
+                    })
+            };
+            var clnrest = new FakeClnRest(
+                Respond(HttpStatusCode.InternalServerError, "{\"code\":203,\"message\":\"Destination failed\"}"),
+                Respond(HttpStatusCode.Created, pays.ToString()));
+
+            var response = await ((ILightningClient)CreateClient(clnrest)).Pay(AmountInvoice);
+
+            Assert.Equal(expected, response.Result);
+        }
+
+        [Theory]
+        [InlineData(HttpStatusCode.InternalServerError, "{\"code\":-1,\"message\":\"Lookup failed\"}")]
+        [InlineData(HttpStatusCode.Created, "{\"pays\":{}}")]
+        [InlineData(HttpStatusCode.Created, "{\"pays\":[{\"status\":\"complete\",\"payment_hash\":\"zz\"}]}")]
+        public async Task DestinationFailureIsUnknownWhenLookupFails(HttpStatusCode status, string body)
+        {
+            var clnrest = new FakeClnRest(
+                Respond(HttpStatusCode.InternalServerError, "{\"code\":203,\"message\":\"Destination failed\"}"),
+                Respond(status, body));
+
+            var response = await ((ILightningClient)CreateClient(clnrest)).Pay(AmountInvoice);
+
+            Assert.Equal(PayResult.Unknown, response.Result);
+            Assert.Equal(2, clnrest.Requests.Count);
+        }
+
+        [Fact]
+        public async Task DestinationFailureLookupHonorsCallerCancellation()
+        {
+            var clnrest = new FakeClnRest(
+                Respond(HttpStatusCode.InternalServerError, "{\"code\":203,\"message\":\"Destination failed\"}")).Then(Hang);
+            using var cts = new CancellationTokenSource(TimeSpan.FromMilliseconds(300));
+
+            await Assert.ThrowsAnyAsync<OperationCanceledException>(() =>
+                ((ILightningClient)CreateClient(clnrest)).Pay(AmountInvoice, cts.Token));
         }
 
         // After SendTimeout, a failed listpays entry can belong to an earlier attempt while the

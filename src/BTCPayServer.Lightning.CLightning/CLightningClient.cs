@@ -436,6 +436,12 @@ namespace BTCPayServer.Lightning.CLightning
                         : PayResult.Error;
                 return new PayResponse(result, ex.Message);
             }
+            catch (LightningRPCException ex) when (ex.Code == CLightningErrorCode.DESTINATION_PERM_FAIL && bolt11 != null)
+            {
+                // xpay has stopped retrying, but other parts may still be in flight.
+                // listpays aggregates the parts: only a confirmed failure is final.
+                return await ReconcilePayment(bolt11, ex.Message, cancellation, acceptFailed: true);
+            }
             catch (LightningRPCException ex)
             {
                 // Any other error, -1 and the in-progress codes included, doesn't prove that nothing was sent.
@@ -444,7 +450,7 @@ namespace BTCPayServer.Lightning.CLightning
             catch (Exception ex) when (cts.Token.IsCancellationRequested && !cancellation.IsCancellationRequested)
             {
                 if (bolt11 != null)
-                    return await GetCompletePayment(bolt11, ex.Message, cancellation);
+                    return await ReconcilePayment(bolt11, ex.Message, cancellation);
             }
             catch (Exception ex) when (requestSent && !cancellation.IsCancellationRequested)
             {
@@ -455,17 +461,20 @@ namespace BTCPayServer.Lightning.CLightning
             return new PayResponse(PayResult.Unknown);
         }
 
-        private async Task<PayResponse> GetCompletePayment(string bolt11, string errorDetail, CancellationToken cancellation)
+        private async Task<PayResponse> ReconcilePayment(string bolt11, string errorDetail, CancellationToken cancellation, bool acceptFailed = false)
         {
             try
             {
                 var pr = BOLT11PaymentRequest.Parse(bolt11, Network);
                 var payments = await SendCommandAsync<CLightningPayment[]>("listpays", new { payment_hash = pr.PaymentHash?.ToString() }, false, true, cancellation);
-                // A failed entry can belong to an earlier attempt while the one we sent is still
-                // in flight, so only a complete payment settles the outcome.
+                // After a timeout, xpay may still be routing even if older entries all failed.
+                // After DESTINATION_PERM_FAIL it has stopped retrying, so failed records with
+                // no pending parts also settle the outcome. Empty or unfamiliar results do not.
                 var complete = payments.LastOrDefault(payment => payment.Status == "complete");
                 if (complete is null)
-                    return new PayResponse(PayResult.Unknown, errorDetail);
+                    return new PayResponse(acceptFailed && payments.Length > 0 && payments.All(payment => payment.Status == "failed")
+                        ? PayResult.Error
+                        : PayResult.Unknown, errorDetail);
                 var response = ToLightningPayment(complete);
                 return new PayResponse(PayResult.Ok, new PayDetails
                 {
@@ -500,7 +509,7 @@ namespace BTCPayServer.Lightning.CLightning
         // preapprove calls, which run before the payment starts.
         // xpay gives up without waiting for parts in flight unless xpay-slow-mode is set
         // ("if (!xpay->slow_mode) return true;" in should_finish_command(), line 454). So 203 from
-        // update_knowledge_from_error() and 209, which can follow an attempt, leave the outcome unknown.
+        // update_knowledge_from_error() needs reconciliation, and 209 leaves the outcome unknown.
         static bool IsPaymentFailure(CLightningErrorCode code) => code is
             CLightningErrorCode.WRONG_PARAMETERS or
             CLightningErrorCode.ROUTE_NOT_FOUND or
