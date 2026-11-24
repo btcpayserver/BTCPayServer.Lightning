@@ -22,21 +22,21 @@ namespace BTCPayServer.Lightning.Tests
                     connectionString + options, Network.RegTest, out var error));
 
                 Assert.Null(error);
-                Assert.Equal(connectionString, client.ToString());
+                Assert.Equal(typeof(LndHubLightningClient).FullName, client.ToString());
             }
         }
 
         [Theory]
         [InlineData("http")]
         [InlineData("https")]
-        public void BlueWalletUrisDoNotEmitLegacyTlsOptions(string scheme)
+        public void CanParseBlueWalletUris(string scheme)
         {
             var client = Assert.IsType<LndHubLightningClient>(new LndHubConnectionStringHandler().Create(
                 $"lndhub://login:password@{scheme}://localhost:8080/",
                 Network.RegTest, out var error));
 
             Assert.Null(error);
-            Assert.Equal($"type=lndhub;server={scheme}://login:password@localhost:8080/", client.ToString());
+            Assert.Equal(typeof(LndHubLightningClient).FullName, client.ToString());
         }
     }
 }

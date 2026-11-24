@@ -22,8 +22,7 @@ namespace BTCPayServer.Lightning.Tests
                     Network.RegTest, out var error));
 
                 Assert.Null(error);
-                Assert.Contains($"passwordfilepath={passwordFile}", client.ToString());
-                Assert.DoesNotContain("first-password", client.ToString());
+                Assert.Equal(typeof(PhoenixdLightningClient).FullName, client.ToString());
 
                 var credentials = new PhoenixdCredentials.ByPasswordFile(passwordFile);
                 Assert.Equal(":first-password", Decode(credentials.CreateAuthenticationHeaderValue(null).Parameter));

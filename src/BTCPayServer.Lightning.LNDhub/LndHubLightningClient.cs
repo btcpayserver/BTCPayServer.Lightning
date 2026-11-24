@@ -205,16 +205,5 @@ namespace BTCPayServer.Lightning.LndHub
             throw new NotSupportedException();
         }
 
-        public override string ToString()
-        {
-            var builder = new UriBuilder(_baseUri)
-            {
-                UserName = "",
-                Password = ""
-            };
-            builder.UserName = _login;
-            builder.Password = _password;
-            return $"type=lndhub;server={builder.Uri.AbsoluteUri}";
-        }
     }
 }

@@ -31,7 +31,6 @@ namespace BTCPayServer.Lightning.Tests
                     connectionString + options, Network.RegTest, out var error));
 
                 Assert.Null(error);
-                Assert.Equal(connectionString, client.ToString());
                 // Payment streams use this factory too and must keep the injected client.
                 Assert.Same(httpClient, client.SwaggerClient.CreateHttpClient());
                 await client.SwaggerClient.GetInfoAsync();
@@ -60,7 +59,7 @@ namespace BTCPayServer.Lightning.Tests
             using var httpClient = client.SwaggerClient.CreateHttpClient();
             using var socket = client.SwaggerClient.CreateClientWebSocket();
             Assert.Null(socket.Options.RemoteCertificateValidationCallback);
-            Assert.Equal($"type=lnd-rest;server={scheme}://localhost:8080/", client.ToString());
+            Assert.Equal(new Uri($"{scheme}://localhost:8080/"), client.SwaggerClient._LndSettings.Uri);
         }
 
         private sealed class TrackingHandler : HttpMessageHandler
