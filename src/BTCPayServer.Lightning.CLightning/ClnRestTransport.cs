@@ -17,6 +17,7 @@ class ClnRestTransport
     private static readonly HttpClient SharedClient = new(new HttpClientHandler { AllowAutoRedirect = false });
 
     private readonly HttpClient _httpClient;
+    private readonly Uri _server;
     private readonly SemaphoreSlim _runeLock = new(1, 1);
     private string _cachedRune;
 
@@ -24,13 +25,16 @@ class ClnRestTransport
     {
         if (settings.Server == null)
             throw new ArgumentException("The server is mandatory", nameof(settings));
-        if (!IsRootUrl(settings.Server))
-            throw new ArgumentException("The server should be the root URL of clnrest, without a path, query or fragment", nameof(settings));
+        if (!IsBaseUrl(settings.Server))
+            throw new ArgumentException("The server should be the base URL of clnrest, without a query or fragment", nameof(settings));
         if ((settings.Rune == null) == (settings.RuneFilePath == null))
             throw new ArgumentException("Exactly one of Rune and RuneFilePath should be set", nameof(settings));
         if (settings.Server.Scheme != "http" && settings.Server.Scheme != "https")
             throw new ArgumentException("The server should use http:// or https://", nameof(settings));
         Settings = settings;
+        _server = new Uri(settings.Server.AbsoluteUri.EndsWith("/", StringComparison.Ordinal)
+            ? settings.Server.AbsoluteUri
+            : settings.Server.AbsoluteUri + "/");
         _httpClient = httpClient ?? SharedClient;
         if (_httpClient.Timeout != Timeout.InfiniteTimeSpan && _httpClient.Timeout < MinHttpClientTimeout)
             throw new ArgumentException($"The HttpClient timeout should be at least {MinHttpClientTimeout.TotalSeconds} seconds for clnrest", nameof(httpClient));
@@ -57,11 +61,11 @@ class ClnRestTransport
     // A wait of 1 second still has to end before the HttpClient gives up.
     internal static readonly TimeSpan MinHttpClientTimeout = TimeSpan.FromSeconds(2);
 
-    // clnrest serves /v1/<method> at the root. Without a path, query or fragment on the server,
-    // the request can't reach any other path.
-    internal static bool IsRootUrl(Uri server)
+    // A reverse proxy may serve clnrest under a path prefix. Queries and fragments
+    // are not part of the base URL, including empty '?' and '#' delimiters.
+    internal static bool IsBaseUrl(Uri server)
     {
-        return server.AbsoluteUri == server.GetLeftPart(UriPartial.Authority) + "/";
+        return server.IsAbsoluteUri && server.AbsoluteUri == server.GetLeftPart(UriPartial.Path);
     }
 
     // Response text can come from any service the server URL points at, so error messages
@@ -76,7 +80,7 @@ class ClnRestTransport
         for (var attempt = 0; ; attempt++)
         {
             cancellation.ThrowIfCancellationRequested();
-            using var request = new HttpRequestMessage(HttpMethod.Post, new Uri(Settings.Server, "v1/" + method));
+            using var request = new HttpRequestMessage(HttpMethod.Post, new Uri(_server, "v1/" + method));
             request.Content = new StringContent(parameters.ToString(Formatting.None), Encoding.UTF8, "application/json");
             request.Headers.Accept.Add(new MediaTypeWithQualityHeaderValue("application/json"));
             request.Headers.Add("rune", rune);

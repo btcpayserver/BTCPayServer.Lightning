@@ -53,9 +53,9 @@ public class CLightningConnectionStringHandler : ILightningConnectionStringHandl
 
         if (uri.Scheme == "http" || uri.Scheme == "https")
         {
-            if (!ClnRestTransport.IsRootUrl(uri))
+            if (!ClnRestTransport.IsBaseUrl(uri))
             {
-                error = "The key 'server' should be the root URL of clnrest, without a path, query or fragment";
+                error = "The key 'server' should be the base URL of clnrest, without a query or fragment";
                 return null;
             }
             return CreateRestClient(uri, kv, network, out error);
