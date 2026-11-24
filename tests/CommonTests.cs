@@ -149,7 +149,23 @@ namespace BTCPayServer.Lightning.Tests
 
                 var response = await test.Customer.Pay(invoice.BOLT11);
 
-                Assert.Equal(PayResult.Error, response.Result);
+                if (response.Result == PayResult.Unknown)
+                {
+                    // xpay can report the rejection before listpays records the final failure.
+                    // Observe the existing payment rather than trying to pay the invoice again.
+                    var payment = await test.Customer.GetPayment(invoice.PaymentHash);
+                    for (var attempt = 0; attempt < 50 && payment?.Status == LightningPaymentStatus.Pending; attempt++)
+                    {
+                        await Task.Delay(100);
+                        payment = await test.Customer.GetPayment(invoice.PaymentHash);
+                    }
+                    Assert.NotNull(payment);
+                    Assert.Equal(LightningPaymentStatus.Failed, payment.Status);
+                }
+                else
+                {
+                    Assert.Equal(PayResult.Error, response.Result);
+                }
                 Assert.Null(await test.Merchant.GetInvoice(invoice.Id));
             }
         }
