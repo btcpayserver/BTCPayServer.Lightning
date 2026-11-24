@@ -745,7 +745,7 @@ retry:
                 var senderChannels = await test.Customer.ListChannels();
                 var senderInfo = await test.Customer.GetInfo();
                 Assert.NotEmpty(senderChannels);
-                Assert.Single(senderChannels.Where(s => s.IsActive));
+                Assert.Single(senderChannels, s => s.IsActive);
 
                 var destChannels = await test.Merchant.ListChannels();
                 var destInfo = await test.Merchant.GetInfo();
