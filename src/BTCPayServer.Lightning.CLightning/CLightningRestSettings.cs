@@ -18,7 +18,7 @@ public class CLightningRestSettings
     }
 
     /// <summary>
-    /// The root URL of clnrest, without a path, query or fragment.
+    /// The URL of clnrest, without a query or fragment.
     /// </summary>
     public Uri Server { get; set; }
     /// <summary>

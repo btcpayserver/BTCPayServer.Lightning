@@ -919,11 +919,10 @@ namespace BTCPayServer.Lightning.Tests
         }
 
         [Theory]
-        [InlineData("https://127.0.0.1:3010/clnrest")]
         [InlineData("https://127.0.0.1:3010/?")]
         [InlineData("https://127.0.0.1:3010/#")]
         [InlineData("https://127.0.0.1:3010/x?a=b#c")]
-        public void RejectsServerWithPathQueryOrFragment(string server)
+        public void RejectsServerWithQueryOrFragment(string server)
         {
             var settings = new CLightningRestSettings(new Uri(server)) { Rune = Rune };
 
@@ -997,11 +996,10 @@ namespace BTCPayServer.Lightning.Tests
 
         [Theory]
         [InlineData("type=clightning;server=https://127.0.0.1:3010/", "The key 'rune' or 'runefilepath' is mandatory for clnrest")]
-        [InlineData("type=clightning;server=https://127.0.0.1:3010/clnrest;rune=abc", "The key 'server' should be the root URL of clnrest, without a path, query or fragment")]
-        [InlineData("type=clightning;server=https://127.0.0.1:3010/?;rune=abc", "The key 'server' should be the root URL of clnrest, without a path, query or fragment")]
-        [InlineData("type=clightning;server=https://127.0.0.1:3010/#;rune=abc", "The key 'server' should be the root URL of clnrest, without a path, query or fragment")]
-        [InlineData("type=clightning;server=https://127.0.0.1:3010?a=b;rune=abc", "The key 'server' should be the root URL of clnrest, without a path, query or fragment")]
-        [InlineData("type=clightning;server=https://internal:8443/admin/rotate-keys?;rune=abc", "The key 'server' should be the root URL of clnrest, without a path, query or fragment")]
+        [InlineData("type=clightning;server=https://127.0.0.1:3010/?;rune=abc", "The key 'server' should be the base URL of clnrest, without a query or fragment")]
+        [InlineData("type=clightning;server=https://127.0.0.1:3010/#;rune=abc", "The key 'server' should be the base URL of clnrest, without a query or fragment")]
+        [InlineData("type=clightning;server=https://127.0.0.1:3010?a=b;rune=abc", "The key 'server' should be the base URL of clnrest, without a query or fragment")]
+        [InlineData("type=clightning;server=https://internal:8443/admin/rotate-keys?;rune=abc", "The key 'server' should be the base URL of clnrest, without a query or fragment")]
         [InlineData("type=clightning;server=https://127.0.0.1:3010/;rune=abc;runefilepath=/tmp/a.rune", "The key 'rune' is already specified")]
         [InlineData("type=clightning;server=tcp://127.0.0.1:9835/;rune=abc", "The keys 'rune' and 'runefilepath' need a clnrest server starting by http:// or https://")]
         [InlineData("type=clightning;server=unix://root/.lightning/lightning-rpc;runefilepath=/tmp/a.rune", "The keys 'rune' and 'runefilepath' need a clnrest server starting by http:// or https://")]
