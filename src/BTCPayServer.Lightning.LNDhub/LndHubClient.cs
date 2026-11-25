@@ -163,11 +163,11 @@ namespace BTCPayServer.Lightning.LndHub
             var data = JsonConvert.DeserializeObject<TResponse>(str);
             
             // Handle edge case: LNDhub returns only the PaymentData in case of self-payment
-            if (path == "payinvoice" && data is PaymentResponse { Decoded: null })
+            if (path == "payinvoice" && data is PaymentResponse { Decoded: null } paymentResponse)
             {
                 var resp = new PaymentResponse
                 {
-                    PaymentError = "",
+                    PaymentError = paymentResponse.PaymentError ?? "",
                     Decoded = JsonConvert.DeserializeObject<PaymentData>(str)
                 };
                 if (resp.PaymentRoute?.Fee is null && resp.AdditionalProperties?.TryGetValue("fee", out var weirdlyPlaceFeeProp) is true)

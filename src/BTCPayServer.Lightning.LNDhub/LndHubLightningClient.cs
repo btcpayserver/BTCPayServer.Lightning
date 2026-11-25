@@ -154,6 +154,34 @@ namespace BTCPayServer.Lightning.LndHub
                 var pr = BOLT11PaymentRequest.Parse(bolt11, _network);
                 var payAmount = payParams?.Amount ?? pr.MinimumAmount;
                 var response = await Client.Pay(bolt11, payParams, cancellation);
+                if (!string.IsNullOrEmpty(response.PaymentError))
+                {
+                    // Exact pre-send rejections from LNbits v1.7.1, wrapped by its LNDhub extension.
+                    // These prove only that THIS call sent nothing, not that an earlier call did not pay.
+                    // https://github.com/lnbits/lnbits/blob/v1.7.1/lnbits/core/services/payments.py
+                    // Anything else may have occurred after submission and must remain Unknown.
+                    var result = response.PaymentError switch
+                    {
+                        "Invalid invoice" or
+                        "Payment failed. (Only incoming payments allowed.)" or
+                        "Payment failed. (Bolt11 decoding failed.)" or
+                        "Payment failed. (Amountless invoices not supported.)" or
+                        "Payment failed. (Missig invoice amount.)" or
+                        "Payment failed. (Missing invoice amount.)" or
+                        "Payment failed. (Wallet does not have permission to pay invoices.)" or
+                        "Payment failed. (It is not allowed to spend funds from this server.)" or
+                        "Payment failed. (Server is shutting down.)" or
+                        "Payment failed. (Internal payment not found.)" or
+                        "Payment failed. (Invalid invoice. Bolt11 changed.)" or
+                        "Payment failed. (Insufficient balance.)" or
+                        "Payment failed. (Internal invoice already paid.)" or
+                        "Payment failed. (Payment already paid.)" or
+                        "Payment failed. (Failed payment was already paid on the fundingsource.)" or
+                        "Payment failed. (Payment is failed node, retrying is not possible.)" => PayResult.Error,
+                        _ => PayResult.Unknown
+                    };
+                    return new PayResponse(result, response.PaymentError);
+                }
                 var totalAmount = response.Decoded?.Amount;
                 var feeAmount = response.PaymentRoute?.FeeMsat ??
                                 (totalAmount is null ? null : totalAmount - payAmount);
