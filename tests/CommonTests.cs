@@ -1042,9 +1042,6 @@ retry:
             var network = Tester.Network;
             ILightningClientFactory factory = new LightningClientFactory(network);
 
-            ParseCreateAndCheckAddress(factory, "/test/a", "unix://test/a");
-            ParseCreateAndCheckAddress(factory, "unix://test/a", "unix://test/a");
-            ParseCreateAndCheckAddress(factory, "tcp://test/a", "tcp://test/a");
             Assert.False(factory.TryCreate("lol://aaa:bbb@test/a", out var conn, out _));
             Assert.False(factory.TryCreate("http://aaa:bbb@test/a", out conn, out _));
             Assert.False(factory.TryCreate("http://api-token:bbb@test/a", out conn, out _));
@@ -1076,7 +1073,6 @@ retry:
             Assert.Equal("path", Assert.IsType<LndClient>(conn4).SwaggerClient._LndSettings.MacaroonDirectoryPath);
             Assert.Equal(Assert.IsType<LndClient>(conn2).SwaggerClient._LndSettings.Uri,
                 Assert.IsType<LndClient>(conn).SwaggerClient._LndSettings.Uri);
-            // Assert.Equal(LightningConnectionType.LndREST, conn.ConnectionType);
 
             Assert.Equal(macaroon, Encoders.Hex.EncodeData(Assert.IsType<LndClient>(conn).SwaggerClient._LndSettings.Macaroon));
             // Legacy TLS options are ignored, including for plain HTTP endpoints.

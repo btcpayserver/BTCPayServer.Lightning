@@ -47,24 +47,20 @@ namespace BTCPayServer.Lightning
     {
         public static Dictionary<string, string> ExtractValues(string connectionString, out string type)
         {
-            if (!TryParseLegacy(connectionString, out var keyValues))
+            var parts = connectionString.Split(new [] { ';' }, StringSplitOptions.RemoveEmptyEntries);
+            var keyValues = new Dictionary<string, string>();
+            foreach (var part in parts.Select(p => p.Trim()))
             {
-                var parts = connectionString.Split(new [] { ';' }, StringSplitOptions.RemoveEmptyEntries);
-                keyValues = new Dictionary<string, string>();
-                foreach (var part in parts.Select(p => p.Trim()))
+                var idx = part.IndexOf('=');
+                if (idx == -1)
                 {
-                    var idx = part.IndexOf('=');
-                    if (idx == -1)
-                    {
-                        throw new FormatException("The format of the connectionString should a list of key=value delimited by semicolon");
-                    }
-                    var key = part.Substring(0, idx).Trim().ToLowerInvariant();
-                    var value = part.Substring(idx + 1).Trim();
-                    if (keyValues.ContainsKey(key))
-                    {
-                        throw new FormatException($"Duplicate key {key}");
-                    }
-                    keyValues.Add(key, value);
+                    throw new FormatException("The format of the connectionString should a list of key=value delimited by semicolon");
+                }
+                var key = part.Substring(0, idx).Trim().ToLowerInvariant();
+                var value = part.Substring(idx + 1).Trim();
+                if (!keyValues.TryAdd(key, value))
+                {
+                    throw new FormatException($"Duplicate key {key}");
                 }
             }
             if (!keyValues.TryGetValue("type", out type))
@@ -72,53 +68,6 @@ namespace BTCPayServer.Lightning
                 throw new FormatException("The key 'type' is mandatory");
             }
             return keyValues;
-        }
-
-
-        public static  bool VerifySecureEndpoint(Uri uri, bool allowInsecure)
-        {
-            return uri.Scheme== "https" || allowInsecure || uri.Host.EndsWith("onion");
-        }
-        
-         private static bool TryParseLegacy(string str, out Dictionary<string, string> connectionString)
-        {
-            if (str.StartsWith("/"))
-                str = "unix:" + str;
-            var result = new Dictionary<string, string>();
-            connectionString = null;
-
-            Uri uri;
-            if (!Uri.TryCreate(str, UriKind.Absolute, out uri))
-            {
-                return false;
-            }
-
-            var supportedDomains = new string[] { "unix", "tcp" };
-            if (!supportedDomains.Contains(uri.Scheme))
-            {
-                return false;
-            }
-            if (uri.Scheme == "unix")
-            {
-                str = uri.AbsoluteUri.Substring("unix:".Length);
-                while (str.Length >= 1 && str[0] == '/')
-                {
-                    str = str.Substring(1);
-                }
-                uri = new Uri("unix://" + str, UriKind.Absolute);
-                result.Add("type", "clightning");
-            }
-
-            if (uri.Scheme == "tcp")
-                result.Add("type", "clightning");
-
-            if (!string.IsNullOrEmpty(uri.UserInfo))
-            {
-                return false;
-            }
-            result.Add("server",new UriBuilder(uri) { UserName = "", Password = "" }.Uri.ToString());
-            connectionString = result;
-            return true;
         }
     }
 }

@@ -76,9 +76,6 @@ namespace BTCPayServer.Lightning.CLightning
         {
             get;
         }
-
-        [Obsolete("Use Code instead")]
-        public int ErrorCode => (int)Code;
     }
     public class CLightningClient : ILightningClient
     {
